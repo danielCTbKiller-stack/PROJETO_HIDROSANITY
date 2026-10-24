@@ -1,0 +1,28 @@
+# Ambiente Python
+.venv/
+__pycache__/
+*.pyc
+
+# Configuração local do Claude Code / editor
+.claude/
+
+# Temporários do draw.io e do QGIS
+fluxo/.$*
+*.qgz~
+*.gpkg-shm
+*.gpkg-wal
+*.gpkg-journal
+
+# Gerados pelo motor a cada simulação (recriados automaticamente)
+REV 0.1.0/cadastro/*.inp
+REV 0.1.0/modelo/cadastro.inp
+
+# Telemetria e cópias de segurança da calibração (dados operacionais, não código)
+*_telemetria.sqlite
+*_antes_calibracao_*.gpkg
+
+# Saídas dos testes (recriadas por testes/teste_importacao.py)
+REV 0.1.0/testes/shp_teste/*
+!REV 0.1.0/testes/shp_teste/config_importacao.json
+REV 0.1.0/cadastro/teste_importado.gpkg
+REV 0.1.0/cadastro/GWATER_teste_importado.qgz

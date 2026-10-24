@@ -1,0 +1,13 @@
+[general]
+name=GWATER
+qgisMinimumVersion=3.28
+qgisMaximumVersion=4.99
+supportsQt6=True
+description=Valida e simula no EPANET a rede de água do cadastro GWATER.
+about=Plugin do projeto piloto GWATER. Valida a topologia do cadastro, roda o EPANET (via WNTR, no Python do projeto), colore pressões e velocidades no mapa com linha do tempo de 24 h e abre o Centro de Operações no navegador.
+version=0.1.0
+author=GWATER
+email=danielpalomares29071997@gmail.com
+icon=icones/gwater.svg
+experimental=True
+category=Plugins

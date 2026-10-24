@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Operação ao Vivo · GWATER</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;600&family=Rajdhani:wght@500;600;700&display=swap">
+<style>
+/* Mesma identidade visual das outras telas */
+:root{
+  --bg:#050f24; --panel:#0a1d3e; --panel2:#0d2650; --line:#16427a; --grid:#17345f;
+  --text:#e8f2ff; --muted:#86a3c9; --cyan:#35d0ff; --ok:#3ddc97; --warn:#ffb547; --crit:#ff6b7a; --violet:#a78bfa;
+  --display:'Rajdhani','Arial Narrow',sans-serif; --body:'IBM Plex Sans',system-ui,sans-serif; --mono:'IBM Plex Mono',ui-monospace,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);background-image:radial-gradient(1200px 500px at 70% -10%,#0c2f66 0%,transparent 60%);
+  color:var(--text);font:14px var(--body);padding:16px max(16px,env(safe-area-inset-right)) 16px max(16px,env(safe-area-inset-left))}
+.wrap{max-width:1400px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+.card{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:10px;padding:14px;min-width:0}
+header{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center;justify-content:space-between}
+.brand{display:flex;gap:12px;align-items:center}
+h1{font:700 22px/1.1 var(--display);letter-spacing:.04em;margin:0}
+h2{font:600 13px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--cyan);margin:0}
+.sub{color:var(--muted);font-size:12px;margin:2px 0 0;line-height:1.5}
+.right{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.chip{font:600 10.5px var(--mono);letter-spacing:.06em;padding:5px 9px;border-radius:99px;border:1px solid var(--line);color:var(--muted);background:#08183398;white-space:nowrap}
+.chip.ok{color:var(--ok);border-color:#1f7a5a}.chip.warn{color:var(--warn);border-color:#8a5d17}.chip.crit{color:var(--crit);border-color:#8a2a38}
+.chip.vivo::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:currentColor;margin-right:6px;vertical-align:1px;animation:pulse 1.6s infinite}
+@keyframes pulse{50%{opacity:.25}}
+#clock{font:600 28px var(--display);letter-spacing:.04em;font-variant-numeric:tabular-nums;text-align:right}
+#clock small{display:block;font:400 10.5px var(--mono);color:var(--muted);letter-spacing:.06em}
+nav.tabs{display:flex;gap:6px;flex-wrap:wrap}
+nav.tabs a{font:600 12px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);text-decoration:none;padding:8px 14px;border:1px solid var(--line);border-radius:8px;background:#08183398}
+nav.tabs a.on{color:var(--cyan);border-color:var(--cyan)}
+button,select,input[type=number]{font:600 12px var(--body);color:var(--text);background:#0b2a58;border:1px solid var(--line);border-radius:8px;padding:8px 12px}
+button{cursor:pointer}button:hover,select:hover{border-color:var(--cyan)}button.pri{background:#0e4a8c;border-color:var(--cyan)}
+button.mini{padding:4px 10px;font-size:11px}
+input[type=number]{width:80px;font-family:var(--mono)}
+:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+label.l{color:var(--muted);font-size:12px;display:flex;gap:6px;align-items:center}
+.row{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;margin-top:10px}
+/* alarmes */
+.alarmes{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.al{display:grid;grid-template-columns:auto 1fr auto;gap:4px 14px;align-items:center;padding:10px 12px;border-radius:8px;border:1px solid var(--line);border-left:5px solid var(--muted);background:#081833}
+.al.critico{border-left-color:var(--crit);background:#2a0d18}.al.alerta{border-left-color:var(--warn);background:#24190a}
+.al.critico:not(.rec){animation:pisca 1.2s infinite}
+@keyframes pisca{50%{background:#3d1020}}
+.al .tp{font:600 10.5px var(--mono);letter-spacing:.06em;padding:3px 7px;border-radius:5px;border:1px solid currentColor}
+.al.critico .tp{color:var(--crit)}.al.alerta .tp{color:var(--warn)}
+.al .m{font-size:13.5px;line-height:1.45}
+.al .q{font:11px var(--mono);color:var(--muted);text-align:right;white-space:nowrap}
+.al .q span{display:block}
+.vazio{color:var(--ok);font-size:13px;margin-top:10px}
+/* sensores */
+.main{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:12px}
+@media (max-width:1050px){.main{grid-template-columns:1fr}}
+.sens{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-top:10px}
+.sc{all:unset;cursor:pointer;display:block;border:1px solid var(--line);border-top:3px solid var(--ok);border-radius:8px;padding:10px 12px;background:#081833}
+.sc:hover,.sc.sel{border-color:var(--cyan)}
+.sc.alerta{border-top-color:var(--warn)}.sc.critico{border-top-color:var(--crit)}
+.sc .n{font:600 11px var(--mono);letter-spacing:.05em;color:var(--muted);display:flex;justify-content:space-between;gap:6px}
+.sc .v{font:600 28px/1.1 var(--display);font-variant-numeric:tabular-nums;margin-top:2px}
+.sc .v small{font:400 11px var(--mono);color:var(--muted);margin-left:4px}
+.sc .e{font:11px var(--mono);color:var(--muted)}
+.sc .e b{font-weight:600}
+.sc svg{display:block;width:100%;height:38px;margin-top:4px}
+.pos{color:var(--warn)}.neg{color:#74c0fc}
+#graf{width:100%;height:auto;display:block;margin-top:8px}
+.ax{font:10px var(--mono);fill:var(--muted)}
+.lg{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:11px;color:var(--muted);margin-top:4px}
+.lg i{display:inline-block;width:14px;height:0;border-top:2px solid;vertical-align:middle;margin-right:5px}
+table{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:8px}
+th{font:600 10.5px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);text-align:left;padding:5px 8px;border-bottom:1px solid var(--line)}
+td{padding:6px 8px;border-bottom:1px solid #12305a;vertical-align:top}
+td.h{font-family:var(--mono);white-space:nowrap;color:var(--muted)}
+.tw{max-height:300px;overflow:auto}
+code,pre{font-family:var(--mono);font-size:11.5px;color:#b9d6ff}
+pre{background:#061533;border:1px solid var(--line);border-radius:8px;padding:10px;overflow-x:auto;margin:8px 0 0}
+details summary{cursor:pointer;color:var(--muted);font-size:12px;margin-top:8px}
+.hint{color:var(--muted);font-size:12px;line-height:1.5;margin:8px 0 0}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="card">
+    <div class="brand">
+      <svg width="42" height="42" viewBox="0 0 42 42" aria-hidden="true"><circle cx="21" cy="21" r="19" fill="#0a2a58" stroke="#35d0ff" stroke-width="2"/><path d="M21 9c5 7 8 11 8 15a8 8 0 0 1-16 0c0-4 3-8 8-15z" fill="#35d0ff"/></svg>
+      <div><h1>Centro de Operações de Saneamento</h1><p class="sub">Operação ao vivo · telemetria × gêmeo digital (EPANET)</p></div>
+    </div>
+    <div class="right">
+      <span class="chip" id="cCom">SEM TELEMETRIA</span>
+      <span class="chip" id="cGem">GÊMEO</span>
+      <span class="chip" id="cAl">ALARMES</span>
+      <div id="clock">--:--<small>HORA DA TELEMETRIA</small></div>
+    </div>
+  </header>
+
+  <nav class="tabs" aria-label="Telas"><a href="index.html">Sinótico</a><a href="mapa.html">Mapa da rede</a><a href="calibracao.html">Calibração</a><a href="aovivo.html" class="on" aria-current="page">Ao vivo</a></nav>
+
+  <section class="card" aria-live="polite">
+    <h2>Alarmes ativos</h2>
+    <div id="alarmes"><p class="vazio">Aguardando telemetria…</p></div>
+  </section>
+
+  <section class="main">
+    <div class="card">
+      <h2>Sensores</h2>
+      <p class="sub">Valor medido, valor esperado pelo gêmeo digital no mesmo instante e diferença. Linha cheia = campo, tracejada = gêmeo. Clique para ampliar.</p>
+      <div class="sens" id="sens"></div>
+    </div>
+    <div class="card">
+      <h2 id="gTit">Sensor</h2>
+      <p class="sub" id="gSub">Selecione um sensor.</p>
+      <svg id="graf" viewBox="0 0 560 280" role="img" aria-label="Histórico, gêmeo e previsão do sensor selecionado"></svg>
+      <div class="lg"><span><i style="border-color:#ffb547"></i>campo</span><span><i style="border-color:#35d0ff;border-top-style:dashed"></i>gêmeo (esperado)</span><span><i style="border-color:#a78bfa;border-top-style:dotted"></i>previsão 6 h</span><span><i style="border-color:#3ddc97"></i>faixa operacional</span></div>
+      <h2 style="margin-top:14px">Histórico de eventos</h2>
+      <div class="tw"><table id="hist"></table></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Fonte de dados</h2>
+    <p class="sub">Em operação real, o SCADA (ou um gateway OPC-UA / MQTT / Node-RED) envia as leituras para <code>POST /api/telemetria</code>. Sem SCADA conectado, use o simulador: ele gera a "rede real" a partir do cadastro, com ruído de medição e, se quiser, um vazamento escondido para o gêmeo encontrar.</p>
+    <div class="row">
+      <label class="l">Velocidade <select id="vel"><option value="1">1 min/s</option><option value="2" selected>2 min/s (24 h em 12 min)</option><option value="5">5 min/s</option><option value="15">15 min/s</option></select></label>
+      <label class="l">Começar às <input type="number" id="ini" min="0" max="23" step="0.5" value="5"> h</label>
+      <label class="l"><input type="checkbox" id="vz" checked> Vazamento no nó</label>
+      <select id="vzNo" aria-label="Nó do vazamento"></select>
+      <label class="l">às <input type="number" id="vzH" min="0" max="46" step="0.25" value="10"> h</label>
+      <label class="l">de <input type="number" id="vzQ" min="0.1" step="0.5" value="4"> L/s</label>
+      <button type="button" class="pri" id="btnIni">Iniciar simulação</button>
+      <button type="button" id="btnPar">Parar</button>
+    </div>
+    <p class="hint" id="simMsg"></p>
+    <details><summary>Formato da integração com o SCADA</summary>
+<pre>POST http://localhost:8765/api/telemetria
+Content-Type: application/json
+
+[{"elemento": "S1",     "grandeza": "pressao", "valor": 19.6, "ts": "2026-10-24T07:15:00"},
+ {"elemento": "T_S1_C", "grandeza": "vazao",   "valor": 11.8, "ts": "2026-10-24T07:15:00"},
+ {"elemento": "R1",     "grandeza": "nivel",   "valor": 3.42, "ts": 1792833300}]</pre>
+      <p class="hint">elemento = código do cadastro · grandeza: pressao (mca; em válvula/bomba = jusante), vazao (L/s), nivel (m) · ts: ISO ou segundos Unix. As leituras ficam em <code>*_telemetria.sqlite</code> ao lado do cadastro.</p>
+    </details>
+  </section>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const nf=(v,d=1)=>v==null||!isFinite(v)?'–':Number(v).toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d});
+const hm=ts=>{const d=new Date(ts*1000);return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');};
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const NOME_G={pressao:'pressão',vazao:'vazão',nivel:'nível'};
+const TIPO={VAZAMENTO:'VAZAMENTO',LIMITE:'LIMITE',DESVIO:'DESVIO',PREVISAO:'PREVISÃO',COMUNICACAO:'COMUNICAÇÃO'};
+const post=async(url,c)=>{const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(c||{})});const d=await r.json();if(d.erro)throw new Error(d.erro);return d;};
+let E=null, SEL=null, assAlarmes='';
+
+/* ---------- alarmes ---------- */
+function alarmes(){
+  const lst=E.alarmes||[];
+  const n=lst.length, crit=lst.filter(a=>a.severidade==='critico').length, pend=lst.filter(a=>!a.reconhecido).length;
+  $('cAl').textContent=n?`${n} ALARME(S) · ${pend} SEM RECONHECER`:'SEM ALARMES'; $('cAl').className='chip '+(crit?'crit':n?'warn':'ok');
+  const ass=JSON.stringify(lst.map(a=>[a.id,a.severidade,a.mensagem,a.reconhecido]))+hm(E.agora);
+  if(ass===assAlarmes)return; assAlarmes=ass;
+  if(!n){$('alarmes').innerHTML='<p class="vazio">✓ Nenhum alarme ativo. Rede operando como o gêmeo digital prevê.</p>';return;}
+  $('alarmes').innerHTML='<div class="alarmes">'+lst.map(a=>{
+    const dur=Math.round((E.agora-a.inicio)/60);
+    return `<div class="al ${a.severidade} ${a.reconhecido?'rec':''}"><span class="tp">${TIPO[a.tipo]||a.tipo}</span>
+      <div class="m">${esc(a.mensagem)}</div>
+      <div class="q"><span>desde ${hm(a.inicio)} · ${dur} min</span>${a.reconhecido?`<span>reconhecido ${hm(a.reconhecido)}</span>`:`<button type="button" class="mini" data-id="${a.id}">Reconhecer</button>`}</div></div>`;
+  }).join('')+'</div>';
+  $('alarmes').querySelectorAll('button[data-id]').forEach(b=>b.onclick=async()=>{b.disabled=true;await post('/api/aovivo/reconhecer',{id:+b.dataset.id});atualizar();});
+}
+
+/* ---------- sensores ---------- */
+const chave=s=>s.elemento+'|'+s.grandeza;
+function spark(s){
+  const W=200,H=38, m=s.medido, e=s.esperado_serie; if(m.length<2)return '';
+  const t0=m[0][0], t1=m[m.length-1][0]||t0+1, vals=[...m.map(x=>x[1]),...e.map(x=>x[1])];
+  let lo=Math.min(...vals),hi=Math.max(...vals); if(hi-lo<1e-6){hi+=.5;lo-=.5;}
+  const X=t=>(t-t0)/(t1-t0)*W, Y=v=>H-2-(v-lo)/(hi-lo)*(H-4);
+  const pl=(a,c,d)=>`<polyline points="${a.filter(x=>x[0]>=t0).map(x=>X(x[0]).toFixed(1)+','+Y(x[1]).toFixed(1)).join(' ')}" fill="none" stroke="${c}" stroke-width="1.4"${d?' stroke-dasharray="3 2"':''}/>`;
+  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">${pl(e,'#35d0ff',1)}${pl(m,'#ffb547')}</svg>`;
+}
+function sensores(){
+  if(!SEL&&E.sensores.length)SEL=chave(E.sensores.find(s=>s.status!=='ok')||E.sensores[0]);
+  $('sens').innerHTML=E.sensores.map(s=>{
+    const d=s.desvio, dd=s.grandeza==='vazao'&&s.esperado>0.5?` (${d>0?'+':''}${nf(d/s.esperado*100,0)}%)`:'';
+    const pct=s.grandeza==='nivel'&&s.nivel_max?` · ${nf(s.valor/s.nivel_max*100,0)}%`:'';
+    return `<button type="button" class="sc ${s.status} ${chave(s)===SEL?'sel':''}" data-k="${esc(chave(s))}">
+      <div class="n"><span>${esc(s.elemento)}</span><span>${NOME_G[s.grandeza]}${s.setor?' · '+esc(s.setor):''}</span></div>
+      <div class="v">${nf(s.valor,s.grandeza==='nivel'?2:1)}<small>${s.un}${pct}</small></div>
+      <div class="e">gêmeo ${nf(s.esperado,s.grandeza==='nivel'?2:1)} · Δ <b class="${d>0.05?'pos':d<-0.05?'neg':''}">${d>0?'+':''}${nf(d,s.grandeza==='nivel'?2:1)}${dd}</b></div>
+      ${spark(s)}</button>`;
+  }).join('');
+  $('sens').querySelectorAll('.sc').forEach(b=>b.onclick=()=>{SEL=b.dataset.k;sensores();grafico();});
+}
+function grafico(){
+  const s=E.sensores.find(x=>chave(x)===SEL); if(!s){$('graf').innerHTML='';return;}
+  $('gTit').textContent=`${s.elemento} · ${NOME_G[s.grandeza]} (${s.un})`;
+  $('gSub').textContent=`${s.setor?'Setor '+s.setor+' · ':''}últimas 4 h e previsão do gêmeo para as próximas 6 h · agora ${nf(s.valor,2)} ${s.un}, gêmeo ${nf(s.esperado,2)} ${s.un}`;
+  const W=560,H=280,L=44,R=12,T=12,B=24,pw=W-L-R,ph=H-T-B;
+  const t0=E.agora-4*3600, t1=E.agora+6*3600;
+  const vals=[...s.medido,...s.esperado_serie,...s.previsao].map(x=>x[1]).concat(s.limites||[]);
+  let lo=Math.min(...vals),hi=Math.max(...vals); const pad=(hi-lo)*.08||.5; lo-=pad; hi+=pad;
+  if(s.limites&&s.grandeza==='pressao'){lo=Math.max(lo,Math.min(...vals.filter(v=>v!==50))-pad);}
+  const X=t=>L+(t-t0)/(t1-t0)*pw, Y=v=>T+ph-(v-lo)/(hi-lo)*ph;
+  let g='';
+  if(s.limites){const a=Math.max(lo,s.limites[0]),b=Math.min(hi,s.limites[1]);if(b>a)g+=`<rect x="${L}" y="${Y(b)}" width="${pw}" height="${Y(a)-Y(b)}" fill="#3ddc97" fill-opacity=".07"/>`;}
+  for(let i=0;i<=4;i++){const v=lo+(hi-lo)*i/4;g+=`<line x1="${L}" x2="${W-R}" y1="${Y(v)}" y2="${Y(v)}" stroke="#17345f"/><text x="${L-5}" y="${Y(v)+3}" class="ax" text-anchor="end">${nf(v,hi-lo<5?1:0)}</text>`;}
+  for(let t=Math.ceil(t0/3600)*3600;t<=t1;t+=3600*2)g+=`<text x="${X(t)}" y="${H-6}" class="ax" text-anchor="middle">${hm(t)}</text>`;
+  g+=`<rect x="${X(E.agora)}" y="${T}" width="${X(t1)-X(E.agora)}" height="${ph}" fill="#a78bfa" fill-opacity=".05"/><line x1="${X(E.agora)}" x2="${X(E.agora)}" y1="${T}" y2="${T+ph}" stroke="#e8f2ff" stroke-opacity=".6" stroke-dasharray="3 3"/><text x="${X(E.agora)+4}" y="${T+10}" class="ax">agora</text>`;
+  const pl=(a,c,dash,w)=>a.length?`<polyline points="${a.filter(x=>x[0]>=t0).map(x=>X(x[0]).toFixed(1)+','+Y(x[1]).toFixed(1)).join(' ')}" fill="none" stroke="${c}" stroke-width="${w||1.8}"${dash?` stroke-dasharray="${dash}"`:''}/>`:'';
+  g+=pl(s.previsao,'#a78bfa','2 3',2)+pl(s.esperado_serie,'#35d0ff','5 3')+pl(s.medido,'#ffb547');
+  $('graf').innerHTML=g;
+}
+function historico(){
+  const ev={ativado:'ativou',agravado:'agravou',normalizado:'normalizou'};
+  $('hist').innerHTML='<thead><tr><th>Hora</th><th>Evento</th><th>Mensagem</th></tr></thead><tbody>'+
+    (E.historico||[]).map(h=>`<tr><td class="h">${hm(h.evento==='normalizado'?h.fim:h.inicio)}</td><td class="${h.evento==='normalizado'?'':h.severidade==='critico'?'neg':'pos'}" style="color:${h.evento==='normalizado'?'var(--ok)':h.severidade==='critico'?'var(--crit)':'var(--warn)'}">${TIPO[h.tipo]||h.tipo} ${ev[h.evento]||h.evento}</td><td>${esc(h.mensagem)}</td></tr>`).join('')+'</tbody>';
+}
+
+/* ---------- ciclo ---------- */
+async function atualizar(){
+  try{
+    E=await (await fetch('/api/aovivo/estado')).json();
+    if(E.erro)throw new Error(E.erro);
+  }catch(e){$('cCom').textContent='SERVIDOR FORA DO AR';$('cCom').className='chip crit';return;}
+  if(!E.agora){$('alarmes').innerHTML='<p class="vazio" style="color:var(--muted)">Nenhuma telemetria recebida. Inicie o simulador abaixo ou conecte o SCADA.</p>';return;}
+  $('clock').innerHTML=`${hm(E.agora)}<small>TELEMETRIA · ${esc(E.agora_txt.split(' ')[0])}</small>`;
+  const ha=E.sem_dados_ha;
+  $('cCom').textContent=ha<10?'TELEMETRIA AO VIVO':`SEM DADOS HÁ ${nf(ha,0)} s`; $('cCom').className='chip '+(ha<10?'ok vivo':'warn');
+  $('cGem').textContent=E.sincronizado?`GÊMEO SINCRONIZADO ${hm(E.sincronizado)}`:'GÊMEO'; $('cGem').className='chip ok';
+  alarmes(); sensores(); grafico(); historico();
+}
+setInterval(atualizar,1500);
+
+/* ---------- simulador ---------- */
+async function carregarSim(){
+  try{
+    const d=await (await fetch('/api/aovivo/simulador')).json(); if(d.erro)throw new Error(d.erro);
+    $('vzNo').innerHTML=d.nos_consumo.map(n=>`<option>${esc(n)}</option>`).join('');
+    statusSim(d.simulador);
+  }catch(e){$('simMsg').textContent='Erro: '+e.message;}
+}
+function statusSim(s){
+  $('simMsg').textContent=s&&s.rodando?`Simulador rodando · ${s.sensores} sensores · ${s.velocidade} min simulados por segundo`+(s.vazamento?` · vazamento escondido em ${s.vazamento.no} a partir das ${nf(s.vazamento.hora,2)} h (o gêmeo não sabe disso)`:''):'Simulador parado.';
+}
+$('btnIni').onclick=async()=>{
+  $('simMsg').textContent='Preparando a "rede real" e o gêmeo digital…';
+  try{
+    const d=await post('/api/aovivo/simulador',{acao:'iniciar',velocidade:+$('vel').value,inicio_h:+$('ini').value,
+      vazamento:$('vz').checked?{no:$('vzNo').value,hora:+$('vzH').value,lps:+$('vzQ').value}:null});
+    statusSim(d.simulador); SEL=null; assAlarmes='';
+  }catch(e){$('simMsg').textContent='Erro: '+e.message;}
+};
+$('btnPar').onclick=async()=>{const d=await post('/api/aovivo/simulador',{acao:'parar'});statusSim(d.simulador);};
+carregarSim(); atualizar();
+</script>
+</body>
+</html>
