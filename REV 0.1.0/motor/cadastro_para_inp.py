@@ -254,6 +254,7 @@ def converter(gpkg=GPKG_PADRAO, com_projetados=False, alteracoes=None, camadas=N
     curvas = defaultdict(list)
     for _, r in c["curva"].iterrows():
         curvas[r["id_curva"]].append((r["x"], r["y"]))
+    curvas = {k: sorted(v) for k, v in curvas.items()}  # o EPANET exige vazão crescente
     padroes = defaultdict(list)
     for _, r in c["padrao_consumo"].sort_values("passo").iterrows():
         padroes[r["id_padrao"]].append(r["multiplicador"])
@@ -274,12 +275,23 @@ def converter(gpkg=GPKG_PADRAO, com_projetados=False, alteracoes=None, camadas=N
             juncs.append(f"{nid:<14} {r['cota'] or 0:<9g} {r['demanda_base'] or 0:<10g} {pad}")
             coords.append((nid, x, y))
         elif camada == "captacao":
+            cota_t = r.get("cota")
+            if not _vazio(cota_t) and not _vazio(r["carga_hidraulica"]) and r["carga_hidraulica"] < cota_t - 0.5:
+                rel.erro(f"captação {nid}: carga hidráulica {r['carga_hidraulica']:g} m está ABAIXO do terreno "
+                         f"({cota_t:g} m). A carga é o nível da água em cota absoluta (ex.: terreno {cota_t:g} m + "
+                         f"lâmina 2 m = {cota_t + 2:g} m), não a altura da água", ref=("captacao", nid))
             reserv.append(f"{nid:<14} {r['carga_hidraulica']:<9g} {r['padrao_carga'] or ''}")
             coords.append((nid, x, y))
         elif camada == "reservatorio":
             for campo in ("cota_fundo", "nivel_ini", "nivel_max", "diametro"):
                 if _vazio(r[campo]):
                     rel.erro(f"reservatório {nid}: campo {campo} vazio", ref=("reservatorio", nid))
+            if not _vazio(r["cota_fundo"]) and not _vazio(r["nivel_max"]) and r["cota_fundo"] > 20 \
+                    and r["nivel_max"] > 0.5 * r["cota_fundo"]:
+                rel.erro(f"reservatório {nid}: os níveis ({r['nivel_ini']:g} / {r['nivel_min'] or 0:g} / "
+                         f"{r['nivel_max']:g} m) parecem COTAS. Os níveis são a lâmina d'água acima do fundo: com "
+                         f"fundo em {r['cota_fundo']:g} m e nível máximo na cota {r['nivel_max']:g} m, o nível "
+                         f"máximo é {r['nivel_max'] - r['cota_fundo']:.2f} m", ref=("reservatorio", nid))
             tanques.append(f"{nid:<14} {r['cota_fundo']:<9g} {r['nivel_ini']:<8g} {r['nivel_min'] or 0:<8g} "
                            f"{r['nivel_max']:<8g} {r['diametro']:<8g} 0")
             coords.append((nid, x, y))
@@ -291,7 +303,18 @@ def converter(gpkg=GPKG_PADRAO, com_projetados=False, alteracoes=None, camadas=N
                 coords.append((f"{nid}__{lado}", x, y))
             if camada == "bomba":
                 if r["curva"] not in curvas:
-                    rel.erro(f"bomba {nid}: curva '{r['curva']}' não existe na tabela de curvas", ref=("bomba", nid))
+                    rel.erro(f"bomba {nid}: curva '{r['curva']}' não existe na tabela de curvas"
+                             if not _vazio(r["curva"]) else f"bomba {nid}: escolha a curva da bomba "
+                             "(Curvas de bomba, no menu GWATER)", ref=("bomba", nid))
+                else:
+                    pts = curvas[r["curva"]]
+                    qs = [q for q, _ in pts]
+                    if len(pts) == 2:
+                        rel.erro(f"curva {r['curva']} (bomba {nid}): o EPANET não aceita 2 pontos; use 1, 3 ou mais",
+                                 ref=("bomba", nid))
+                    elif any(b <= a for a, b in zip(qs, qs[1:])):
+                        rel.erro(f"curva {r['curva']} (bomba {nid}): as vazões têm que crescer ponto a ponto",
+                                 ref=("bomba", nid))
                 vel = r["rotacao_relativa"] if not _vazio(r["rotacao_relativa"]) else 1
                 bombas.append(f"{nid:<10} {nid}__M  {nid}__J  HEAD {r['curva']}  SPEED {vel:g}")
                 if r["status_inicial"] == "FECHADA":
@@ -300,6 +323,10 @@ def converter(gpkg=GPKG_PADRAO, com_projetados=False, alteracoes=None, camadas=N
                 if _vazio(r["diametro"]) or _vazio(r["ajuste"]) or _vazio(r["tipo"]):
                     rel.erro(f"válvula {nid}: tipo, diâmetro e ajuste são obrigatórios", ref=("valvula", nid))
                     continue
+                if r["tipo"] in ("PRV", "PSV") and r["ajuste"] < 5 and r.get("status") != "FECHADA":
+                    rel.aviso(f"válvula {nid} ({r['tipo']}): ajuste de {r['ajuste']:g} mca é muito baixo. O ajuste é "
+                              f"a pressão que a válvula mantém (redutora: na saída; normalmente 15 a 30 mca)",
+                              ref=("valvula", nid))
                 valvulas.append(f"{nid:<10} {nid}__M  {nid}__J  {r['diametro']:<6g} {r['tipo']:<4} "
                                 f"{r['ajuste']:<8g} {r['perda_localizada'] or 0:g}")
                 if r["status"] in STATUS_LINK:

@@ -105,3 +105,16 @@ v = res.link["velocity"]
 print(f"\nSimulação OK em {dt * 1000:.0f} ms · {p.shape[1]} nós · {v.shape[1]} trechos")
 print(f"pressão: mín {p.min().min():.1f} mca (nó {p.min().idxmin()}) · máx {p.max().max():.1f} mca")
 print(f"velocidade máx {v.max().max():.2f} m/s (trecho {v.max().idxmax()})")
+
+# ---------------------------------------------------- 5) shapefile 3D (PolylineZ, vindo do CAD)
+print("\n--- shapefile com Z")
+from importar_shp import importar  # noqa: E402
+
+z_shp = os.path.join(SHP, "rede_z.shp")
+gpd.GeoDataFrame({"DN": ["100", "75"]}, crs=UTM, geometry=[
+    LineString([(E0, N0, 700), (E0 + 10, N0, 701), (E0 + 20, N0 + 5, 702), (E0 + 40, N0 + 10, 704)]),
+    LineString([(E0 + 40, N0 + 10, 704), (E0 + 40, N0 + 50, 710)])]).to_file(z_shp)
+tz, nz, _ = importar({"trechos": z_shp, "campos": {"diametro": "DN"}})
+assert not tz.geometry.has_z.any(), "a rede importada deve ficar em 2D"
+assert len(tz) == 2 and sorted(nz["cota"]) == [700, 704, 710], f"cota do Z das pontas: {list(nz['cota'])}"
+print(f"OK: {len(tz)} trechos 3D importados em 2D, cotas {sorted(nz['cota'])} tiradas do Z")

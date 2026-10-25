@@ -16,7 +16,7 @@
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);background-image:radial-gradient(1200px 500px at 70% -10%,#0c2f66 0%,transparent 60%);
   color:var(--text);font:14px var(--body);padding:16px max(16px,env(safe-area-inset-right)) 16px max(16px,env(safe-area-inset-left))}
-.wrap{max-width:1400px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+.wrap{max-width:none;margin:0 auto;  /* usa a largura toda (telas ultrawide) */display:flex;flex-direction:column;gap:12px}
 .card{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:10px;padding:16px;min-width:0}
 header{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center;justify-content:space-between}
 .brand{display:flex;gap:12px;align-items:center}
@@ -62,6 +62,35 @@ td small{display:block;color:var(--muted);font:11px var(--body)}
 .lg{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:11px;color:var(--muted);margin-top:4px}
 .lg i{display:inline-block;width:14px;height:0;border-top:2px solid;vertical-align:middle;margin-right:5px}
 .lg i.pt{width:7px;height:7px;border:0;border-radius:50%;background:#ffb547}
+
+/* ===== tela cheia: tudo cabe na janela, sem rolar a página; os painéis rolam por dentro ===== */
+html,body{height:100%}
+body{overflow:hidden}
+.wrap{height:100%;min-height:0}
+.wrap>*{flex:none}
+.wrap>.encher{flex:1 1 0;min-height:0}
+.rola{overflow:auto;min-height:0;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:var(--line) transparent}
+.rola::-webkit-scrollbar{width:8px;height:8px}.rola::-webkit-scrollbar-thumb{background:var(--line);border-radius:4px}
+/* janela pequena demais (celular, tela baixa): volta a rolar a página */
+@media (max-width:1020px),(max-height:620px){html,body{height:auto}body{overflow:auto}.wrap{height:auto}.wrap>.encher{flex:none}}
+
+.cal{display:grid;grid-template-columns:minmax(380px,0.85fr) minmax(0,1.6fr);gap:12px;min-height:0}
+.cal>*{min-height:0;height:100%}
+.col{display:flex;flex-direction:column;gap:12px}
+.col .passos{grid-template-columns:1fr}
+#resVazio{display:none;align-items:center;justify-content:center;text-align:center}
+#resCard[hidden]+#resVazio{display:flex}
+@media (max-width:1020px),(max-height:620px){.cal{grid-template-columns:1fr}.cal>*{height:auto}}
+
+/* telas até 1000 px de altura: cabeçalho e indicadores mais baixos, para sobrar espaço para o conteúdo */
+header nav.tabs{margin:0 auto}
+@media (max-height:1000px){
+  header.card{padding:8px 14px}
+  header h1{font-size:19px}
+  .kpi{padding:8px 12px}
+  .kpi .v{font-size:24px;margin-top:2px}
+  .wrap{gap:10px}
+}
 </style>
 </head>
 <body>
@@ -71,11 +100,13 @@ td small{display:block;color:var(--muted);font:11px var(--body)}
       <svg width="42" height="42" viewBox="0 0 42 42" aria-hidden="true"><circle cx="21" cy="21" r="19" fill="#0a2a58" stroke="#35d0ff" stroke-width="2"/><path d="M21 9c5 7 8 11 8 15a8 8 0 0 1-16 0c0-4 3-8 8-15z" fill="#35d0ff"/></svg>
       <div><h1>Centro de Operações de Saneamento</h1><p class="sub">Calibração do modelo com medições de campo</p></div>
     </div>
+    <nav class="tabs" aria-label="Telas"><a href="sinotico.html">Sinótico</a><a href="dados.html" title="Séries recebidas (SABESP, SCADA, loggers) analisadas antes de ir para o modelo">Dados recebidos</a><a href="mapa.html">Mapa da rede</a><a href="calibracao.html" class="on" aria-current="page">Calibração</a><a href="aovivo.html">Ao vivo</a></nav>
     <span class="chip" id="cStatus">SEM MEDIÇÕES</span>
   </header>
 
-  <nav class="tabs" aria-label="Telas"><a href="index.html">Sinótico</a><a href="mapa.html">Mapa da rede</a><a href="calibracao.html" class="on" aria-current="page">Calibração</a><a href="aovivo.html">Ao vivo</a></nav>
 
+  <section class="cal encher">
+  <div class="col rola">
   <div class="passos">
     <section class="card">
       <h2><b>1</b>Medições de campo</h2>
@@ -106,7 +137,17 @@ td small{display:block;color:var(--muted);font:11px var(--body)}
     </section>
   </div>
 
-  <section class="card" id="resCard" hidden>
+  <section class="card" id="usoCard" hidden>
+    <h2><b>4</b>Usar o resultado</h2>
+    <p class="sub">Abra a calibração como proposta no mapa para conferir a rede inteira (Rede atual × Calibrado). Quando estiver satisfeito, aplique ao cadastro: os valores de C e de demanda são gravados no GeoPackage, com cópia de segurança do arquivo antes.</p>
+    <div class="row">
+      <button type="button" class="prop" id="btnProp">Salvar como proposta e abrir no mapa</button>
+      <button type="button" class="perigo" id="btnApl">Aplicar ao cadastro…</button>
+    </div>
+    <p class="hint" id="usoMsg"></p>
+  </section>
+  </div>
+  <section class="card rola" id="resCard" hidden>
     <h2><b>3</b>Resultado</h2>
     <div class="kpis" id="kpis"></div>
     <div id="parBox" hidden>
@@ -117,16 +158,11 @@ td small{display:block;color:var(--muted);font:11px var(--body)}
     <div class="tw"><table id="senTab"></table></div>
     <div class="graficos" id="graf"></div>
   </section>
-
-  <section class="card" id="usoCard" hidden>
-    <h2><b>4</b>Usar o resultado</h2>
-    <p class="sub">Abra a calibração como proposta no mapa para conferir a rede inteira (Rede atual × Calibrado). Quando estiver satisfeito, aplique ao cadastro: os valores de C e de demanda são gravados no GeoPackage, com cópia de segurança do arquivo antes.</p>
-    <div class="row">
-      <button type="button" class="prop" id="btnProp">Salvar como proposta e abrir no mapa</button>
-      <button type="button" class="perigo" id="btnApl">Aplicar ao cadastro…</button>
-    </div>
-    <p class="hint" id="usoMsg"></p>
+  <section class="card" id="resVazio"><p class="sub">O resultado aparece aqui depois de <b>Comparar modelo × campo</b>
+    ou <b>Calibrar automaticamente</b>: indicadores de ajuste, parâmetros calibrados, tabela dos sensores e gráficos.</p></section>
   </section>
+
+
 </div>
 
 <script>

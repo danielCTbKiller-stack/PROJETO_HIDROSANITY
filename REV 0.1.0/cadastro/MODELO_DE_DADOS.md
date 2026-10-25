@@ -20,14 +20,19 @@ Para recriar tudo do zero (isso **apaga** o GeoPackage atual):
 
 | Camada | Equivale no EPANET | Campos principais |
 |---|---|---|
-| Captação | Reservoir | carga_hidraulica (m) |
-| Reservatórios | Tank | cota_fundo, nivel_ini/min/max (m), diametro (m), volume_util (calculado) |
+| Captação | Reservoir | cota (terreno), carga_hidraulica (m) |
+| Reservatórios | Tank | cota (terreno), cota_fundo, nivel_ini/min/max (m), diametro (m), volume_util (calculado) |
 | Bombas | Pump | cota, curva, status_inicial, rotacao_relativa |
 | Válvulas | Valve | tipo (PRV, PSV, FCV, TCV...), ajuste (mca ou L/s), diametro (mm), status |
 | Nós / junções | Junction | cota (m), demanda_base (L/s), padrao |
 | Trechos | Pipe | no_inicial/no_final (automáticos), comprimento (automático), diametro_nominal (mm), material, rugosidade_hw, status (ABERTO, FECHADO, CV) |
 
 Todas as camadas têm também os campos `situacao` (EXISTENTE / PROJETADO / DESATIVADO), `setor` e `observacao`.
+
+**`cota` é a cota do terreno em todos os elementos pontuais** (nós, válvulas, bombas, reservatórios e captações).
+É o campo que a ferramenta Cotas do terreno (TRex) preenche. No reservatório, `cota_fundo` continua sendo a cota
+de projeto do fundo, e na captação `carga_hidraulica` continua sendo o nível de água: os dois não mudam com o TRex.
+Cadastros antigos ganham o campo `cota` sozinhos na primeira vez que o TRex é aplicado neles.
 
 ## Preenchimento automático no formulário
 

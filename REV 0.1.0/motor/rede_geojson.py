@@ -6,8 +6,8 @@ import pyogrio
 
 # campos de cada camada que o painel mostra ao clicar no elemento
 CAMPOS = {
-    "captacao": ["id", "nome", "carga_hidraulica"],
-    "reservatorio": ["id", "nome", "cota_fundo", "nivel_ini", "nivel_min", "nivel_max", "diametro", "volume_util"],
+    "captacao": ["id", "nome", "cota", "carga_hidraulica"],
+    "reservatorio": ["id", "nome", "cota", "cota_fundo", "nivel_ini", "nivel_min", "nivel_max", "diametro", "volume_util"],
     "bomba": ["id", "nome", "elevatoria", "cota", "curva", "status_inicial", "rotacao_relativa"],
     "valvula": ["id", "nome", "tipo", "cota", "diametro", "ajuste", "status"],
     "no_juncao": ["id", "nome", "tipo", "cota", "demanda_base", "padrao"],

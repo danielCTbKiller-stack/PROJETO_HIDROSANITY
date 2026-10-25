@@ -22,7 +22,7 @@ body{
   padding-left:max(16px,env(safe-area-inset-left,0px));
   padding-right:max(16px,env(safe-area-inset-right,0px));
 }
-.wrap{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+.wrap{max-width:none;margin:0 auto;  /* usa a largura toda (telas ultrawide) */display:flex;flex-direction:column;gap:12px}
 .card{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:10px;padding:14px;min-width:0}
 header{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center;justify-content:space-between}
 .brand{display:flex;gap:12px;align-items:center;min-width:0}
@@ -61,7 +61,7 @@ nav.tabs a.on{color:var(--cyan);border-color:var(--cyan)}
 @keyframes pulse{50%{opacity:.25}}
 h2,h3{font:600 13px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--cyan);margin:0}
 .diag{overflow-x:auto}
-.diag svg{display:block;width:100%;min-width:760px;height:auto}
+.diag svg{display:block;width:100%;min-width:760px;height:auto;max-height:calc(100vh - 48px)}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,380px),1fr));gap:12px}
 .grid svg{display:block;width:100%;height:auto;margin-top:8px}
 .lg{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:6px;font-size:11.5px;color:var(--muted)}
@@ -89,6 +89,35 @@ h2,h3{font:600 13px var(--mono);letter-spacing:.08em;text-transform:uppercase;co
 .gv{font:600 24px var(--display);fill:var(--text)}
 .gu{font:10px var(--mono);fill:var(--muted)}
 @media (prefers-reduced-motion:reduce){.kpi .k em::before{animation:none}}
+
+/* ===== tela cheia: tudo cabe na janela, sem rolar a página; os painéis rolam por dentro ===== */
+html,body{height:100%}
+body{overflow:hidden}
+.wrap{height:100%;min-height:0}
+.wrap>*{flex:none}
+.wrap>.encher{flex:1 1 0;min-height:0}
+.rola{overflow:auto;min-height:0;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:var(--line) transparent}
+.rola::-webkit-scrollbar{width:8px;height:8px}.rola::-webkit-scrollbar-thumb{background:var(--line);border-radius:4px}
+/* janela pequena demais (celular, tela baixa): volta a rolar a página */
+@media (max-width:1020px),(max-height:620px){html,body{height:auto}body{overflow:auto}.wrap{height:auto}.wrap>.encher{flex:none}}
+
+.main{display:grid;grid-template-columns:minmax(0,1fr) clamp(380px,26vw,620px);gap:12px;min-height:0}
+.main>*{min-height:0;height:100%}
+.main>.diag{display:flex;align-items:center;justify-content:center;overflow:hidden}
+.main>.diag svg{height:100%;max-height:none;min-width:0}
+.main>.grid{grid-template-columns:1fr;align-content:start}
+@media (max-width:1020px),(max-height:620px){.main{grid-template-columns:1fr}.main>*{height:auto}
+  .main>.diag svg{height:auto;min-width:760px}.main>.diag{overflow:auto}}
+
+/* telas até 1000 px de altura: cabeçalho e indicadores mais baixos, para sobrar espaço para o conteúdo */
+header nav.tabs{margin:0 auto}
+@media (max-height:1000px){
+  header.card{padding:8px 14px}
+  header h1{font-size:19px}
+  .kpi{padding:8px 12px}
+  .kpi .v{font-size:24px;margin-top:2px}
+  .wrap{gap:10px}
+}
 </style>
 
 <div class="wrap">
@@ -100,6 +129,7 @@ h2,h3{font:600 13px var(--mono);letter-spacing:.08em;text-transform:uppercase;co
         <p class="sub">Captação, elevatória, reservatório R1 e distribuição com VRPs em série</p>
       </div>
     </div>
+    <nav class="tabs" aria-label="Telas"><a href="sinotico.html">Sinótico</a><a href="dados.html">Dados recebidos</a><a href="index.html" class="on" aria-current="page">Exemplo</a><a href="mapa.html">Mapa da rede</a><a href="calibracao.html">Calibração</a><a href="aovivo.html">Ao vivo</a></nav>
     <div class="right">
       <span class="chip ok" id="chipFake">MOTOR EPANET</span>
       <span class="chip" id="c1">BOMBA</span>
@@ -109,7 +139,6 @@ h2,h3{font:600 13px var(--mono);letter-spacing:.08em;text-transform:uppercase;co
     </div>
   </header>
 
-  <nav class="tabs" aria-label="Telas"><a href="index.html" class="on" aria-current="page">Sinótico</a><a href="mapa.html">Mapa da rede</a><a href="calibracao.html">Calibração</a><a href="aovivo.html">Ao vivo</a></nav>
 
   <div class="card bar">
     <button id="play" type="button">Pausar</button>
@@ -124,7 +153,7 @@ h2,h3{font:600 13px var(--mono);letter-spacing:.08em;text-transform:uppercase;co
     <input id="seek" type="range" min="0" max="96" step="0.05" value="0" aria-label="Posição no dia">
     <span class="chip" id="rd">Leitura 0/96</span>
     <label class="fbtn">Carregar CSV<input id="csv" type="file" accept=".csv,text/csv,text/plain"></label>
-    <p class="hint" id="csvmsg">Para usar sua telemetria (uma linha a cada 15 min), carregue um CSV com as colunas <code>hora, q_entrada, q_saida, nivel, p_mont_elev, p_jus_elev, vrp1_mont, vrp1_jus, vrp2_mont, vrp2_jus, vrp3_mont, vrp3_jus</code> e, se tiver, <code>p_entrada, p_saida</code> (pressão na entrada e na saída do reservatório). Vazões em L/s, pressões em mca, nível em %.</p>
+    <p class="hint" id="csvmsg" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="Para usar sua telemetria (uma linha a cada 15 min), carregue um CSV com as colunas hora, q_entrada, q_saida, nivel, p_mont_elev, p_jus_elev, vrp1_mont, vrp1_jus, vrp2_mont, vrp2_jus, vrp3_mont, vrp3_jus e, se tiver, p_entrada, p_saida. Vazões em L/s, pressões em mca, nível em %.">Para usar sua telemetria (uma linha a cada 15 min), carregue um CSV com as colunas <code>hora, q_entrada, q_saida, nivel, p_mont_elev, p_jus_elev, vrp1_mont, vrp1_jus, vrp2_mont, vrp2_jus, vrp3_mont, vrp3_jus</code> e, se tiver, <code>p_entrada, p_saida</code> (pressão na entrada e na saída do reservatório). Vazões em L/s, pressões em mca, nível em %.</p>
   </div>
 
   <form class="card bar" id="params" aria-label="Parâmetros do modelo EPANET">
@@ -152,6 +181,7 @@ h2,h3{font:600 13px var(--mono);letter-spacing:.08em;text-transform:uppercase;co
     <div class="card kpi"><div class="k">Consumo do dia<em>AO VIVO</em></div><div class="v"><span id="kCum">–</span><small>m³</small></div><div class="d">acumulado desde 00:00</div></div>
   </section>
 
+  <div class="main encher">
   <section class="card diag" aria-label="Diagrama hidráulico">
     <svg id="diag" viewBox="0 0 1000 392" role="img" aria-label="Diagrama: captação, estação elevatória, reservatório R1 e dois ramais de distribuição com VRPs">
       <defs>
@@ -217,7 +247,7 @@ h2,h3{font:600 13px var(--mono);letter-spacing:.08em;text-transform:uppercase;co
     </svg>
   </section>
 
-  <section class="grid">
+  <section class="grid rola">
     <section class="card" id="ch1"><h3>Pressões da elevatória</h3><p class="sub">Montante (sucção) e jusante (recalque)</p><svg viewBox="0 0 640 230" role="img" aria-label="Gráfico de pressões da elevatória ao longo do dia"></svg><div class="lg"></div></section>
     <section class="card" id="ch2"><h3>VRPs em série</h3><p class="sub">Montante e jusante da VRP 1 e da VRP 2 · faixa 10–50 mca (NBR 12218)</p><svg viewBox="0 0 640 230" role="img" aria-label="Gráfico de pressões das VRPs em série"></svg><div class="lg"></div></section>
     <section class="card" id="ch3"><h3>Balanço hídrico de R1</h3><p class="sub">Entrada pela elevatória e saída para a rede</p><svg viewBox="0 0 640 230" role="img" aria-label="Gráfico de vazões de entrada e saída do reservatório"></svg><div class="lg"></div></section>
@@ -227,6 +257,7 @@ h2,h3{font:600 13px var(--mono);letter-spacing:.08em;text-transform:uppercase;co
       <figure><svg id="g2" viewBox="0 0 200 165" role="img" aria-label="Medidor de vazão da elevatória"></svg><figcaption>Vazão da bomba</figcaption></figure>
     </div></section>
   </section>
+  </div>
 </div>
 
 <script src="resultados.js"></script>

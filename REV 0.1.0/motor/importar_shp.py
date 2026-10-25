@@ -8,6 +8,8 @@ O config.json diz onde estão os arquivos e como se chamam os campos do seu .shp
   "trechos": "C:/dados/rede.shp",            # obrigatório: linhas da rede
   "pontos_cota": "C:/dados/cotas.shp",       # opcional: pontos com cota
   "destino": "importado",                     # gera cadastro/importado.gpkg + GWATER_importado.qgz
+                                              # (ou um caminho completo: C:/obras/bairro.gpkg)
+  "crs": "EPSG:31983",                        # opcional: sistema do cadastro novo (padrão = o do exemplo)
   "campos": {"id": "COD", "diametro": "DN", "material": "MAT", "ano": "ANO", "cota": "COTA"},
   "materiais": {"PVC": "PVC PBA", "FOFO": "Ferro fundido dúctil"},
   "tolerancia_m": 0.5,                        # pontas mais próximas que isso viram o mesmo nó
@@ -35,6 +37,7 @@ from collections import defaultdict
 import geopandas as gpd
 import pandas as pd
 import pyogrio
+import shapely
 from shapely.geometry import LineString, Point
 from shapely.strtree import STRtree
 
@@ -91,13 +94,22 @@ def dividir_em_T(lin, tol, avisos):
 def importar(cfg):
     avisos = []
     tol = float(cfg.get("tolerancia_m", 0.5))
-    crs = pyogrio.read_info(MODELO_GPKG, layer="trecho")["crs"]
+    crs = cfg.get("crs") or pyogrio.read_info(MODELO_GPKG, layer="trecho")["crs"]
 
     lin = gpd.read_file(cfg["trechos"])
     if lin.crs is None:
         raise SystemExit("o shapefile não tem sistema de coordenadas (.prj). Defina no QGIS e salve de novo.")
     lin = lin.to_crs(crs).explode(index_parts=False).reset_index(drop=True)
     lin = lin[lin.geometry.notna() & ~lin.geometry.is_empty & (lin.geometry.length > 0)]
+    # linhas 3D (PolylineZ, comum em arquivo vindo do CAD): o Z das pontas vira cota dos nós sem ponto de cota,
+    # e a rede segue em 2D (misturar vértices 2D e 3D na mesma linha quebra a geometria)
+    z_pontas = []
+    if lin.geometry.has_z.any():
+        for g in lin.geometry:
+            for c in (g.coords[0], g.coords[-1]):
+                if len(c) > 2 and c[2] == c[2] and c[2] != 0:
+                    z_pontas.append((Point(c[0], c[1]), float(c[2])))
+        lin = lin.set_geometry(shapely.force_2d(lin.geometry.values))
     print(f"  {len(lin)} trechos lidos de {os.path.basename(cfg['trechos'])}")
     if cfg.get("dividir_em_T", True):
         lin = dividir_em_T(lin, tol, avisos)
@@ -195,6 +207,14 @@ def importar(cfg):
             j = arv_c.nearest(p)
             if pc.geometry.iloc[j].distance(p) <= max(tol, 5.0):
                 cota[nid] = float(str(pc[col].iloc[j]).replace(",", "."))
+    if z_pontas:
+        arv_z = STRtree([p for p, _ in z_pontas])
+        for nid, p in nos_xy:
+            if nid not in cota:
+                j = int(arv_z.nearest(p))
+                if z_pontas[j][0].distance(p) <= max(tol, 0.01):
+                    cota[nid] = round(z_pontas[j][1], 3)
+        print(f"  shapefile com Z: cota de {sum(1 for n, _ in nos_xy if n in cota)} nó(s) tirada do Z das pontas")
     sem_cota = [n for n, _ in nos_xy if n not in cota]
     if sem_cota:
         avisos.append(f"{len(sem_cota)} nós sem cota (ex.: {', '.join(sem_cota[:5])}). "
@@ -215,36 +235,60 @@ def importar(cfg):
     return trechos, nos, avisos
 
 
-def gravar(trechos, nos, destino):
-    """Copia o cadastro-modelo (tabelas, domínios, projeto) e troca a rede pela importada."""
-    gpkg = os.path.join(CADASTRO, destino + ".gpkg")
-    qgz = os.path.join(CADASTRO, f"GWATER_{destino}.qgz")
+def _destino(destino):
+    """'bairro' -> cadastro/bairro.gpkg + cadastro/GWATER_bairro.qgz; caminho completo -> na pasta dele."""
+    if os.path.isabs(destino):
+        pasta, nome = os.path.split(os.path.splitext(destino)[0])
+    else:
+        pasta, nome = CADASTRO, destino
+    return os.path.join(pasta, nome + ".gpkg"), os.path.join(pasta, f"GWATER_{nome}.qgz")
+
+
+def gravar(trechos, nos, destino, crs=None):
+    """Copia o cadastro-modelo (tabelas, domínios, projeto) e troca a rede pela importada.
+
+    crs: sistema das camadas do cadastro novo (padrão = o do exemplo).
+    """
+    gpkg, qgz = _destino(destino)
     if os.path.abspath(gpkg) == os.path.abspath(MODELO_GPKG):
         raise SystemExit("o destino não pode ser o próprio cadastro de exemplo")
+    os.makedirs(os.path.dirname(gpkg), exist_ok=True)
     shutil.copyfile(MODELO_GPKG, gpkg)
     for camada in REDE + ["controle"]:  # controles do exemplo não valem para a rede nova
         modelo = gpd.read_file(gpkg, layer=camada)
-        if camada == "trecho":
+        if camada == "trecho" and trechos is not None:
             novo = trechos
-        elif camada == "no_juncao":
+        elif camada == "no_juncao" and nos is not None:
             novo = nos
         else:
             novo = modelo.iloc[0:0]
         novo = novo.reindex(columns=modelo.columns)
         if "geometry" in modelo.columns and modelo.geometry.name == "geometry" and modelo.crs is not None:
-            novo = gpd.GeoDataFrame(novo, geometry="geometry", crs=modelo.crs)
-            novo.to_file(gpkg, layer=camada, driver="GPKG")
+            novo = gpd.GeoDataFrame(novo, geometry="geometry", crs=crs or modelo.crs)
+            # tipo explícito: camada vazia gravada como "Unknown" não aceita o que se desenha no QGIS
+            tipo = pyogrio.read_info(MODELO_GPKG, layer=camada)["geometry_type"]
+            novo.to_file(gpkg, layer=camada, driver="GPKG", geometry_type=tipo)
         else:
             pyogrio.write_dataframe(pd.DataFrame(novo), gpkg, layer=camada, driver="GPKG")
+    # propostas, medições e telemetria são do cadastro de origem, não da rede nova
+    for camada in {n for n, _ in pyogrio.list_layers(gpkg)} & {"cenario", "cenario_alteracao", "medicao"}:
+        modelo = pyogrio.read_dataframe(gpkg, layer=camada)
+        pyogrio.write_dataframe(modelo.iloc[0:0], gpkg, layer=camada, driver="GPKG")
 
-    # projeto QGIS: mesmo do exemplo, apontando para o novo GeoPackage
+    # projeto QGIS: mesmo do exemplo, apontando para o novo GeoPackage (caminho relativo: mesma pasta)
+    nome_gpkg = os.path.basename(gpkg)
     with zipfile.ZipFile(MODELO_QGZ) as zin, zipfile.ZipFile(qgz, "w", zipfile.ZIP_DEFLATED) as zout:
         for item in zin.infolist():
             dados = zin.read(item.filename)
             if item.filename.endswith(".qgs"):
-                dados = dados.replace(b"gwater_cadastro.gpkg", (destino + ".gpkg").encode())
+                dados = dados.replace(b"gwater_cadastro.gpkg", nome_gpkg.encode())
             zout.writestr(item, dados)
     return gpkg, qgz
+
+
+def novo_cadastro(destino, crs=None):
+    """Cadastro vazio (só tabelas, padrões, curvas-modelo e projeto QGIS) para desenhar do zero."""
+    return gravar(None, None, destino, crs)
 
 
 if __name__ == "__main__":
@@ -253,7 +297,7 @@ if __name__ == "__main__":
     with open(sys.argv[1], encoding="utf-8") as f:
         cfg = json.load(f)
     trechos, nos, avisos = importar(cfg)
-    gpkg, qgz = gravar(trechos, nos, cfg.get("destino", "importado"))
+    gpkg, qgz = gravar(trechos, nos, cfg.get("destino", "importado"), cfg.get("crs"))
     print(f"  {len(trechos)} trechos e {len(nos)} nós gravados")
     for a in avisos:
         print("  AVISO", a)

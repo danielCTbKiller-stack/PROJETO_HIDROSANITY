@@ -49,8 +49,9 @@ TIPO_NO = ["JUNCAO", "CONSUMO", "HIDRANTE", "PONTA"]
 # ---------------------------------------------------------------- esquema
 COMUNS = [("situacao", S), ("setor", S), ("observacao", S)]
 CAMADAS = {
-    "captacao": ("Point", [("id", S), ("nome", S), ("carga_hidraulica", D), ("padrao_carga", S)] + COMUNS),
-    "reservatorio": ("Point", [("id", S), ("nome", S), ("cota_fundo", D), ("nivel_ini", D),
+    # "cota" = cota do terreno em TODO elemento pontual (o TRex preenche); cota_fundo e carga são de projeto
+    "captacao": ("Point", [("id", S), ("nome", S), ("cota", D), ("carga_hidraulica", D), ("padrao_carga", S)] + COMUNS),
+    "reservatorio": ("Point", [("id", S), ("nome", S), ("cota", D), ("cota_fundo", D), ("nivel_ini", D),
                                ("nivel_min", D), ("nivel_max", D), ("diametro", D),
                                ("volume_util", D)] + COMUNS),
     "bomba": ("Point", [("id", S), ("nome", S), ("elevatoria", S), ("cota", D), ("curva", S),

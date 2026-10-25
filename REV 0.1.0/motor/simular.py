@@ -5,8 +5,10 @@ Gera: ../modelo/sistema_cos.inp  e  ../painel/resultados.js
 """
 import json
 import os
+import re
 import tempfile
 import time
+from collections import OrderedDict
 
 import wntr
 
@@ -44,15 +46,93 @@ NOS_CADASTRO = {"J_SUC": "B1__M", "J_REC": "B1__J", "V1M": "VRP1__M", "V1J": "VR
 MAPA_CADASTRO = {k: (t, NOS_CADASTRO.get(el, el), g) for k, (t, el, g) in MAPA.items()}
 
 
-def rodar(inp):
-    """Roda um texto .inp no EPANET e devolve (resultados WNTR, segundos)."""
+class FalhaEpanet(Exception):
+    """O EPANET parou. `avisos`: o relatório dele traduzido ([(nivel, elemento, mensagem)])."""
+
+    def __init__(self, msg, avisos):
+        super().__init__(msg)
+        self.avisos = avisos
+
+
+# avisos do relatório (.rpt) do EPANET 2.2 -> mensagem em português; {e} = elemento, {h} = hora
+AVISOS_RPT = [
+    (r"System unbalanced at ([\d:]+) hrs", "ERRO", None,
+     "o EPANET parou às {h}: a rede ficou desequilibrada (o cálculo não converge). As causas mais comuns estão nos "
+     "avisos abaixo: bomba fora da curva, válvula isolando trechos, níveis ou cargas digitados errado"),
+    (r"Pump (\S+) .*exceeds maximum flow", "AVISO", 1,
+     "bomba {e}: trabalha além da vazão máxima da curva (a demanda é maior do que a bomba entrega, ou falta altura "
+     "de recalque). Confira a curva em Curvas de bomba"),
+    (r"Pump (\S+) .*cannot deliver head", "AVISO", 1,
+     "bomba {e}: desligou porque não vence a altura pedida (a altura máxima da curva, no shutoff, é menor que o "
+     "desnível até onde ela recalca). Confira a curva e a cota/nível do destino"),
+    (r"Pump (\S+) .*exceeds", "AVISO", 1, "bomba {e}: fora da faixa da curva"),
+    (r"Valve (\S+) caused ill-conditioning", "AVISO", 1,
+     "válvula {e}: deixou o cálculo instável (ajuste muito baixo ou válvulas em série brigando)"),
+    (r"System disconnected because of Link (\S+)", "AVISO", 1,
+     "{e}: fechou e isolou parte da rede"),
+    (r"Node (\S+) disconnected", "AVISO", 1, "nó {e}: ficou sem ligação com nenhuma fonte de água"),
+    (r"Negative pressures at ([\d:]+) hrs", "AVISO", None, "pressões negativas na rede às {h}"),
+    (r"(?:Error|Erro) (\d+):?\s*(.*)", "ERRO", None, "erro {e} do EPANET: {t}"),
+]
+
+
+def ler_relatorio(texto):
+    """Traduz os avisos do relatório do EPANET, agrupando repetições: [(nivel, elemento, mensagem)]."""
+    grupos = OrderedDict()
+    hora = None
+    for linha in texto.splitlines():
+        m_h = re.search(r"at ([\d:]+) hrs", linha)
+        if m_h:
+            hora = m_h.group(1)
+        for padrao, nivel, grupo_el, modelo in AVISOS_RPT:
+            m = re.search(padrao, linha)
+            if not m:
+                continue
+            el = m.group(1) if grupo_el else None
+            if el:
+                el = el.split("__")[0]  # nós internos de bomba/válvula -> o próprio equipamento
+            chave = (modelo, el)
+            if chave not in grupos:
+                txt = m.group(2) if modelo.startswith("erro") and m.lastindex and m.lastindex >= 2 else ""
+                grupos[chave] = [nivel, el or (m.group(1) if modelo.startswith("erro") else None),
+                                 modelo.format(e=el or (m.group(1) if m.groups() else ""), h=hora or "?", t=txt), 0, hora]
+            grupos[chave][3] += 1
+            break
+    out = []
+    for nivel, el, msg, n, primeira in grupos.values():
+        if n > 1 and "{h}" not in msg:
+            msg += f" ({n} vezes; a primeira às {primeira})" if primeira else f" ({n} vezes)"
+        out.append((nivel, el, msg))
+    return sorted(out, key=lambda x: x[0] != "ERRO")
+
+
+def rodar(inp, avisos=None):
+    """Roda um texto .inp no EPANET e devolve (resultados WNTR, segundos).
+
+    avisos: lista que recebe o relatório do EPANET traduzido (bomba fora da curva, nó isolado...).
+    Se o EPANET parar, levanta FalhaEpanet com o motivo, em vez do erro sem sentido da leitura do arquivo."""
     t0 = time.perf_counter()
     with tempfile.TemporaryDirectory() as tmp:
         arq = os.path.join(tmp, "modelo.inp")
         with open(arq, "w", encoding="utf-8") as f:
             f.write(inp)
         wn = wntr.network.WaterNetworkModel(arq)
-        res = wntr.sim.EpanetSimulator(wn).run_sim(file_prefix=os.path.join(tmp, "run"))
+
+        def relatorio():
+            try:
+                with open(os.path.join(tmp, "run.rpt"), encoding="latin-1") as f:
+                    return ler_relatorio(f.read())
+            except OSError:
+                return []
+        try:
+            res = wntr.sim.EpanetSimulator(wn).run_sim(file_prefix=os.path.join(tmp, "run"))
+        except Exception as e:
+            rel = relatorio()
+            motivo = next((m for n, _, m in rel if n == "ERRO"), None)
+            raise FalhaEpanet(motivo or f"o EPANET não conseguiu resolver a rede ({type(e).__name__}: {e})", rel) \
+                from e
+        if avisos is not None:
+            avisos.extend(relatorio())
     return res, time.perf_counter() - t0
 
 

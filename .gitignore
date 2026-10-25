@@ -19,6 +19,7 @@ REV 0.1.0/modelo/cadastro.inp
 
 # Telemetria e cópias de segurança da calibração (dados operacionais, não código)
 *_telemetria.sqlite
+*_dados_recebidos.json
 *_antes_calibracao_*.gpkg
 
 # Saídas dos testes (recriadas por testes/teste_importacao.py)

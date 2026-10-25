@@ -21,7 +21,7 @@
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);background-image:radial-gradient(1200px 500px at 70% -10%,#0c2f66 0%,transparent 60%);
   color:var(--text);font:14px var(--body);padding:16px max(16px,env(safe-area-inset-right)) 16px max(16px,env(safe-area-inset-left))}
-.wrap{max-width:1400px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+.wrap{max-width:none;margin:0 auto;  /* usa a largura toda (telas ultrawide) */display:flex;flex-direction:column;gap:12px}
 .card{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:10px;padding:14px;min-width:0}
 header{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center;justify-content:space-between}
 .brand{display:flex;gap:12px;align-items:center;min-width:0}
@@ -64,10 +64,15 @@ label.l{color:var(--muted);font-size:11px;display:flex;gap:6px;align-items:cente
 .kpi.warn .v{color:var(--warn)}.kpi.crit .v{color:var(--crit)}.kpi.ok .v{color:var(--ok)}
 h3{font:600 13px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--cyan);margin:0}
 h3.p{color:var(--violet)}
-.main{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:12px}
-@media (max-width:1020px){.main{grid-template-columns:1fr}}
-.mapcard{padding:0;overflow:hidden;position:relative;display:flex;flex-direction:column}
-#map{flex:1;min-height:max(460px,66vh);width:100%}
+/* mapa e menu com altura fixa = altura da janela (descontadas as margens); o menu rola por dentro */
+.main{display:grid;grid-template-columns:minmax(0,1fr) clamp(380px,22vw,560px);gap:12px;
+  min-height:0}
+.mapcard{padding:0;overflow:hidden;position:relative;display:flex;flex-direction:column;min-height:0}
+#map{flex:1;min-height:0;width:100%}
+.main>.side{overflow-y:auto;min-height:0;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:var(--line) transparent}
+.main>.side::-webkit-scrollbar{width:8px}.main>.side::-webkit-scrollbar-thumb{background:var(--line);border-radius:4px}
+@media (max-width:1020px){.main{grid-template-columns:1fr;height:auto}.mapcard{height:max(420px,70vh)}
+  .main>.side{max-height:80vh}}
 .legend{position:absolute;left:10px;bottom:28px;background:#061533e6;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:11px;color:var(--muted);max-width:calc(100% - 20px)}
 .legend b{display:block;font:600 10px var(--mono);letter-spacing:.06em;color:var(--text);margin:4px 0 3px;text-transform:uppercase}
 .legend b:first-child{margin-top:0}
@@ -105,16 +110,43 @@ table.cmp td small{display:block;color:var(--muted);font:11px var(--body)}
 .cmpwrap{overflow-x:auto}
 .mk{display:flex;align-items:center;gap:6px;cursor:pointer;pointer-events:auto}
 .mk svg{flex:none;filter:drop-shadow(0 0 3px #000)}
-.mk .lb{background:#061533e0;border:1px solid var(--line);border-radius:6px;padding:2px 6px;font:600 10.5px var(--mono);color:var(--text);white-space:nowrap;line-height:1.35}
+.mk .lb{display:none;background:#061533e0;border:1px solid var(--line);border-radius:6px;padding:2px 6px;font:600 10.5px var(--mono);color:var(--text);white-space:nowrap;line-height:1.35}
 .mk .lb em{font-style:normal;display:block;color:var(--cyan);font-weight:400}
 .mk.off .lb em{color:var(--muted)}.mk.bad .lb em{color:var(--crit)}
 .mk.alt .lb{border-color:var(--violet)}
+.mk.aberto .lb{display:block}              /* a caixinha só aparece no elemento clicado */
+.mk.aberto{z-index:5}
 .maplibregl-popup-content{background:#061533;color:var(--text);border:1px solid var(--line);font:12px var(--body);padding:8px 10px}
 .maplibregl-popup-tip{border-top-color:#061533!important;border-bottom-color:#061533!important}
 .maplibregl-ctrl-attrib{background:#061533c0!important;color:var(--muted)}
 .maplibregl-ctrl-attrib a{color:var(--muted)}
 @keyframes gira{to{transform:rotate(360deg)}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important}}
+
+/* ===== tela cheia: tudo cabe na janela, sem rolar a página; os painéis rolam por dentro ===== */
+html,body{height:100%}
+body{overflow:hidden}
+.wrap{height:100%;min-height:0}
+.wrap>*{flex:none}
+.wrap>.encher{flex:1 1 0;min-height:0}
+.rola{overflow:auto;min-height:0;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:var(--line) transparent}
+.rola::-webkit-scrollbar{width:8px;height:8px}.rola::-webkit-scrollbar-thumb{background:var(--line);border-radius:4px}
+/* janela pequena demais (celular, tela baixa): volta a rolar a página */
+@media (max-width:1020px),(max-height:620px){html,body{height:auto}body{overflow:auto}.wrap{height:auto}.wrap>.encher{flex:none}}
+
+.main>.mapcard,.main>.side{height:100%}
+#cmpCard .cmpwrap{overflow-x:auto}
+
+/* telas até 1000 px de altura: cabeçalho e indicadores mais baixos, para sobrar espaço para o conteúdo */
+header nav.tabs{margin:0 auto}
+.bar>.hint{flex:1 1 260px}  /* a mensagem divide a linha com os controles quando cabe */
+@media (max-height:1000px){
+  header.card{padding:8px 14px}
+  header h1{font-size:19px}
+  .kpi{padding:8px 12px}
+  .kpi .v{font-size:24px;margin-top:2px}
+  .wrap{gap:10px}
+}
 </style>
 </head>
 <body>
@@ -127,6 +159,7 @@ table.cmp td small{display:block;color:var(--muted);font:11px var(--body)}
         <p class="sub" id="sub">Mapa da rede · carregando cadastro…</p>
       </div>
     </div>
+    <nav class="tabs" aria-label="Telas"><a href="sinotico.html">Sinótico</a><a href="dados.html" title="Séries recebidas (SABESP, SCADA, loggers) analisadas antes de ir para o modelo">Dados recebidos</a><a href="mapa.html" class="on" aria-current="page">Mapa da rede</a><a href="calibracao.html">Calibração</a><a href="aovivo.html">Ao vivo</a></nav>
     <div class="right">
       <span class="chip" id="cFonte">MOTOR EPANET</span>
       <span class="chip" id="cPres">PRESSÃO</span>
@@ -135,7 +168,6 @@ table.cmp td small{display:block;color:var(--muted);font:11px var(--body)}
     </div>
   </header>
 
-  <nav class="tabs" aria-label="Telas"><a href="index.html">Sinótico</a><a href="mapa.html" class="on" aria-current="page">Mapa da rede</a><a href="calibracao.html">Calibração</a><a href="aovivo.html">Ao vivo</a></nav>
 
   <div class="card bar">
     <div class="seg" role="group" aria-label="O que mostrar no mapa">
@@ -166,11 +198,14 @@ table.cmp td small{display:block;color:var(--muted);font:11px var(--body)}
     <div class="card kpi" id="kRes"><div class="k">Reservação</div><div class="v"><span>–</span><small>%</small></div><div class="d">nível médio dos reservatórios</div></div>
   </section>
 
-  <section class="main">
+  <section class="main encher">
     <div class="card mapcard"><div id="map" role="application" aria-label="Mapa da rede de água"></div><div class="legend" id="leg"></div></div>
     <aside class="card side">
       <section>
-        <div><h3 id="dTit">Selecione um elemento</h3><p class="sub" id="dSub">Clique em um nó, trecho, bomba, válvula ou reservatório.</p></div>
+        <div class="row" style="justify-content:space-between;align-items:flex-start;flex-wrap:nowrap">
+          <div><h3 id="dTit">Selecione um elemento</h3><p class="sub" id="dSub">Clique em um nó, trecho, bomba, válvula ou reservatório.</p></div>
+          <button type="button" class="mini" id="btnSel" hidden title="Tira a seleção do mapa (atalho: Esc ou clique num ponto vazio do mapa)">✕ Limpar seleção</button>
+        </div>
         <dl id="dAttr"></dl>
         <svg id="dChart" viewBox="0 0 360 180" role="img" aria-label="Série de 24 horas do elemento selecionado"></svg>
       </section>
@@ -199,14 +234,15 @@ table.cmp td small{display:block;color:var(--muted);font:11px var(--body)}
         </div>
       </section>
       <section id="issBox" hidden><h3>Problemas</h3><div class="issues" id="iss"></div></section>
-    </aside>
-  </section>
-
-  <section class="card" id="cmpCard" hidden>
+    <section id="cmpCard" hidden>
     <h3 class="p" id="cmpTit">Comparação · Rede atual × Proposta (24 h)</h3>
     <p class="sub" id="cmpSub"></p>
     <div class="cmpwrap"><table class="cmp" id="cmp"></table></div>
   </section>
+    </aside>
+  </section>
+
+
 </div>
 
 <script>
@@ -252,6 +288,9 @@ map.addControl(new maplibregl.NavigationControl({showCompass:false}),'top-right'
 map.addControl({onAdd(){const d=document.createElement('div');d.className='maplibregl-ctrl maplibregl-ctrl-group';
   d.innerHTML='<button type="button" title="Enquadrar a rede" aria-label="Enquadrar a rede" style="display:grid;place-items:center;padding:0"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#333" stroke-width="1.8"><path d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4"/></svg></button>';
   d.firstChild.onclick=enquadrar;return d;},onRemove(){}},'top-right');
+map.addControl({onAdd(){const d=document.createElement('div');d.className='maplibregl-ctrl maplibregl-ctrl-group';
+  d.innerHTML='<button type="button" title="Limpar seleção (Esc)" aria-label="Limpar seleção" style="display:grid;place-items:center;padding:0"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#333" stroke-width="2" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>';
+  d.firstChild.onclick=()=>limparSelecao();return d;},onRemove(){}},'top-right');
 map.addControl(new maplibregl.ScaleControl({unit:'metric'}),'bottom-right');
 new ResizeObserver(()=>map.resize()).observe($('map'));
 
@@ -337,7 +376,7 @@ function desenharRede(){
   d.nos.features.filter(f=>f.properties.camada!=='no_juncao').forEach(f=>{
     const p=f.properties, el=document.createElement('div');
     el.className='mk'; el.innerHTML=ICON[p.camada]+`<div class="lb">${esc(p.id)}<em>–</em></div>`;
-    el.addEventListener('click',ev=>{ev.stopPropagation();selecionar(f);});
+    el.addEventListener('click',ev=>{ev.stopPropagation();abrirCaixa(p.id);selecionar(f);});
     markers[p.id]=new maplibregl.Marker({element:el,anchor:'left',offset:[-10,0]}).setLngLat(f.geometry.coordinates).addTo(map);
   });
   enquadrar();
@@ -479,6 +518,13 @@ function aplicar(kk){
   $('clock').textContent=hhmm(d.horas[k]); $('seek').value=k;
 }
 
+// caixinha do equipamento: abre no clique, fecha no segundo clique, em outro equipamento ou no mapa vazio
+let CAIXA=null;
+function abrirCaixa(id){
+  if(CAIXA&&markers[CAIXA])markers[CAIXA].getElement().classList.remove('aberto');
+  CAIXA=(CAIXA===id)?null:id;
+  if(CAIXA&&markers[CAIXA])markers[CAIXA].getElement().classList.add('aberto');
+}
 function mostradores(d){
   for(const f of REDE.nos.features){
     const p=f.properties, m=markers[p.id]; if(!m)continue;
@@ -498,7 +544,12 @@ function mostradores(d){
       const l=d.links[p.id], st={0:'FECHADA',1:'ABERTA',2:'ATIVA'}[l.s[k]]??l.s[k], pj=d.nos[p.id+'__J'];
       txt=`${st} · jus. ${nf(pj?pj.p[k]:null)} mca`; if(l.s[k]===0)cls+=' off';
     }
-    em.textContent=txt; el.className=cls;
+    em.textContent=txt;
+    // só liga/desliga as classes nossas: trocar o className apagaria a "maplibregl-marker" (posição absoluta)
+    // e os ícones se empilhariam, fora do lugar, cada vez mais longe conforme o zoom
+    const quer=new Set(cls.split(' '));
+    ['alt','bad','off'].forEach(c=>el.classList.toggle(c,quer.has(c)));
+    el.classList.toggle('aberto',p.id===CAIXA);
   }
 }
 
@@ -580,8 +631,18 @@ function comparar(){
 }
 
 /* ---------------- detalhes e edição do elemento ---------------- */
+function limparSelecao(){
+  SEL=null;
+  if(map.getLayer('tr-sel')){map.setFilter('tr-sel',['==',['get','id'],'']);map.setFilter('no-sel',['==',['get','id'],'']);}
+  if(CAIXA)abrirCaixa(CAIXA);
+  $('dTit').textContent='Selecione um elemento';
+  $('dSub').textContent='Clique em um nó, trecho, bomba, válvula ou reservatório.';
+  $('dAttr').innerHTML=''; $('dChart').innerHTML=''; $('editBox').hidden=true; $('btnSel').hidden=true;
+}
+$('btnSel').onclick=()=>limparSelecao();
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&SEL&&!/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName))limparSelecao();});
 function selecionar(f,voar){
-  SEL=f.properties;
+  SEL=f.properties; $('btnSel').hidden=false;
   if(map.getLayer('tr-sel')){
     map.setFilter('tr-sel',['==',['get','id'],SEL.camada==='trecho'?SEL.id:'']);
     map.setFilter('no-sel',['==',['get','id'],SEL.camada!=='trecho'?SEL.id:'']);
@@ -745,6 +806,13 @@ function frame(now){
   requestAnimationFrame(frame);
 }
 map.on('load',()=>{mapaPronto=true;if(REDE)desenharRede();});
+// clique num ponto vazio do mapa (fora de ícones, nós e trechos) fecha a caixinha e limpa a seleção
+map.on('click',e=>{
+  const camadas=['tr','tr-proj','nos'].filter(l=>map.getLayer(l));
+  if(camadas.length&&map.queryRenderedFeatures(e.point,{layers:camadas}).length)return;
+  if(CAIXA)abrirCaixa(CAIXA);
+  if(SEL)limparSelecao();
+});
 (async()=>{
   try{
     await carregarRede();await carregarCenarios('');await simularAtual();

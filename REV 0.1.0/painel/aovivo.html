@@ -16,7 +16,7 @@
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);background-image:radial-gradient(1200px 500px at 70% -10%,#0c2f66 0%,transparent 60%);
   color:var(--text);font:14px var(--body);padding:16px max(16px,env(safe-area-inset-right)) 16px max(16px,env(safe-area-inset-left))}
-.wrap{max-width:1400px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+.wrap{max-width:none;margin:0 auto;  /* usa a largura toda (telas ultrawide) */display:flex;flex-direction:column;gap:12px}
 .card{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:10px;padding:14px;min-width:0}
 header{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center;justify-content:space-between}
 .brand{display:flex;gap:12px;align-items:center}
@@ -80,6 +80,34 @@ pre{background:#061533;border:1px solid var(--line);border-radius:8px;padding:10
 details summary{cursor:pointer;color:var(--muted);font-size:12px;margin-top:8px}
 .hint{color:var(--muted);font-size:12px;line-height:1.5;margin:8px 0 0}
 @media (prefers-reduced-motion:reduce){*{animation:none!important}}
+
+/* ===== tela cheia: tudo cabe na janela, sem rolar a página; os painéis rolam por dentro ===== */
+html,body{height:100%}
+body{overflow:hidden}
+.wrap{height:100%;min-height:0}
+.wrap>*{flex:none}
+.wrap>.encher{flex:1 1 0;min-height:0}
+.rola{overflow:auto;min-height:0;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:var(--line) transparent}
+.rola::-webkit-scrollbar{width:8px;height:8px}.rola::-webkit-scrollbar-thumb{background:var(--line);border-radius:4px}
+/* janela pequena demais (celular, tela baixa): volta a rolar a página */
+@media (max-width:1020px),(max-height:620px){html,body{height:auto}body{overflow:auto}.wrap{height:auto}.wrap>.encher{flex:none}}
+
+.main{min-height:0}
+.main>*{min-height:0}
+.col{display:flex;flex-direction:column;gap:12px;min-height:0}
+.col>.card:first-child{flex:1 1 0}
+.fonte{flex:0 1 auto;max-height:45%}
+.alarmes{max-height:22vh}
+
+/* telas até 1000 px de altura: cabeçalho e indicadores mais baixos, para sobrar espaço para o conteúdo */
+header nav.tabs{margin:0 auto}
+@media (max-height:1000px){
+  header.card{padding:8px 14px}
+  header h1{font-size:19px}
+  .kpi{padding:8px 12px}
+  .kpi .v{font-size:24px;margin-top:2px}
+  .wrap{gap:10px}
+}
 </style>
 </head>
 <body>
@@ -89,6 +117,7 @@ details summary{cursor:pointer;color:var(--muted);font-size:12px;margin-top:8px}
       <svg width="42" height="42" viewBox="0 0 42 42" aria-hidden="true"><circle cx="21" cy="21" r="19" fill="#0a2a58" stroke="#35d0ff" stroke-width="2"/><path d="M21 9c5 7 8 11 8 15a8 8 0 0 1-16 0c0-4 3-8 8-15z" fill="#35d0ff"/></svg>
       <div><h1>Centro de Operações de Saneamento</h1><p class="sub">Operação ao vivo · telemetria × gêmeo digital (EPANET)</p></div>
     </div>
+    <nav class="tabs" aria-label="Telas"><a href="sinotico.html">Sinótico</a><a href="dados.html" title="Séries recebidas (SABESP, SCADA, loggers) analisadas antes de ir para o modelo">Dados recebidos</a><a href="mapa.html">Mapa da rede</a><a href="calibracao.html">Calibração</a><a href="aovivo.html" class="on" aria-current="page">Ao vivo</a></nav>
     <div class="right">
       <span class="chip" id="cCom">SEM TELEMETRIA</span>
       <span class="chip" id="cGem">GÊMEO</span>
@@ -97,30 +126,20 @@ details summary{cursor:pointer;color:var(--muted);font-size:12px;margin-top:8px}
     </div>
   </header>
 
-  <nav class="tabs" aria-label="Telas"><a href="index.html">Sinótico</a><a href="mapa.html">Mapa da rede</a><a href="calibracao.html">Calibração</a><a href="aovivo.html" class="on" aria-current="page">Ao vivo</a></nav>
 
-  <section class="card" aria-live="polite">
+  <section class="card rola alarmes" aria-live="polite">
     <h2>Alarmes ativos</h2>
     <div id="alarmes"><p class="vazio">Aguardando telemetria…</p></div>
   </section>
 
-  <section class="main">
-    <div class="card">
+  <section class="main encher">
+    <div class="col">
+    <div class="card rola">
       <h2>Sensores</h2>
       <p class="sub">Valor medido, valor esperado pelo gêmeo digital no mesmo instante e diferença. Linha cheia = campo, tracejada = gêmeo. Clique para ampliar.</p>
       <div class="sens" id="sens"></div>
     </div>
-    <div class="card">
-      <h2 id="gTit">Sensor</h2>
-      <p class="sub" id="gSub">Selecione um sensor.</p>
-      <svg id="graf" viewBox="0 0 560 280" role="img" aria-label="Histórico, gêmeo e previsão do sensor selecionado"></svg>
-      <div class="lg"><span><i style="border-color:#ffb547"></i>campo</span><span><i style="border-color:#35d0ff;border-top-style:dashed"></i>gêmeo (esperado)</span><span><i style="border-color:#a78bfa;border-top-style:dotted"></i>previsão 6 h</span><span><i style="border-color:#3ddc97"></i>faixa operacional</span></div>
-      <h2 style="margin-top:14px">Histórico de eventos</h2>
-      <div class="tw"><table id="hist"></table></div>
-    </div>
-  </section>
-
-  <section class="card">
+    <section class="card rola fonte">
     <h2>Fonte de dados</h2>
     <p class="sub">Em operação real, o SCADA (ou um gateway OPC-UA / MQTT / Node-RED) envia as leituras para <code>POST /api/telemetria</code>. Sem SCADA conectado, use o simulador: ele gera a "rede real" a partir do cadastro, com ruído de medição e, se quiser, um vazamento escondido para o gêmeo encontrar.</p>
     <div class="row">
@@ -144,6 +163,18 @@ Content-Type: application/json
       <p class="hint">elemento = código do cadastro · grandeza: pressao (mca; em válvula/bomba = jusante), vazao (L/s), nivel (m) · ts: ISO ou segundos Unix. As leituras ficam em <code>*_telemetria.sqlite</code> ao lado do cadastro.</p>
     </details>
   </section>
+    </div>
+    <div class="card rola">
+      <h2 id="gTit">Sensor</h2>
+      <p class="sub" id="gSub">Selecione um sensor.</p>
+      <svg id="graf" viewBox="0 0 560 280" role="img" aria-label="Histórico, gêmeo e previsão do sensor selecionado"></svg>
+      <div class="lg"><span><i style="border-color:#ffb547"></i>campo</span><span><i style="border-color:#35d0ff;border-top-style:dashed"></i>gêmeo (esperado)</span><span><i style="border-color:#a78bfa;border-top-style:dotted"></i>previsão 6 h</span><span><i style="border-color:#3ddc97"></i>faixa operacional</span></div>
+      <h2 style="margin-top:14px">Histórico de eventos</h2>
+      <div class="tw"><table id="hist"></table></div>
+    </div>
+  </section>
+
+
 </div>
 
 <script>
