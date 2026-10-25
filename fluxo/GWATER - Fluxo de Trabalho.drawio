@@ -4,7 +4,7 @@
 <root>
 <mxCell id="0" />
 <mxCell id="1" parent="0" />
-<mxCell id="TIT" value="&lt;b&gt;GWATER · Fluxo de Trabalho · REV 0.1.0&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:12px'&gt;QGIS (cadastro) → EPANET (motor) → Centro de Operações (decisão e operação) · 13 fases (0 a 12) concluídas em 25/10/2026 · azul = sequência · rosa tracejado = ciclos de melhoria&lt;/font&gt;" style="text;html=1;fontSize=22;align=left;verticalAlign=top;" vertex="1" parent="1">
+<mxCell id="TIT" value="&lt;b&gt;GWATER · Fluxo de Trabalho · REV 0.1.0 e 0.2.0&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:12px'&gt;QGIS (cadastro) → EPANET (motor) → Centro de Operações (decisão e operação) · 14 fases (0 a 13) concluídas em 25/10/2026 · azul = sequência · rosa tracejado = ciclos de melhoria&lt;/font&gt;" style="text;html=1;fontSize=22;align=left;verticalAlign=top;" vertex="1" parent="1">
 <mxGeometry x="40" y="20" width="1300" height="60" as="geometry" />
 </mxCell>
 <mxCell id="F0" value="FASE 0 · Prova de conceito&lt;br&gt;&lt;font style='font-size:10px' color='#1f7a4a'&gt;✓ CONCLUÍDA&lt;/font&gt;" style="swimlane;rounded=1;arcSize=5;startSize=48;fontStyle=1;fontSize=13;fillColor=#dae8fc;strokeColor=#6c8ebf;swimlaneFillColor=#ffffff;html=1;whiteSpace=wrap;" vertex="1" parent="1">
@@ -243,31 +243,31 @@
 </mxGeometry>
 </mxCell>
 <mxCell id="PROX" value="PRÓXIMOS PASSOS" style="swimlane;rounded=1;arcSize=4;startSize=34;fontStyle=1;fontSize=13;fillColor=#f5f5f5;strokeColor=#999999;dashed=1;swimlaneFillColor=#ffffff;html=1;" vertex="1" parent="1">
-<mxGeometry x="380" y="1730" width="970" height="420" as="geometry" />
+<mxGeometry x="720" y="1730" width="630" height="600" as="geometry" />
 </mxCell>
 <mxCell id="P0" value="&lt;b&gt;Dados reais&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;cadastro e shapefile reais, medições de campo reais&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;dashed=1;fillColor=#fafafa;strokeColor=#999999;" vertex="1" parent="PROX">
-<mxGeometry x="20" y="50" width="296" height="95" as="geometry" />
+<mxGeometry x="20" y="50" width="285" height="92" as="geometry" />
 </mxCell>
 <mxCell id="P1" value="&lt;b&gt;SCADA conectado&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;gateway OPC-UA / MQTT / Node-RED → /api/telemetria&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;dashed=1;fillColor=#fafafa;strokeColor=#999999;" vertex="1" parent="PROX">
-<mxGeometry x="336" y="50" width="296" height="95" as="geometry" />
+<mxGeometry x="325" y="50" width="285" height="92" as="geometry" />
 </mxCell>
 <mxCell id="P2" value="&lt;b&gt;Avisos de alarme&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;e-mail, WhatsApp, SMS para a equipe de plantão&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;dashed=1;fillColor=#fafafa;strokeColor=#999999;" vertex="1" parent="PROX">
-<mxGeometry x="652" y="50" width="296" height="95" as="geometry" />
+<mxGeometry x="20" y="158" width="285" height="92" as="geometry" />
 </mxCell>
-<mxCell id="P3" value="&lt;b&gt;Propostas e calibração no QGIS&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;hoje ficam no navegador (o plugin abre a página certa)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;dashed=1;fillColor=#fafafa;strokeColor=#999999;" vertex="1" parent="PROX">
-<mxGeometry x="20" y="165" width="296" height="95" as="geometry" />
+<mxCell id="P3" value="&lt;b&gt;Instalador do GWATER.exe&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;pacote com QGIS e Python embutidos, sem instalar nada&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;dashed=1;fillColor=#fafafa;strokeColor=#999999;" vertex="1" parent="PROX">
+<mxGeometry x="325" y="158" width="285" height="92" as="geometry" />
 </mxCell>
 <mxCell id="P4" value="&lt;b&gt;Localizar vazamento por trecho&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;mais sensores de pressão + análise de sensibilidade&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;dashed=1;fillColor=#fafafa;strokeColor=#999999;" vertex="1" parent="PROX">
-<mxGeometry x="336" y="165" width="296" height="95" as="geometry" />
+<mxGeometry x="20" y="266" width="285" height="92" as="geometry" />
 </mxCell>
 <mxCell id="P5" value="&lt;b&gt;Infraestrutura&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;PostGIS multiusuário, TimescaleDB, servidor e login&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;dashed=1;fillColor=#fafafa;strokeColor=#999999;" vertex="1" parent="PROX">
-<mxGeometry x="652" y="165" width="296" height="95" as="geometry" />
+<mxGeometry x="325" y="266" width="285" height="92" as="geometry" />
 </mxCell>
 <mxCell id="P6" value="&lt;b&gt;Energia real&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;curvas de rendimento das bombas, tarifa por horário&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;dashed=1;fillColor=#fafafa;strokeColor=#999999;" vertex="1" parent="PROX">
-<mxGeometry x="20" y="280" width="296" height="95" as="geometry" />
+<mxGeometry x="20" y="374" width="285" height="92" as="geometry" />
 </mxCell>
 <mxCell id="P7" value="&lt;b&gt;Offline / EPANET no navegador&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;epanet-js, mapas e fontes locais&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;dashed=1;fillColor=#fafafa;strokeColor=#999999;" vertex="1" parent="PROX">
-<mxGeometry x="336" y="280" width="296" height="95" as="geometry" />
+<mxGeometry x="325" y="374" width="285" height="92" as="geometry" />
 </mxCell>
 <mxCell id="F8" value="FASE 8 · Plugin: menu único e desenho&lt;br&gt;&lt;font style='font-size:10px' color='#1f7a4a'&gt;✓ CONCLUÍDA&lt;/font&gt;" style="swimlane;rounded=1;arcSize=5;startSize=48;fontStyle=1;fontSize=13;fillColor=#dae8fc;strokeColor=#6c8ebf;swimlaneFillColor=#ffffff;html=1;whiteSpace=wrap;" vertex="1" parent="1">
 <mxGeometry x="40" y="1190" width="290" height="420" as="geometry" />
@@ -405,7 +405,34 @@
 <mxGeometry relative="1" as="geometry" />
 </mxCell>
 <mxCell id="P8" value="&lt;b&gt;Dados recebidos → Calibração&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;ligar cada série a um elemento do cadastro, direto&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;dashed=1;fillColor=#fafafa;strokeColor=#999999;" vertex="1" parent="PROX">
-<mxGeometry x="652" y="280" width="296" height="95" as="geometry" />
+<mxGeometry x="20" y="482" width="285" height="92" as="geometry" />
+</mxCell>
+<mxCell id="F13" value="FASE 13 · GWATER.exe (programa à parte)&lt;br&gt;&lt;font style='font-size:10px' color='#1f7a4a'&gt;✓ CONCLUÍDA&lt;/font&gt;" style="swimlane;rounded=1;arcSize=5;startSize=48;fontStyle=1;fontSize=13;fillColor=#d0f0f0;strokeColor=#3a9a9a;swimlaneFillColor=#ffffff;html=1;whiteSpace=wrap;" vertex="1" parent="1">
+<mxGeometry x="380" y="1730" width="290" height="420" as="geometry" />
+</mxCell>
+<mxCell id="F13T0" value="&lt;b&gt;Faixa de menus como o WaterGEMS&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;REV 0.2.0 · 9 abas, 118 botões&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#d0f0f0;strokeColor=#3a9a9a;" vertex="1" parent="F13">
+<mxGeometry x="15" y="62" width="260" height="68" as="geometry" />
+</mxCell>
+<mxCell id="F13T1" value="&lt;b&gt;Propriedades, Tabelas, Consultas&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;dados e resultados do elemento&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#d0f0f0;strokeColor=#3a9a9a;" vertex="1" parent="F13">
+<mxGeometry x="15" y="150" width="260" height="68" as="geometry" />
+</mxCell>
+<mxCell id="E13_1" value="" style="endArrow=block;html=1;strokeColor=#888888;" edge="1" parent="F13" source="F13T0" target="F13T1">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="F13T2" value="&lt;b&gt;Análises: incêndio, criticidade…&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;motor/analises.py · energia, renovação&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#d0f0f0;strokeColor=#3a9a9a;" vertex="1" parent="F13">
+<mxGeometry x="15" y="238" width="260" height="68" as="geometry" />
+</mxCell>
+<mxCell id="E13_2" value="" style="endArrow=block;html=1;strokeColor=#888888;" edge="1" parent="F13" source="F13T1" target="F13T2">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="F13T3" value="&lt;b&gt;GWATER.exe + Centro de Operações&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;abre sem o QGIS na tela; plugin mantido&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#d0f0f0;strokeColor=#3a9a9a;" vertex="1" parent="F13">
+<mxGeometry x="15" y="326" width="260" height="68" as="geometry" />
+</mxCell>
+<mxCell id="E13_3" value="" style="endArrow=block;html=1;strokeColor=#888888;" edge="1" parent="F13" source="F13T2" target="F13T3">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="E13_seq" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;endArrow=block;endFill=1;strokeWidth=2.5;strokeColor=#1f5fa8;html=1;fontSize=11;exitX=1;exitY=0.06;exitDx=0;exitDy=0;entryX=0;entryY=0.06;entryDx=0;entryDy=0;" edge="1" parent="1" source="F12" target="F13">
+<mxGeometry relative="1" as="geometry" />
 </mxCell>
 </root>
 </mxGraphModel>
@@ -415,13 +442,13 @@
 <root>
 <mxCell id="0" />
 <mxCell id="1" parent="0" />
-<mxCell id="TIT" value="&lt;b&gt;GWATER · Arquitetura · REV 0.1.0&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:12px'&gt;Tudo roda na máquina local: QGIS, Python do projeto (.venv) e navegador. O GeoPackage é a fonte única do cadastro; os dados recebidos ficam ao lado dele (&amp;lt;cadastro&amp;gt;_dados_recebidos.json); o servidor liga o motor às telas.&lt;/font&gt;" style="text;html=1;fontSize=22;align=left;verticalAlign=top;" vertex="1" parent="1">
+<mxCell id="TIT" value="&lt;b&gt;GWATER · Arquitetura · REV 0.1.0 e 0.2.0&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:12px'&gt;Tudo roda na máquina local: QGIS (ou o GWATER.exe, que usa as bibliotecas dele), Python do projeto (.venv) e navegador. O GeoPackage é a fonte única do cadastro; os dados recebidos ficam ao lado dele (&amp;lt;cadastro&amp;gt;_dados_recebidos.json); o servidor liga o motor às telas.&lt;/font&gt;" style="text;html=1;fontSize=22;align=left;verticalAlign=top;" vertex="1" parent="1">
 <mxGeometry x="40" y="20" width="1300" height="60" as="geometry" />
 </mxCell>
 <mxCell id="FXCAM" value="CAMPO" style="rounded=1;arcSize=6;html=1;fontSize=12;fontStyle=1;fontColor=#55657a;align=left;spacingLeft=14;fillColor=#f2f2f2;strokeColor=none;" vertex="1" parent="1">
 <mxGeometry x="40" y="100" width="1300" height="90" as="geometry" />
 </mxCell>
-<mxCell id="FXQGI" value="QGIS" style="rounded=1;arcSize=6;html=1;fontSize=12;fontStyle=1;fontColor=#55657a;align=left;spacingLeft=14;fillColor=#eaf6e7;strokeColor=none;" vertex="1" parent="1">
+<mxCell id="FXQGI" value="QGIS /&lt;br&gt;GWATER.exe" style="rounded=1;arcSize=6;html=1;fontSize=12;fontStyle=1;fontColor=#55657a;align=left;spacingLeft=14;fillColor=#eaf6e7;strokeColor=none;" vertex="1" parent="1">
 <mxGeometry x="40" y="225" width="1300" height="90" as="geometry" />
 </mxCell>
 <mxCell id="FXDAD" value="DADOS" style="rounded=1;arcSize=6;html=1;fontSize=12;fontStyle=1;fontColor=#55657a;align=left;spacingLeft=14;fillColor=#f3fbf1;strokeColor=none;" vertex="1" parent="1">
@@ -457,7 +484,7 @@
 <mxCell id="CONV" value="&lt;b&gt;cadastro_para_inp.py&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;valida · .inp · PDA · relatório traduzido&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#fffbe6;strokeColor=#d6b656;" vertex="1" parent="1">
 <mxGeometry x="200" y="480" width="150" height="80" as="geometry" />
 </mxCell>
-<mxCell id="CLI" value="&lt;b&gt;gwater_cli.py&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;ponte com o QGIS (JSON)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#ffffff;strokeColor=#666666;" vertex="1" parent="1">
+<mxCell id="CLI" value="&lt;b&gt;gwater_cli.py + analises.py&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;ponte JSON · incêndio, criticidade, energia, zonas&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#ffffff;strokeColor=#666666;" vertex="1" parent="1">
 <mxGeometry x="365" y="480" width="150" height="80" as="geometry" />
 </mxCell>
 <mxCell id="CEN" value="&lt;b&gt;cenarios.py&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;propostas e manobras&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#ffffff;strokeColor=#666666;" vertex="1" parent="1">
@@ -469,7 +496,7 @@
 <mxCell id="GEM" value="&lt;b&gt;aovivo.py · gêmeo digital&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;15 min · alarmes · simulador&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#e8e8f5;strokeColor=#6b6bb5;" vertex="1" parent="1">
 <mxGeometry x="1190" y="480" width="150" height="80" as="geometry" />
 </mxCell>
-<mxCell id="SRV" value="&lt;b&gt;servidor.py · API HTTP · localhost:8765&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;/api/rede · simular-rede · cenarios · medicoes · calibracao · telemetria · aovivo · sinotico · dados (ler · importar · digitar · excluir) · versao · encerrar&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+<mxCell id="SRV" value="&lt;b&gt;servidor.py · API HTTP · localhost:8765 (8775 no GWATER.exe)&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;/api/rede · simular-rede · cenarios · medicoes · calibracao · telemetria · aovivo · sinotico · dados (ler · importar · digitar · excluir) · versao · encerrar&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
 <mxGeometry x="200" y="615" width="1140" height="60" as="geometry" />
 </mxCell>
 <mxCell id="W1" value="&lt;b&gt;Sinótico&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;montado do cadastro aberto&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#ffffff;strokeColor=#9673a6;" vertex="1" parent="1">
@@ -570,6 +597,9 @@
 </mxCell>
 <mxCell id="E23" value="tela Dados recebidos" style="edgeStyle=none;endArrow=block;endFill=1;strokeWidth=1.8;strokeColor=#9673a6;html=1;fontSize=10;fontColor=#33475b;labelBackgroundColor=#ffffff;exitX=0.5000;exitY=1;exitDx=0;exitDy=0;entryX=0.7500;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="PLAN" target="DREC">
 <mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="EXE" value="&lt;b&gt;GWATER.exe · REV 0.2.0&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;faixa de menus · análises · consultas · mesmo núcleo do plugin&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#d0f0f0;strokeColor=#3a9a9a;" vertex="1" parent="1">
+<mxGeometry x="985" y="235" width="215" height="70" as="geometry" />
 </mxCell>
 </root>
 </mxGraphModel>

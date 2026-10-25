@@ -523,6 +523,12 @@ def aplicar_prototipo(camadas, dn, material, situacao, formulario):
         if nome == "trecho":
             lyr.setDefaultValueDefinition(idx("diametro_nominal"), QgsDefaultValue(str(dn) if dn else ""))
             lyr.setDefaultValueDefinition(idx("material"), QgsDefaultValue(f"'{material}'" if material else ""))
+            # nó inicial/final: a Topologia acerta ao desenhar e ao mover. A expressão do projeto (aggregate)
+            # não enxerga nós com edição pendente: recalculada a cada alteração da tubulação, apagava a ponta
+            for campo in ("no_inicial", "no_final"):
+                d = lyr.defaultValueDefinition(idx(campo))
+                if d.applyOnUpdate():
+                    lyr.setDefaultValueDefinition(idx(campo), QgsDefaultValue(d.expression(), False))
         cfg = lyr.editFormConfig()
         try:
             cfg.setSuppress(Qgis.AttributeFormSuppression.Default if formulario else Qgis.AttributeFormSuppression.On)

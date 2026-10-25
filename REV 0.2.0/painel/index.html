@@ -1,0 +1,500 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Centro de Operações de Saneamento</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;600&family=Rajdhani:wght@500;600;700&display=swap">
+<style>
+/* Layout: faixa de cabeçalho + KPIs, diagrama hidráulico em largura total, grade de gráficos e manômetros */
+:root{
+  --bg:#050f24; --panel:#0a1d3e; --panel2:#0d2650; --line:#16427a; --grid:#17345f;
+  --text:#e8f2ff; --muted:#86a3c9; --cyan:#35d0ff; --water:#1d8fd6;
+  --ok:#3ddc97; --warn:#ffb547; --crit:#ff6b7a; --violet:#a78bfa;
+  --display:'Rajdhani','Arial Narrow',sans-serif;
+  --body:'IBM Plex Sans',system-ui,sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{
+  background:var(--bg);
+  background-image:radial-gradient(1200px 500px at 70% -10%,#0c2f66 0%,transparent 60%);
+  color:var(--text);font-family:var(--body);font-size:14px;
+  padding-block:16px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+}
+.wrap{max-width:none;margin:0 auto;  /* usa a largura toda (telas ultrawide) */display:flex;flex-direction:column;gap:12px}
+.card{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:10px;padding:14px;min-width:0}
+header{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center;justify-content:space-between}
+.brand{display:flex;gap:12px;align-items:center;min-width:0}
+.brand svg{flex:none}
+h1{font:700 22px/1.1 var(--display);letter-spacing:.04em;margin:0;text-wrap:balance}
+.sub{color:var(--muted);font-size:12px;margin:2px 0 0}
+.right{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.chip{font:600 10.5px var(--mono);letter-spacing:.06em;padding:5px 9px;border-radius:99px;border:1px solid var(--line);color:var(--muted);background:#08183398;white-space:nowrap}
+.chip.ok{color:var(--ok);border-color:#1f7a5a}
+.chip.warn{color:var(--warn);border-color:#8a5d17}
+.chip.crit{color:var(--crit);border-color:#8a2a38}
+.chip.fake{color:var(--warn);border-color:#8a5d17;background:#2a1e0a}
+#clock{font:600 28px var(--display);letter-spacing:.04em;font-variant-numeric:tabular-nums;color:var(--text);min-width:76px;text-align:right}
+nav.tabs{display:flex;gap:6px}
+nav.tabs a{font:600 12px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);text-decoration:none;padding:8px 14px;border:1px solid var(--line);border-radius:8px;background:#08183398}
+nav.tabs a.on{color:var(--cyan);border-color:var(--cyan)}
+.bar{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center}
+.bar button,.bar select,.fbtn{font:600 12px var(--body);color:var(--text);background:#0b2a58;border:1px solid var(--line);border-radius:8px;padding:8px 12px;cursor:pointer}
+.bar button:hover,.bar select:hover,.fbtn:hover{border-color:var(--cyan)}
+:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+.bar input[type=range]{flex:1 1 220px;min-width:0;accent-color:var(--cyan)}
+.bar label.l{color:var(--muted);font-size:11px;display:flex;gap:6px;align-items:center}
+.bar input[type=number]{width:70px;font:600 12px var(--mono);color:var(--text);background:#0b2a58;border:1px solid var(--line);border-radius:8px;padding:7px}
+.fbtn input{display:none}
+.hint{color:var(--muted);font-size:11px;line-height:1.5;margin:0;flex-basis:100%}
+.hint code{font-family:var(--mono);color:#b9d6ff}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}
+.kpi{padding:12px 14px}
+.kpi .k{display:flex;justify-content:space-between;align-items:center;font:600 10.5px var(--mono);letter-spacing:.07em;color:var(--muted);text-transform:uppercase}
+.kpi .k em{font-style:normal;color:var(--ok);display:flex;align-items:center;gap:4px;font-size:9px}
+.kpi .k em::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--ok);animation:pulse 1.6s infinite}
+.kpi .v{font:600 32px/1.1 var(--display);margin-top:6px;font-variant-numeric:tabular-nums}
+.kpi .v small{font:400 12px var(--mono);color:var(--muted);margin-left:5px}
+.kpi .d{font-size:11px;color:var(--muted);margin-top:2px}
+.kpi.warn .v{color:var(--warn)} .kpi.crit .v{color:var(--crit)}
+@keyframes pulse{50%{opacity:.25}}
+h2,h3{font:600 13px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--cyan);margin:0}
+.diag{overflow-x:auto}
+.diag svg{display:block;width:100%;min-width:760px;height:auto;max-height:calc(100vh - 48px)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,380px),1fr));gap:12px}
+.grid svg{display:block;width:100%;height:auto;margin-top:8px}
+.lg{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:6px;font-size:11.5px;color:var(--muted)}
+.lg span{display:flex;align-items:center;gap:6px}
+.lg i{width:14px;height:0;border-top:3px solid;display:inline-block}
+.lg b{font:600 12px var(--mono);color:var(--text);font-variant-numeric:tabular-nums}
+.gauges{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+.gauges figure{margin:0;flex:1 1 150px;max-width:240px;text-align:center}
+.gauges figcaption{font:600 11px var(--mono);letter-spacing:.06em;color:var(--muted);text-transform:uppercase}
+.gauges svg{margin-top:2px}
+/* SVG do diagrama */
+.pb{stroke:#0b3470;stroke-width:14}
+.pi{stroke:#1668b0;stroke-width:9}
+.fl{stroke:#9cecff;stroke-width:3;stroke-dasharray:9 9}
+.box{fill:none;stroke:#2b6cb8;stroke-dasharray:5 4}
+.tank{fill:#06193a;stroke:#3a86d6;stroke-width:2}
+.tg{fill:#0a2f6b;stroke:var(--cyan);stroke-opacity:.55}
+.tg.bad{fill:#4a1220;stroke:var(--crit);stroke-opacity:1}
+.tl{font:600 8.5px var(--mono);fill:var(--muted);letter-spacing:.06em}
+.tv{font:600 13px var(--mono);fill:var(--text)}
+.nm{font:700 12px var(--display);fill:var(--text);letter-spacing:.1em}
+.sec{font:600 10px var(--mono);fill:var(--muted);letter-spacing:.06em}
+.big{font:700 18px var(--display);fill:#fff;paint-order:stroke;stroke:#05224a;stroke-width:3px}
+.ax{font:10px var(--mono);fill:var(--muted)}
+.gv{font:600 24px var(--display);fill:var(--text)}
+.gu{font:10px var(--mono);fill:var(--muted)}
+@media (prefers-reduced-motion:reduce){.kpi .k em::before{animation:none}}
+
+/* ===== tela cheia: tudo cabe na janela, sem rolar a página; os painéis rolam por dentro ===== */
+html,body{height:100%}
+body{overflow:hidden}
+.wrap{height:100%;min-height:0}
+.wrap>*{flex:none}
+.wrap>.encher{flex:1 1 0;min-height:0}
+.rola{overflow:auto;min-height:0;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:var(--line) transparent}
+.rola::-webkit-scrollbar{width:8px;height:8px}.rola::-webkit-scrollbar-thumb{background:var(--line);border-radius:4px}
+/* janela pequena demais (celular, tela baixa): volta a rolar a página */
+@media (max-width:1020px),(max-height:620px){html,body{height:auto}body{overflow:auto}.wrap{height:auto}.wrap>.encher{flex:none}}
+
+.main{display:grid;grid-template-columns:minmax(0,1fr) clamp(380px,26vw,620px);gap:12px;min-height:0}
+.main>*{min-height:0;height:100%}
+.main>.diag{display:flex;align-items:center;justify-content:center;overflow:hidden}
+.main>.diag svg{height:100%;max-height:none;min-width:0}
+.main>.grid{grid-template-columns:1fr;align-content:start}
+@media (max-width:1020px),(max-height:620px){.main{grid-template-columns:1fr}.main>*{height:auto}
+  .main>.diag svg{height:auto;min-width:760px}.main>.diag{overflow:auto}}
+
+/* telas até 1000 px de altura: cabeçalho e indicadores mais baixos, para sobrar espaço para o conteúdo */
+header nav.tabs{margin:0 auto}
+@media (max-height:1000px){
+  header.card{padding:8px 14px}
+  header h1{font-size:19px}
+  .kpi{padding:8px 12px}
+  .kpi .v{font-size:24px;margin-top:2px}
+  .wrap{gap:10px}
+}
+</style>
+
+<div class="wrap">
+  <header class="card">
+    <div class="brand">
+      <svg width="42" height="42" viewBox="0 0 42 42" aria-hidden="true"><circle cx="21" cy="21" r="19" fill="#0a2a58" stroke="#35d0ff" stroke-width="2"/><path d="M21 9c5 7 8 11 8 15a8 8 0 0 1-16 0c0-4 3-8 8-15z" fill="#35d0ff"/></svg>
+      <div>
+        <h1>Centro de Operações de Saneamento</h1>
+        <p class="sub">Captação, elevatória, reservatório R1 e distribuição com VRPs em série</p>
+      </div>
+    </div>
+    <nav class="tabs" aria-label="Telas"><a href="sinotico.html">Sinótico</a><a href="dados.html">Dados recebidos</a><a href="index.html" class="on" aria-current="page">Exemplo</a><a href="mapa.html">Mapa da rede</a><a href="calibracao.html">Calibração</a><a href="aovivo.html">Ao vivo</a></nav>
+    <div class="right">
+      <span class="chip ok" id="chipFake">MOTOR EPANET</span>
+      <span class="chip" id="c1">BOMBA</span>
+      <span class="chip" id="c2">NÍVEL R1</span>
+      <span class="chip" id="c3">REDE</span>
+      <div id="clock" aria-label="Hora simulada">00:00</div>
+    </div>
+  </header>
+
+
+  <div class="card bar">
+    <button id="play" type="button">Pausar</button>
+    <label class="l">Velocidade
+      <select id="spd">
+        <option value="120">1 dia em 2 min</option>
+        <option value="60" selected>1 dia em 1 min</option>
+        <option value="20">1 dia em 20 s</option>
+        <option value="8">1 dia em 8 s</option>
+      </select>
+    </label>
+    <input id="seek" type="range" min="0" max="96" step="0.05" value="0" aria-label="Posição no dia">
+    <span class="chip" id="rd">Leitura 0/96</span>
+    <label class="fbtn">Carregar CSV<input id="csv" type="file" accept=".csv,text/csv,text/plain"></label>
+    <p class="hint" id="csvmsg" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="Para usar sua telemetria (uma linha a cada 15 min), carregue um CSV com as colunas hora, q_entrada, q_saida, nivel, p_mont_elev, p_jus_elev, vrp1_mont, vrp1_jus, vrp2_mont, vrp2_jus, vrp3_mont, vrp3_jus e, se tiver, p_entrada, p_saida. Vazões em L/s, pressões em mca, nível em %.">Para usar sua telemetria (uma linha a cada 15 min), carregue um CSV com as colunas <code>hora, q_entrada, q_saida, nivel, p_mont_elev, p_jus_elev, vrp1_mont, vrp1_jus, vrp2_mont, vrp2_jus, vrp3_mont, vrp3_jus</code> e, se tiver, <code>p_entrada, p_saida</code> (pressão na entrada e na saída do reservatório). Vazões em L/s, pressões em mca, nível em %.</p>
+  </div>
+
+  <form class="card bar" id="params" aria-label="Parâmetros do modelo EPANET">
+    <h3 style="flex-basis:100%">Parâmetros do modelo · re-simular no EPANET</h3>
+    <label class="l">Capacidade R1 (m³)<input name="cap_r1" type="number" min="50" step="10" value="520"></label>
+    <label class="l">Nível inicial (%)<input name="nivel_ini" type="number" min="5" max="100" step="1" value="58"></label>
+    <label class="l">Bomba liga &lt; (%)<input name="bomba_liga" type="number" min="5" max="95" step="1" value="42"></label>
+    <label class="l">Bomba desliga &gt; (%)<input name="bomba_desliga" type="number" min="10" max="100" step="1" value="88"></label>
+    <label class="l">VRP 1 (mca)<input name="vrp1" type="number" min="0" step="0.5" value="30"></label>
+    <label class="l">VRP 2 (mca)<input name="vrp2" type="number" min="0" step="0.5" value="18"></label>
+    <label class="l">VRP 3 (mca)<input name="vrp3" type="number" min="0" step="0.5" value="22"></label>
+    <label class="l">Fator de demanda<input name="fator_demanda" type="number" min="0.1" step="0.05" value="1"></label>
+    <label class="l">Rugosidade C (H-W)<input name="rugosidade" type="number" min="40" max="160" step="5" value="130"></label>
+    <button type="submit" id="btnSim">Simular</button>
+    <button type="button" id="btnCad" title="Lê o GeoPackage salvo no QGIS, valida a rede e simula">Simular cadastro QGIS</button>
+    <p class="hint" id="simmsg">–</p>
+  </form>
+
+  <section class="kpis" aria-label="Indicadores">
+    <div class="card kpi"><div class="k">Elevatória<em>AO VIVO</em></div><div class="v"><span id="kQin">–</span><small>L/s</small></div><div class="d">vazão de entrada em R1</div></div>
+    <div class="card kpi"><div class="k">Demanda<em>AO VIVO</em></div><div class="v"><span id="kQout">–</span><small>L/s</small></div><div class="d">saída de R1 (S1 + S2)</div></div>
+    <div class="card kpi"><div class="k">Saldo R1<em>AO VIVO</em></div><div class="v"><span id="kSaldo">–</span><small>L/s</small></div><div class="d">entrada − saída</div></div>
+    <div class="card kpi" id="kpiRede"><div class="k">Pressão na rede<em>AO VIVO</em></div><div class="v"><span id="kRede">–</span><small>mca</small></div><div class="d">jusante da VRP 2</div></div>
+    <div class="card kpi"><div class="k">Volume em R1<em>AO VIVO</em></div><div class="v"><span id="kVol">–</span><small>m³</small></div><div class="d" id="kVolD">–</div></div>
+    <div class="card kpi"><div class="k">Consumo do dia<em>AO VIVO</em></div><div class="v"><span id="kCum">–</span><small>m³</small></div><div class="d">acumulado desde 00:00</div></div>
+  </section>
+
+  <div class="main encher">
+  <section class="card diag" aria-label="Diagrama hidráulico">
+    <svg id="diag" viewBox="0 0 1000 392" role="img" aria-label="Diagrama: captação, estação elevatória, reservatório R1 e dois ramais de distribuição com VRPs">
+      <defs>
+        <linearGradient id="wg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5fdcff"/><stop offset="1" stop-color="#1a7fc4"/></linearGradient>
+        <clipPath id="rclip"><rect x="474" y="74" width="82" height="182" rx="3"/></clipPath>
+        <clipPath id="cclip"><rect x="28" y="174" width="82" height="72" rx="3"/></clipPath>
+        <g id="bld" fill="#2b78c2" stroke="#7fd0ff" stroke-width="1"><rect x="0" y="-30" width="16" height="30"/><rect x="20" y="-50" width="20" height="50"/><rect x="44" y="-24" width="14" height="24"/><rect x="62" y="-40" width="12" height="40"/></g>
+      </defs>
+
+      <!-- tubulações -->
+      <g fill="none" stroke-linejoin="round">
+        <path d="M114,225 H474" class="pb"/><path d="M556,150 H912" class="pb"/><path d="M540,260 V320 H912" class="pb"/>
+        <path d="M114,225 H474" class="pi"/><path d="M556,150 H912" class="pi"/><path d="M540,260 V320 H912" class="pi"/>
+        <path id="f1" d="M114,225 H474" class="fl"/><path id="f2" d="M556,150 H912" class="fl"/><path id="f3" d="M540,260 V320 H912" class="fl"/>
+      </g>
+
+      <!-- captação -->
+      <text x="69" y="160" class="nm" text-anchor="middle">CAPTAÇÃO</text>
+      <rect x="24" y="170" width="90" height="80" rx="5" class="tank"/>
+      <rect id="cwater" x="28" width="82" fill="url(#wg)" clip-path="url(#cclip)"/>
+      <text id="clev" x="69" y="216" class="big" text-anchor="middle">77 %</text>
+
+      <!-- estação elevatória -->
+      <rect x="205" y="140" width="195" height="160" rx="8" class="box"/>
+      <text x="302" y="158" class="sec" text-anchor="middle">ESTAÇÃO ELEVATÓRIA</text>
+      <g transform="translate(250,225)">
+        <circle r="26" fill="#08254f" stroke="#35d0ff" stroke-width="2"/>
+        <g id="imp"><path d="M0,0 L0,-17 M0,0 L14.7,8.5 M0,0 L-14.7,8.5" stroke="#9cecff" stroke-width="5" stroke-linecap="round"/></g>
+        <circle r="4" fill="#05224a" stroke="#9cecff"/>
+      </g>
+      <text id="pst" x="250" y="274" class="sec" text-anchor="middle">LIGADA</text>
+      <g id="valve"><polygon points="308,211 322,225 308,239" fill="#3ddc97"/><polygon points="336,211 322,225 336,239" fill="#3ddc97"/></g>
+
+      <!-- reservatório -->
+      <text x="515" y="50" class="nm" text-anchor="middle">RESERVATÓRIO R1</text>
+      <text id="rvol" x="515" y="63" class="sec" text-anchor="middle">–</text>
+      <rect x="470" y="70" width="90" height="190" rx="5" class="tank"/>
+      <rect id="rwater" x="474" width="82" fill="url(#wg)" clip-path="url(#rclip)"/>
+      <rect id="rtop" x="474" width="82" height="2.5" fill="#d6f6ff" clip-path="url(#rclip)"/>
+      <text id="rlev" x="515" y="168" class="big" text-anchor="middle">–</text>
+
+      <!-- VRPs em série -->
+      <path d="M664,86 V78 H881 V86" fill="none" stroke="#35d0ff" stroke-width="1.5" stroke-dasharray="4 3"/>
+      <text x="772" y="68" class="sec" text-anchor="middle" fill="#35d0ff" style="fill:#35d0ff">EM SÉRIE · VRP 1 → VRP 2</text>
+      <g id="v1" transform="translate(710,150)"><circle r="16" fill="#08254f" stroke="#35d0ff" stroke-width="2"/><polygon points="-8,-7 0,0 -8,7" fill="#9cecff"/><polygon points="8,-7 0,0 8,7" fill="#9cecff"/><path d="M0,-16 V-24 M-6,-24 H6" stroke="#9cecff" stroke-width="2"/></g>
+      <g id="v2" transform="translate(835,150)"><circle r="16" fill="#08254f" stroke="#35d0ff" stroke-width="2"/><polygon points="-8,-7 0,0 -8,7" fill="#9cecff"/><polygon points="8,-7 0,0 8,7" fill="#9cecff"/><path d="M0,-16 V-24 M-6,-24 H6" stroke="#9cecff" stroke-width="2"/></g>
+      <text x="710" y="103" class="nm" text-anchor="middle">VRP 1</text>
+      <text x="835" y="103" class="nm" text-anchor="middle">VRP 2</text>
+
+      <!-- VRP 3 independente -->
+      <g transform="translate(750,320)"><circle r="16" fill="#08254f" stroke="#35d0ff" stroke-width="2"/><polygon points="-8,-7 0,0 -8,7" fill="#9cecff"/><polygon points="8,-7 0,0 8,7" fill="#9cecff"/><path d="M0,-16 V-24 M-6,-24 H6" stroke="#9cecff" stroke-width="2"/></g>
+      <text x="750" y="272" class="nm" text-anchor="middle">VRP 3 · RAMAL INDEPENDENTE</text>
+
+      <!-- consumidores -->
+      <use href="#bld" x="912" y="150"/><use href="#bld" x="912" y="320"/>
+      <text x="948" y="214" class="sec" text-anchor="middle">SETOR S1</text>
+      <text id="qs1" x="948" y="228" class="sec" text-anchor="middle">–</text>
+      <text x="948" y="354" class="sec" text-anchor="middle">SETOR S2</text>
+      <text id="qs2" x="948" y="368" class="sec" text-anchor="middle">–</text>
+
+      <g id="tags"></g>
+      <text x="24" y="384" class="sec">pressões em mca · vazões em L/s</text>
+    </svg>
+  </section>
+
+  <section class="grid rola">
+    <section class="card" id="ch1"><h3>Pressões da elevatória</h3><p class="sub">Montante (sucção) e jusante (recalque)</p><svg viewBox="0 0 640 230" role="img" aria-label="Gráfico de pressões da elevatória ao longo do dia"></svg><div class="lg"></div></section>
+    <section class="card" id="ch2"><h3>VRPs em série</h3><p class="sub">Montante e jusante da VRP 1 e da VRP 2 · faixa 10–50 mca (NBR 12218)</p><svg viewBox="0 0 640 230" role="img" aria-label="Gráfico de pressões das VRPs em série"></svg><div class="lg"></div></section>
+    <section class="card" id="ch3"><h3>Balanço hídrico de R1</h3><p class="sub">Entrada pela elevatória e saída para a rede</p><svg viewBox="0 0 640 230" role="img" aria-label="Gráfico de vazões de entrada e saída do reservatório"></svg><div class="lg"></div></section>
+    <section class="card" id="ch4"><h3>Nível do reservatório</h3><p class="sub">Percentual da altura útil</p><svg viewBox="0 0 640 230" role="img" aria-label="Gráfico do nível do reservatório"></svg><div class="lg"></div></section>
+    <section class="card"><h3>Elevatória em tempo real</h3><div class="gauges">
+      <figure><svg id="g1" viewBox="0 0 200 165" role="img" aria-label="Manômetro de pressão de recalque"></svg><figcaption>Pressão de recalque</figcaption></figure>
+      <figure><svg id="g2" viewBox="0 0 200 165" role="img" aria-label="Medidor de vazão da elevatória"></svg><figcaption>Vazão da bomba</figcaption></figure>
+    </div></section>
+  </section>
+  </div>
+</div>
+
+<script src="resultados.js"></script>
+<script>
+const FIELDS=['qIn','qOut','qS1','qS2','level','pMont','pJus','pEnt','pRes','v1m','v1j','v2m','v2j','v3m','v3j','pRede','cum'];
+const nf=(v,d=1)=>v.toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d});
+const $=id=>document.getElementById(id);
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+
+/* ---------- resultados do motor EPANET: 97 passos, um a cada 15 min ---------- */
+function prep(rs){
+  let c=0;
+  rs.forEach((r,i)=>{ if(i>0)c+=(rs[i-1].qOut+r.qOut)/2*900/1000; r.cum=c; });
+  return rs;
+}
+const R0=window.GWATER_RESULTS;
+if(!R0)document.body.insertAdjacentHTML('afterbegin','<p style="color:#ff6b7a">resultados.js não encontrado: rode motor/simular.py.</p>');
+let VOL=R0.params.cap_r1, rows=prep(R0.rows), T=(rows.length-1)*0.25;
+let hsim=9.2, playing=!matchMedia('(prefers-reduced-motion: reduce)').matches, secs=60;
+
+function sample(h){
+  const f=clamp(h/0.25,0,rows.length-1.0001), i=Math.floor(f), k=f-i, a=rows[i], b=rows[i+1], o={};
+  for(const key of FIELDS)o[key]=a[key]+(b[key]-a[key])*k;
+  return o;
+}
+
+/* ---------- etiquetas de pressão/vazão no diagrama ---------- */
+const TAGS=[
+  ['Mont',110,258,'MONT.'],['Jus',290,258,'JUS.'],['Q',290,176,'VAZÃO'],
+  ['Ent',420,268,'ENTR.'],['PRes',566,108,'SAÍDA'],['Qout',566,168,'Q SAÍDA'],
+  ['V1M',664,108,'MONT.'],['V1J',664,168,'JUS.'],['V2M',789,108,'MONT.'],['V2J',789,168,'JUS.'],
+  ['V3M',704,278,'MONT.'],['V3J',704,338,'JUS.'],['Rede',886,238,'REDE']
+];
+$('tags').innerHTML=TAGS.map(([id,x,y,l])=>`<g><rect id="tg${id}" x="${x}" y="${y}" width="92" height="24" rx="5" class="tg"/><text x="${x+8}" y="${y+16}" class="tl">${l}</text><text id="tv${id}" x="${x+84}" y="${y+17}" class="tv" text-anchor="end">–</text></g>`).join('');
+
+/* ---------- manômetros ---------- */
+function gauge(el,pre,max,zones,dec){
+  const cx=100,cy=98,r=72,a0=135,sw=270;
+  const P=(rad,a)=>[cx+rad*Math.cos(a*Math.PI/180),cy+rad*Math.sin(a*Math.PI/180)];
+  const arc=(rad,f0,f1)=>{const A=P(rad,a0+sw*f0),B=P(rad,a0+sw*f1);return `M${A[0].toFixed(1)},${A[1].toFixed(1)} A${rad},${rad} 0 ${(f1-f0)*sw>180?1:0} 1 ${B[0].toFixed(1)},${B[1].toFixed(1)}`};
+  let s=`<path d="${arc(r,0,1)}" fill="none" stroke="#12335f" stroke-width="10"/>`;
+  zones.forEach(z=>s+=`<path d="${arc(r,z[0]/max,z[1]/max)}" fill="none" stroke="${z[2]}" stroke-width="10" opacity=".85"/>`);
+  for(let i=0;i<=10;i++){
+    const f=i/10,A=P(r-9,a0+sw*f),B=P(r-15,a0+sw*f),C=P(r-26,a0+sw*f);
+    s+=`<line x1="${A[0]}" y1="${A[1]}" x2="${B[0]}" y2="${B[1]}" stroke="#86a3c9"/>`;
+    if(i%2===0)s+=`<text x="${C[0]}" y="${C[1]+3}" text-anchor="middle" class="ax">${Math.round(max*f)}</text>`;
+  }
+  s+=`<g id="${pre}n" transform="rotate(${a0} ${cx} ${cy})"><path d="M${cx},${cy-3} L${cx+r-14},${cy} L${cx},${cy+3} Z" fill="#ffb547"/></g><circle cx="${cx}" cy="${cy}" r="6" fill="#0a2a58" stroke="#ffb547" stroke-width="2"/>`;
+  s+=`<text id="${pre}v" x="100" y="138" text-anchor="middle" class="gv">–</text><text x="100" y="153" text-anchor="middle" class="gu">${max===80?'mca':'L/s'}</text>`;
+  el.innerHTML=s;
+  return v=>{const f=clamp(v/max,0,1);$(pre+'n').setAttribute('transform',`rotate(${a0+sw*f} ${cx} ${cy})`);$(pre+'v').textContent=nf(v,dec)};
+}
+const g1=gauge($('g1'),'ga',80,[[0,20,'#ffb547'],[20,60,'#3ddc97'],[60,80,'#ff6b7a']],1);
+const g2=gauge($('g2'),'gb',40,[[0,30,'#3ddc97'],[30,36,'#ffb547'],[36,40,'#ff6b7a']],1);
+
+/* ---------- gráficos ---------- */
+let charts=[];
+function mkChart(o){
+  const box=$(o.id), W=640,H=230,L=44,R=14,Tp=12,Bt=28,pw=W-L-R,ph=H-Tp-Bt;
+  const X=h=>L+h/T*pw, Y=v=>Tp+ph-(v-o.min)/(o.max-o.min)*ph;
+  let s='';
+  if(o.band)s+=`<rect x="${L}" y="${Y(o.band[1])}" width="${pw}" height="${Y(o.band[0])-Y(o.band[1])}" fill="#3ddc97" fill-opacity=".08"/>`;
+  o.ticks.forEach(t=>s+=`<line x1="${L}" x2="${W-R}" y1="${Y(t)}" y2="${Y(t)}" stroke="#17345f"/><text x="${L-6}" y="${Y(t)+3}" text-anchor="end" class="ax">${t}</text>`);
+  const step=T>36?6:3;
+  for(let h=0;h<=T+1e-6;h+=step)s+=`<line x1="${X(h)}" x2="${X(h)}" y1="${Tp+ph}" y2="${Tp+ph+4}" stroke="#2a4f82"/><text x="${X(h)}" y="${H-8}" text-anchor="middle" class="ax">${String(Math.round(h)).padStart(2,'0')}h</text>`;
+  o.series.forEach(se=>{
+    const pts=rows.map((r,i)=>`${X(i*.25).toFixed(1)},${Y(r[se.key]).toFixed(1)}`).join(' ');
+    if(se.area)s+=`<polygon points="${X(0)},${Y(o.min)} ${pts} ${X(T)},${Y(o.min)}" fill="${se.color}" fill-opacity=".14"/>`;
+    s+=`<polyline points="${pts}" fill="none" stroke="${se.color}" stroke-width="1.8" stroke-linejoin="round"${se.dash?` stroke-dasharray="${se.dash}"`:''}/>`;
+  });
+  s+=`<line id="${o.id}c" y1="${Tp}" y2="${Tp+ph}" stroke="#e8f2ff" stroke-opacity=".55" stroke-dasharray="3 3"/>`;
+  o.series.forEach(se=>s+=`<circle id="${o.id}d${se.key}" r="3.6" fill="${se.color}" stroke="#050f24" stroke-width="1.5"/>`);
+  box.querySelector('svg').innerHTML=s;
+  box.querySelector('.lg').innerHTML=o.series.map(se=>`<span><i style="border-color:${se.color};${se.dash?'border-top-style:dashed':''}"></i>${se.label} <b id="${o.id}v${se.key}">–</b></span>`).join('');
+  return {update(h,sm){
+    const c=$(o.id+'c'); c.setAttribute('x1',X(h)); c.setAttribute('x2',X(h));
+    o.series.forEach(se=>{const d=$(o.id+'d'+se.key);d.setAttribute('cx',X(h));d.setAttribute('cy',Y(sm[se.key]));$(o.id+'v'+se.key).textContent=nf(sm[se.key],1)});
+  }};
+}
+function buildCharts(){
+  charts=[
+    mkChart({id:'ch1',min:0,max:60,ticks:[0,10,20,30,40,50,60],series:[
+      {key:'pJus',label:'Jusante',color:'#35d0ff'},{key:'pMont',label:'Montante',color:'#a78bfa'}]}),
+    mkChart({id:'ch2',min:0,max:60,ticks:[0,10,20,30,40,50,60],band:[10,50],series:[
+      {key:'v1m',label:'VRP 1 mont.',color:'#3ddc97',dash:'4 3'},{key:'v1j',label:'VRP 1 jus.',color:'#3ddc97'},
+      {key:'v2m',label:'VRP 2 mont.',color:'#ffb547',dash:'4 3'},{key:'v2j',label:'VRP 2 jus.',color:'#ffb547'}]}),
+    mkChart({id:'ch3',min:0,max:30,ticks:[0,5,10,15,20,25,30],series:[
+      {key:'qIn',label:'Entrada',color:'#35d0ff',area:true},{key:'qOut',label:'Saída',color:'#ffb547'}]}),
+    mkChart({id:'ch4',min:0,max:100,ticks:[0,20,40,60,80,100],series:[
+      {key:'level',label:'Nível %',color:'#5fdcff',area:true}]})
+  ];
+}
+
+/* ---------- render ---------- */
+const flowEls=[$('f1'),$('f2'),$('f3')], offs=[0,0,0]; let rot=0;
+function setTag(id,v,d){ $('tv'+id).textContent=nf(v,d); }
+function render(h,dt){
+  const s=sample(h), on=s.qIn>1, q1=s.qS1, q3=s.qS2;
+  setTag('Mont',s.pMont); setTag('Jus',s.pJus); setTag('Q',s.qIn); setTag('Ent',s.pEnt);
+  setTag('PRes',s.pRes); setTag('Qout',s.qOut);
+  setTag('V1M',s.v1m); setTag('V1J',s.v1j); setTag('V2M',s.v2m); setTag('V2J',s.v2j);
+  setTag('V3M',s.v3m); setTag('V3J',s.v3j); setTag('Rede',s.pRede);
+  const bad=s.pRede<10||s.pRede>50;
+  $('tgRede').setAttribute('class',bad?'tg bad':'tg');
+  $('qs1').textContent=nf(q1)+' L/s'; $('qs2').textContent=nf(q3)+' L/s';
+
+  // reservatório e captação
+  const inner=182, wh=s.level/100*inner, y=256-wh;
+  $('rwater').setAttribute('y',y); $('rwater').setAttribute('height',wh);
+  $('rtop').setAttribute('y',y);
+  $('rlev').textContent=nf(s.level,0)+' %';
+  const vol=s.level/100*VOL;
+  $('rvol').textContent=nf(vol,0)+' m³ de '+nf(VOL,0);
+  const cl=77, cwh=cl/100*72; // captação = reservatório de nível fixo no modelo
+  $('cwater').setAttribute('y',246-cwh); $('cwater').setAttribute('height',cwh);
+  $('clev').textContent=nf(cl,0)+' %';
+
+  // bomba e válvula
+  $('pst').textContent=on?'LIGADA':'DESLIGADA';
+  $('pst').style.fill=on?'#3ddc97':'#86a3c9';
+  $('valve').querySelectorAll('polygon').forEach(p=>p.setAttribute('fill',on?'#3ddc97':'#ff6b7a'));
+  rot=(rot+(on?dt*360*1.4:0))%360;
+  $('imp').setAttribute('transform','rotate('+rot+')');
+
+  // fluxo nas tubulações
+  [s.qIn,q1,q3].forEach((q,i)=>{
+    offs[i]-=(6+5*q)*dt;
+    flowEls[i].setAttribute('stroke-dashoffset',offs[i]);
+    flowEls[i].style.opacity=q>0.4?1:0;
+  });
+
+  // KPIs
+  $('kQin').textContent=nf(s.qIn,2); $('kQout').textContent=nf(s.qOut,2);
+  $('kSaldo').textContent=nf(s.qIn-s.qOut,2);
+  $('kRede').textContent=nf(s.pRede,1);
+  $('kpiRede').className='card kpi'+(bad?' crit':'');
+  $('kVol').textContent=nf(vol,1); $('kVolD').textContent=nf(s.level,0)+' % de '+nf(VOL,0)+' m³';
+  $('kCum').textContent=nf(s.cum,0);
+
+  // chips
+  const c1=$('c1'),c2=$('c2'),c3=$('c3');
+  c1.textContent=on?'BOMBA LIGADA':'BOMBA DESLIGADA'; c1.className='chip '+(on?'ok':'');
+  const lowL=s.level<25, hiL=s.level>92;
+  c2.textContent=lowL?'NÍVEL R1 BAIXO':hiL?'NÍVEL R1 ALTO':'NÍVEL R1 NORMAL'; c2.className='chip '+(lowL||hiL?'warn':'ok');
+  c3.textContent=bad?'PRESSÃO FORA DA FAIXA':'PRESSÃO NA FAIXA'; c3.className='chip '+(bad?'crit':'ok');
+
+  // manômetros, gráficos, relógio
+  g1(s.pJus); g2(s.qIn);
+  charts.forEach(c=>c.update(h,s));
+  const hh=Math.floor(h), mm=Math.floor((h-hh)*60);
+  $('clock').textContent=String(hh%24).padStart(2,'0')+':'+String(mm).padStart(2,'0');
+  $('seek').value=h/0.25;
+  $('rd').textContent='Leitura '+Math.min(rows.length-1,Math.floor(h/0.25))+'/'+(rows.length-1);
+}
+
+/* ---------- controles ---------- */
+$('play').addEventListener('click',()=>{playing=!playing;$('play').textContent=playing?'Pausar':'Reproduzir'});
+$('spd').addEventListener('change',e=>{secs=+e.target.value});
+$('seek').addEventListener('input',e=>{hsim=clamp(+e.target.value*0.25,0,T-0.001)});
+let usingCsv=false;
+
+/* ---------- re-simular no motor EPANET (servidor local) ---------- */
+function showRun(d){
+  const av=(d.avisos||[]).map(a=>'⚠ '+a).join(' ');
+  $('simmsg').textContent=`${d.motor} · fonte: ${d.fonte||'modelo fixo (Fase 0)'} · ${d.rows.length} passos de 15 min · calculado em ${nf(d.tempo_calculo_s*1000,0)} ms`+(av?' · '+av:'');
+  $('simmsg').style.color=av?'var(--crit)':'';
+}
+showRun(R0);
+async function rodarSim(url,body){
+  if(location.protocol==='file:'){$('simmsg').textContent='Para re-simular, abra o painel pelo servidor: python motor/servidor.py → http://localhost:8765';return;}
+  $('btnSim').disabled=$('btnCad').disabled=true; $('simmsg').textContent='Calculando no EPANET…';
+  try{
+    const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body||{})});
+    const d=await r.json(); if(d.erro)throw new Error(d.erro);
+    const h=hsim; VOL=d.params.cap_r1; rows=prep(d.rows); usingCsv=false; reinit(); hsim=h;
+    $('chipFake').textContent=d.fonte==='cadastro QGIS'?'MOTOR EPANET · CADASTRO QGIS':'MOTOR EPANET'; $('chipFake').className='chip ok';
+    showRun(d);
+  }catch(err){$('simmsg').textContent='Erro na simulação: '+err.message;}
+  $('btnSim').disabled=$('btnCad').disabled=false;
+}
+$('params').addEventListener('submit',e=>{e.preventDefault();rodarSim('/api/simular',Object.fromEntries(new FormData(e.target)));});
+$('btnCad').addEventListener('click',()=>rodarSim('/api/simular-cadastro'));
+
+function reinit(){
+  T=(rows.length-1)*0.25; hsim=0;
+  $('seek').max=rows.length-1;
+  buildCharts();
+}
+
+/* ---------- carregar CSV ---------- */
+const COLS={qIn:'q_entrada',qOut:'q_saida',level:'nivel',pMont:'p_mont_elev',pJus:'p_jus_elev',v1m:'vrp1_mont',v1j:'vrp1_jus',v2m:'vrp2_mont',v2j:'vrp2_jus',v3m:'vrp3_mont',v3j:'vrp3_jus'};
+const OPT={pEnt:'p_entrada',pRes:'p_saida'};
+function parseCSV(txt){
+  const lines=txt.replace(/^﻿/,'').split(/\r?\n/).filter(l=>l.trim());
+  if(lines.length<3)throw new Error('o arquivo precisa de pelo menos 2 leituras');
+  const d=lines[0].includes(';')?';':',';
+  const head=lines[0].split(d).map(x=>x.trim().toLowerCase());
+  const idx=k=>head.indexOf(k);
+  const num=s=>parseFloat(d===';'?String(s).replace(',','.'):s);
+  for(const k in COLS)if(idx(COLS[k])<0)throw new Error('falta a coluna '+COLS[k]);
+  const rs=[];
+  for(let i=1;i<lines.length;i++){
+    const c=lines[i].split(d), r={};
+    for(const k in COLS){r[k]=num(c[idx(COLS[k])]);if(isNaN(r[k]))throw new Error('valor inválido na linha '+(i+1)+', coluna '+COLS[k]);}
+    for(const k in OPT){const j=idx(OPT[k]);r[k]=j>=0?num(c[j]):NaN;}
+    if(isNaN(r.pEnt))r.pEnt=r.pJus;
+    if(isNaN(r.pRes))r.pRes=r.v1m;
+    r.pRede=r.v2j; r.qS1=r.qOut*0.62; r.qS2=r.qOut*0.38;
+    rs.push(r);
+  }
+  return prep(rs);
+}
+$('csv').addEventListener('change',async e=>{
+  const f=e.target.files[0]; if(!f)return;
+  try{
+    const r=parseCSV(await f.text());
+    rows=r; usingCsv=true; reinit();
+    $('chipFake').textContent='DADOS CARREGADOS · '+f.name.toUpperCase();
+    $('chipFake').className='chip ok';
+    $('csvmsg').textContent=f.name+': '+r.length+' leituras ('+nf((r.length-1)*0.25,1)+' h). O painel roda em loop sobre esse período.';
+  }catch(err){
+    $('csvmsg').textContent='Não consegui ler o arquivo: '+err.message+'.';
+  }
+  e.target.value='';
+});
+
+/* ---------- laço de animação ---------- */
+$('play').textContent=playing?'Pausar':'Reproduzir';
+reinit(); hsim=9.2;
+let last=performance.now();
+function frame(now){
+  const dt=Math.min(0.1,(now-last)/1000); last=now;
+  if(playing){hsim+=dt*T/secs; if(hsim>=T-0.001)hsim=0;}
+  render(hsim,playing?dt:0);
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+
+</body></html>

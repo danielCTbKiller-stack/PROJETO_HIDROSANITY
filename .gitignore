@@ -27,3 +27,13 @@ REV 0.1.0/testes/shp_teste/*
 !REV 0.1.0/testes/shp_teste/config_importacao.json
 REV 0.1.0/cadastro/teste_importado.gpkg
 REV 0.1.0/cadastro/GWATER_teste_importado.qgz
+
+# REV 0.2.0 (GWATER.exe): gerados pelo motor e pelos testes, e o log de erros do programa
+REV 0.2.0/cadastro/*.inp
+REV 0.2.0/modelo/cadastro.inp
+REV 0.2.0/testes/shp_teste/*
+!REV 0.2.0/testes/shp_teste/config_importacao.json
+REV 0.2.0/cadastro/teste_importado.gpkg
+REV 0.2.0/cadastro/GWATER_teste_importado.qgz
+REV 0.2.0/gwater_erros.log
+*_historico.sqlite

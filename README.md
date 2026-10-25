@@ -1,6 +1,13 @@
 # GWATER · Projeto Piloto
 
-Plataforma open source de **cadastro, modelagem hidráulica e operação** de redes de água: o cadastro georreferenciado fica no **QGIS**, os cálculos são do **EPANET 2.2**, e a decisão acontece num **Centro de Operações** no navegador.
+Plataforma open source de **cadastro, modelagem hidráulica e operação** de redes de água: o cadastro georreferenciado fica num GeoPackage, os cálculos são do **EPANET 2.2**, e a decisão acontece num **Centro de Operações**.
+
+O GWATER existe em duas formas, que usam o mesmo cadastro e o mesmo motor:
+
+| Revisão | Forma | Para quem |
+|---|---|---|
+| [REV 0.1.0](REV%200.1.0) | **Plugin do QGIS** (menu GWATER e Central GWATER) e Centro de Operações no navegador | quem já trabalha no QGIS |
+| [REV 0.2.0](REV%200.2.0) | **GWATER.exe**, um programa à parte, com faixa de menus e ferramentas de análise como o WaterGEMS; o Centro de Operações abre dentro dele | quem quer um programa só, sem precisar saber QGIS |
 
 O objetivo é juntar, sem licença comercial, o que hoje exige três produtos:
 
@@ -10,11 +17,110 @@ O objetivo é juntar, sem licença comercial, o que hoje exige três produtos:
 | Modelagem, cenários e calibração | WaterGEMS | Motor Python + EPANET/WNTR ([motor](REV%200.1.0/motor)) e plugin QGIS ([qgis_plugin](REV%200.1.0/qgis_plugin)) |
 | Operação, alarmes e gêmeo digital | Elipse Water | Painel web ([painel](REV%200.1.0/painel)) |
 
-O fluxograma do projeto está em [fluxo/GWATER - Fluxo de Trabalho.drawio](fluxo) (abrir com o draw.io desktop). Ele tem uma página com o fluxo de trabalho (fases 0 a 12 e próximos passos) e outra com a arquitetura.
+O fluxograma do projeto está em [fluxo/GWATER - Fluxo de Trabalho.drawio](fluxo) (abrir com o draw.io desktop). Ele tem uma página com o fluxo de trabalho (fases 0 a 13 e próximos passos) e outra com a arquitetura. O diagrama do programa (GWATER.exe) está em [fluxo/GWATER.exe - Programa.drawio](fluxo): como ele abre, a janela, as abas da faixa, os dados e o motor, e as melhorias da fase 14.
 
 ---
 
-## Início rápido
+## GWATER.exe (REV 0.2.0) · programa à parte
+
+**Para abrir:** clique duas vezes em [`REV 0.2.0\GWATER.exe`](REV%200.2.0). Na primeira vez, se faltar o motor de cálculo, ele oferece rodar `preparar_ambiente.bat` (cria o Python da pasta com o WNTR; precisa de internet, uma vez só). Também dá para arrastar um `.qgz` ou `.gpkg` sobre o `GWATER.exe` para abrir direto.
+
+Requisitos: Windows e o **QGIS 4.2** (ou 3.44 LTR) instalado. O GWATER usa as bibliotecas do QGIS para o mapa e a edição, mas a janela, os menus e as ferramentas são dele: o QGIS não aparece. Se o QGIS estiver numa pasta fora do comum, crie `GWATER.ini` ao lado do `.exe` com a linha `qgis=C:\caminho\do\QGIS`.
+
+**A janela** segue o WaterGEMS:
+- **Faixa de menus** no alto, com o botão **Arquivo** (novo, abrir, recentes, salvar, exportar .inp, arquivo compactado) e o acesso rápido (novo, abrir, salvar, desfazer, refazer, calcular).
+- **Mapa** no centro, com a caixa do **cenário ativo**, as ferramentas de zoom e a **hora do resultado**. As telas do Centro de Operações abrem em abas ao lado do mapa.
+- **Painéis:** *Simbologia dos elementos* (como no WaterGEMS: um item por tipo, com caixinha que liga e desliga o tipo no mapa, ícone próprio e a quantidade; embaixo, as camadas de resultado, análises e mapa de fundo), *Propriedades* (dados e resultados do elemento selecionado; com vários selecionados, muda um campo em todos), *Consultas* com o *Navegador*, e *Cálculo* (notificações e linha do tempo).
+- **Barra de status:** coordenadas, escala, sistema, seleção e edições pendentes.
+- Tela **Início** com novo cadastro, abrir, novo de shapefile, o exemplo e os recentes.
+- **Abertura animada:** a cada vez que o programa abre, sorteia um de 4 logos animados (gota e ondas, nome enchendo de água, rede de tubos se desenhando, nível de água subindo), enquanto a janela carrega. As opções estão em `REV 0.2.0\splash_opcoes.html`.
+- **Configurações** (botão de engrenagem ao lado de *Fundo*): tema do programa. São 6 temas escuros (Grafite Ciano, o padrão; Abissal Neon; Meia-noite Violeta; Esmeralda Noturno; Âmbar Industrial; Original) e 1 claro. A escolha fica salva. Prévia em `REV 0.2.0\temas_opcoes.html`.
+- **Mapa de fundo** na barra do mapa: claro, escuro e terreno (Esri, sem chave de acesso), OpenStreetMap, satélite ou nenhum.
+
+| Aba | Ferramentas (nome no WaterGEMS) |
+|---|---|
+| **Início** | Cenários (Scenarios), Alternativas, Opções, Calcular (Compute), Validar, Tempos, Resumo, Notificações, Alertas · Desenhar, Medir, Selecionar (clique, janela, polígono, por elemento, por atributo), Excluir, Localizar · Central de demanda (Demand Center), Padrões, Curvas de bomba (Pump Definitions), Controles · Gráficos, Tabelas (FlexTables), Conjuntos de seleção, Propriedades · Topologia ativa, ModelBuilder |
+| **Desenho** | Tubulação, Nó, Reservatório (Tank), Captação (Reservoir), Hidrante, Ponto de consumo, Bomba, Estação elevatória, Rotação variável (VSP), PRV, PSV, PBV, FCV, TCV, GPV, Registro (Isolation Valve), Ponto cotado (Spot Elevation), Borda, Texto, Linha, Comprimento, Área, Mover, Dividir, Propriedades, Protótipos |
+| **Análise** | Incêndio (Fire Flow), Descarga (Flushing), Renovação de redes (Pipe Renewal Planner), Otimização: dimensionar diâmetros e calibrar (Darwin), Custo de energia (Energy Cost), Zonas de pressão, Criticidade, Idade da água e cloro · Gráficos, Tabelas, Consultas, Navegador, Contornos · Simulador SCADA |
+| **Componentes** | Central de demanda, Padrões, Curvas, Controles, Zonas, Bibliotecas de engenharia (materiais, C, vida útil, diâmetros e custos), Protótipos, Qualidade da água, Perdas localizadas (biblioteca de K), Extensões de dados, Séries de campo |
+| **Revisão** | Comparação de cenários, Histórico de alterações (Change Tracking), Arquivo compactado (Bulk Archive) |
+| **Exibir** | Zoom total, aproximar, afastar, mover, vista anterior e seguinte, zoom na seleção, Vistas com nome, Vista aérea, Simbologia, Mapa de fundo (OpenStreetMap, satélite, arquivo), Rótulos, Perfis, Gráfico rápido, painéis |
+| **Ferramentas** | Topologia ativa, ModelBuilder, TRex, LoadBuilder, Polígonos de Thiessen, Distribuir demanda, Centro de códigos (GIS-ID), Ferramentas externas (QGIS, EPANET, pasta), Esqueletizador (Skelebrator), Faixas e cores |
+| **Relatório** | Relatório personalizado (PDF, HTML, impressora), tabelas de tubulações, nós, bombas, válvulas e reservatórios, Resumo do cenário, Inventário do modelo, Inventário de tubulações |
+| **Centro de Operações** | Sinótico, Dados recebidos, Mapa e propostas, Calibração, Ao vivo (dentro do programa) |
+
+**Tipos de elemento:** tubulação (aberta, fechada, com retenção), nó/junção, ponto de consumo, hidrante, ponta de rede, reservatório, captação, bomba e cada tipo de válvula (PRV, PSV, PBV, FCV, TCV, GPV e **registro de manobra**), cada um com símbolo próprio no mapa e na lista. O registro entra no EPANET como TCV totalmente aberta (ou fechada, pelo status), com o diâmetro da tubulação ligada se faltar o dele.
+
+**Válvulas:**
+- **Status:** ATIVA (regulando), **INATIVA** (100% aberta, sem regular: vai ao EPANET como *Open*, e o ajuste pode ficar vazio), ABERTA ou FECHADA.
+- **TCV:** é aberta (sem perda) ou fechada, sem ajuste.
+- **PRV, PSV, PBV e FCV ativas:** o ajuste é obrigatório. A validação lembra que, para deixar a válvula aberta, o status é INATIVA.
+
+**Simbologia dos elementos:** um clique duplo no tipo abre o editor dele:
+- tamanho do símbolo (ou espessura da linha), com prévia;
+- rótulos: campo, texto antes e depois, tamanho e cor;
+- **color coding**: cores por faixas de valor ou por categoria, com as classes geradas pelos dados.
+
+Tudo fica salvo no projeto.
+
+**Tabelas (FlexTables):**
+- **Seleção por célula:** a seleção é por célula, como no Excel. *Selecionar coluna* (ou clicar no título) pega a coluna inteira.
+- **Ctrl+V:** um valor colado vai para todas as células selecionadas, ou seja, para a coluna inteira se ela estiver selecionada. Várias linhas copiadas do Excel colam a partir da célula atual.
+- **Ctrl+C:** copia as células selecionadas.
+- **Edição global** (Global Edit): opera numa coluna inteira, ou só nas linhas selecionadas.
+  - Para números: definir, somar, subtrair, multiplicar, dividir, arredondar e limpar.
+  - Para texto: definir, acrescentar no início ou no fim, substituir e limpar.
+- **Desfazer:** Colar e Edição global se desfazem com um único Ctrl+Z.
+- **Rugosidade:** a rugosidade vem do material só quando a tubulação é criada. Depois disso, o valor digitado é mantido.
+
+**Notificações** (painel *Cálculo*): agrupadas por tipo de problema, como o User Notifications do WaterGEMS, por exemplo "ERRO · Sem ligação com nenhuma fonte (12)".
+- Ordem: erros primeiro, do grupo maior para o menor.
+- Filtro: erros, avisos ou os dois.
+- Busca: por texto ou código.
+- Clique duplo leva até o elemento.
+
+**ModelBuilder** (importar shapefiles): adicione vários arquivos de uma vez e diga o que cada um é. Arquivo de linhas vira tubulações; arquivo de pontos pode ser qualquer tipo de nó, reservatório, captação, bomba ou cada tipo de válvula (ou válvula com o tipo numa coluna). O nome do arquivo já sugere o tipo (vrp, registro, hidrante, reservatório...). Depois, o de-para de colunas e a tradução de valores, arquivo por arquivo.
+
+A importação é feita em lote: os elementos pontuais entram primeiro, e as tubulações ligam neles; pontas a menos da tolerância viram o mesmo nó; ponta no meio de outra tubulação a divide (T); válvula, bomba ou hidrante no meio de uma tubulação a divide e fica entre os pedaços. Válvula com as duas tubulações no mesmo sentido tem uma invertida, com aviso para conferir. Tudo vai para a edição num único passo de desfazer. No teste, cerca de 10 mil linhas viram 20 mil tubulações e 10 mil nós em 5 segundos.
+
+O que cada análise faz:
+
+| Análise | Como funciona |
+|---|---|
+| **Incêndio** | Para cada hidrante (ou nó escolhido), a maior vazão mantendo a pressão residual no próprio nó e, se pedido, a pressão mínima nos outros nós. Mostra se atende a vazão exigida. |
+| **Descarga** | Abre cada ponto com a vazão escolhida e lista as tubulações que passam da velocidade de limpeza. |
+| **Criticidade** | Fecha cada tubulação, uma de cada vez, e mede a água que deixa de chegar aos consumidores e os nós que ficam abaixo da pressão mínima. |
+| **Zonas de pressão** | Separa a rede pelas bombas, válvulas reguladoras e registros fechados; mostra demanda, cotas, pressões e por onde a água entra e sai. |
+| **Custo de energia** | kWh e R$ de cada bomba com tarifa de ponta e fora de ponta, kWh/m³ e a parte do custo que cai na ponta. |
+| **Renovação de redes** | Nota de 0 a 100 por tubulação (idade frente à vida útil, material, perda de carga e velocidade, criticidade) e custo acumulado para planejar por orçamento. |
+| **Dimensionar** | Menores diâmetros das tubulações selecionadas que atendem pressão mínima e velocidade máxima no pico, com o custo. Vira cenário ou é aplicado no cadastro. |
+| **Qualidade** | Idade da água ou cloro residual (decaimento no volume e na parede), no último dia de uma simulação longa. |
+
+**Desempenho** (rede de 20 mil tubulações e 10 mil nós, medido em `teste_desempenho.py`):
+
+| Operação | Tempo |
+|---|---|
+| Importar no ModelBuilder | ~5 s |
+| Salvar edições | ~2 s |
+| TRex com curvas de nível em todos os nós | ~9 s, com barra de progresso e Cancelar |
+| Abrir a tabela de tubulações | ~2,5 s |
+| Abrir o projeto | ~1 s |
+
+No ModelBuilder, as cotas do TRex são calculadas em lote, depois dos nós. Enquanto o EPANET calcula, a janela continua se redesenhando e os cliques ficam bloqueados.
+
+As análises instantâneas usam a rede congelada num instante (por padrão o de maior consumo): demandas, níveis e bombas daquele momento da simulação de 24 h, resolvida milhares de vezes direto na biblioteca do EPANET. Cada análise abre uma aba com a tabela (clique duplo vai ao elemento, exporta para CSV) e pinta uma camada no grupo *Análises GWATER*.
+
+**Consultas** prontas: revisão da rede (nós muito próximos, tubulações que se cruzam, nós órfãos, pontas, candidatos a divisão, tubulações sem nós ou duplicadas, isolados), rastreamento (conectados, adjacentes, desconectados, caminho mais curto, a montante e a jusante pelo sentido do fluxo, **isolar** uma tubulação mostrando os registros a fechar e quem fica sem água), dados de entrada e resultados (pressões fora da faixa, bombas fora da curva, válvulas que não regulam, reservatórios vazios ou cheios, velocidade e perda altas, sem autolimpeza). Dá para criar consultas próprias.
+
+**Cenários:** cada cenário guarda as alterações em relação à rede atual, o fator de demanda e a escolha de incluir os PROJETADOS. Ficam nas mesmas tabelas do cadastro que as propostas do Centro de Operações web. O cenário ativo é o que Calcular e as análises usam.
+
+**Histórico de alterações:** a cada Salvar edições, o que entrou, saiu ou mudou (campo, antes e depois, quem e quando) vai para `<cadastro>_historico.sqlite`, ao lado do cadastro.
+
+O plugin do QGIS (REV 0.1.0) continua funcionando como antes. O GWATER.exe tem as suas próprias cópias do motor, do painel e do código do plugin: mudanças numa revisão não afetam a outra. O painel do programa usa a porta 8775, e o do plugin, a 8765, então os dois rodam ao mesmo tempo.
+
+---
+
+## Início rápido (plugin do QGIS, REV 0.1.0)
 
 Requisitos: Windows, **Python 3.12** e **QGIS 3.44 LTR** ou **QGIS 4.2** (o plugin foi testado nos dois).
 
@@ -168,6 +274,17 @@ Outras rotas da API usadas pelas telas: `GET /api/sinotico`, `GET /api/dados` e 
 ├─ README.md
 ├─ fluxo/                     fluxograma (draw.io): fluxo de trabalho + arquitetura
 ├─ REV 0.0.0/                 tela de referência original do Centro de Operações
+├─ REV 0.2.0/                 GWATER.exe (programa à parte)
+│  ├─ GWATER.exe              lançador (código em lancador/GWATER.cs)
+│  ├─ preparar_ambiente.bat   cria o Python do motor (.venv), uma vez só
+│  ├─ app/gwater_app.py       programa: abre a janela com as bibliotecas do QGIS
+│  ├─ app/programa/           janela, faixa de menus, ferramentas, análises, consultas, relatórios
+│  ├─ app/gwater/             núcleo do plugin (cópia): desenho, TRex, ModelBuilder, curvas, cálculo
+│  ├─ motor/                  motor (cópia) + analises.py
+│  ├─ painel/, cadastro/      Centro de Operações e cadastro de exemplo
+│  ├─ app/programa/abertura.html  logos animados da abertura
+│  ├─ ROTEIRO_FAIXA.md        roteiro de conferência da faixa × WaterGEMS
+│  └─ testes/                 teste_programa, teste_analises, teste_modelbuilder, teste_desempenho, teste_tabela_valvulas
 └─ REV 0.1.0/
    ├─ requirements.txt
    ├─ cadastro/               GeoPackage, projeto QGIS, gerador e modelo de dados
@@ -191,6 +308,7 @@ Outras rotas da API usadas pelas telas: `GET /api/sinotico`, `GET /api/dados` e 
 | `dados_recebidos.py` | Dias digitados hora a hora e leitura de planilhas (CSV/XLSX), análise das séries e balanço hídrico dos dados recebidos |
 | `sinotico.py` | Esquema do sinótico montado a partir da topologia do cadastro |
 | `servidor.py` | Servidor HTTP do painel e API (troca de cadastro quando o QGIS abre outro; informa a versão) |
+| `analises.py` (REV 0.2.0) | Incêndio, descarga, criticidade, zonas de pressão, energia, renovação, dimensionamento, qualidade, comparação de cenários e esqueletização |
 
 | Módulo do plugin (`qgis_plugin/gwater`) | Função |
 |---|---|
@@ -226,9 +344,23 @@ cd ..\testes
 "C:\Program Files\QGIS 4.2.2\bin\python-qgis.bat" teste_plugin.py          # o mesmo teste no QGIS 4
 ```
 
+No GWATER.exe (REV 0.2.0):
+
+```bash
+cd "REV 0.2.0\testes"
+..\.venv\Scripts\python.exe teste_analises.py       # cada análise roda e dá números com sentido físico
+"C:\Program Files\QGIS 4.2.2\bin\python-qgis.bat" teste_modelbuilder.py  # importa uma rede em grade (GWATER_N=100: 20 mil tubos)
+set QT_QPA_PLATFORM=offscreen
+"C:\Program Files\QGIS 4.2.2\bin\python-qgis.bat" teste_programa.py   # clica nos 118 botões, desenha, calcula, analisa
+"C:\Program Files\QGIS 4.2.2\bin\python-qgis.bat" teste_desempenho.py # rede de 20 mil tubos: importar, salvar, TRex, tabela, calcular (com limites de tempo)
+"C:\Program Files\QGIS 4.2.2\bin\python-qgis.bat" teste_tabela_valvulas.py  # TCV sem ajuste, PRV INATIVA, notificações por tipo, colar e edição global
+```
+
+O roteiro para conferir, aba por aba, os 113 botões da faixa contra o WaterGEMS está em [`REV 0.2.0\ROTEIRO_FAIXA.md`](REV%200.2.0/ROTEIRO_FAIXA.md).
+
 ---
 
-## Histórico (REV 0.1.0)
+## Histórico
 
 | Fase | Entrega |
 |---|---|
@@ -245,11 +377,16 @@ cd ..\testes
 | 10 | Sinótico automático a partir do cadastro aberto; todas as telas em tela cheia; mapa só com ícones e Limpar seleção |
 | 11 | Cotas do terreno (TRex) por raster, curvas de nível ou pontos, sem raio de busca; perda de carga e faixas de cores; motivo do EPANET parar, traduzido; shapefile 3D |
 | 12 | Dados recebidos: sistema padrão, 24 h digitadas por dia, comparação entre dias e balanço hídrico |
+| 13 | **GWATER.exe** (REV 0.2.0): programa à parte com faixa de menus como o WaterGEMS, propriedades, tabelas, consultas, cenários, ferramentas de análise (incêndio, descarga, criticidade, zonas, energia, renovação, dimensionamento, qualidade), relatórios e o Centro de Operações dentro do programa |
+| 14 | GWATER.exe: abertura animada, temas claro e escuros nas Configurações, mapas de fundo claro/escuro/terreno, editor de simbologia (tamanho, rótulos, color coding), ModelBuilder um tipo por arquivo, otimização (salvar 4×, TRex 4×, tabelas 3× mais rápidos), notificações por tipo, TCV aberta/fechada, PRV INATIVA, edição global e Ctrl+V nas tabelas |
 
 ## Limitações conhecidas e próximos passos
+- **GWATER.exe:** precisa do QGIS instalado no computador (usa as bibliotecas dele). Um instalador único, com QGIS e Python embutidos, é um próximo passo.
+- **Dimensionamento:** é uma primeira rodada gulosa (aumenta, a cada passo, o diâmetro que dá mais ganho por real), não o algoritmo genético do Darwin; serve para propor e comparar.
+- **Transientes, fire flow por hidrante de coluna com perdas do hidrante, PDD por curva de emissores e a análise de rompimento de redes por segmentos de registros** do WaterGEMS não estão no GWATER.
 - **Dados reais:** ainda não foram testados com cadastro, shapefile ou medições reais. Até agora só com o exemplo e com dados sintéticos.
 - **SCADA:** nenhum conectado. O gêmeo digital foi testado só com o simulador.
-- **Propostas e calibração:** ficam no navegador (o plugin abre a página certa), não em janelas do QGIS.
+- **Propostas e calibração no plugin:** ficam no navegador (o plugin abre a página certa). No GWATER.exe, os cenários têm janela própria e as telas web abrem dentro do programa.
 - **Dados recebidos → modelo:** os dados conferidos ainda não vão direto para a Calibração; é preciso ligar cada série a um elemento do cadastro (próximo passo).
 - **Cota por curvas longe da rede:** sem raio de busca, um elemento muito além da última curva recebe um valor interpolado entre as duas curvas mais próximas, que é só aproximado.
 - **Apagar elementos:** apagar um nó não apaga as tubulações ligadas; a validação aponta as pontas soltas.
