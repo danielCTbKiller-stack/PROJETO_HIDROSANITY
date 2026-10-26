@@ -39,6 +39,6 @@ REV 0.2.0/gwater_erros.log
 *_historico.sqlite
 
 # versão portátil gerada (gerar_portatil.py) e dados do usuário dela
-GWATER_portatil/
+PORTATIL/
 REV 0.2.0/runtime/
 REV 0.2.0/dados/

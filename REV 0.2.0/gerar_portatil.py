@@ -1,6 +1,6 @@
 """Monta a versão portátil do GWATER (para pen drive): o programa, o QGIS e o Python do motor numa pasta só.
 
-    GWATER_portatil\\
+    PORTATIL\\GWATER\\
       GWATER.exe              abre direto, sem instalar nada (o lançador acha o QGIS e o Python da pasta)
       app\\ motor\\ painel\\ modelo\\ cadastro\\ (só o exemplo)
       runtime\\qgis\\           cópia do QGIS instalado (sem GRASS, documentação e cabeçalhos de programação)
@@ -8,7 +8,7 @@
       dados\\                  criado no primeiro uso: configurações, perfil do QGIS e logins (vão junto)
 
 Uso:  .venv\\Scripts\\python.exe gerar_portatil.py [pasta de destino]
-      (padrão: ..\\GWATER_portatil, ao lado da pasta do projeto; pode ser direto o pen drive, ex.: E:\\GWATER)
+      (padrão: a pasta PORTATIL\\GWATER do projeto; pode ser direto o pen drive, ex.: E:\\GWATER)
 """
 import glob
 import os
@@ -117,5 +117,5 @@ def main(destino):
 
 
 if __name__ == "__main__":
-    padrao = os.path.join(os.path.dirname(AQUI), "GWATER_portatil")
+    padrao = os.path.join(os.path.dirname(AQUI), "PORTATIL", "GWATER")
     sys.exit(main(sys.argv[1] if len(sys.argv) > 1 else padrao))
