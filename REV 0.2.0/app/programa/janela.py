@@ -470,6 +470,7 @@ class Janela(QMainWindow):
         self.dock_arvore.projeto_aberto()
         from . import desempenho
         desempenho.camadas(self.nucleo)
+        self.iniciar_auto_salvar()
         from .vistas import FUNDOS
         fundo = prj.readEntry(CHAVE, "fundo", "")[0]
         self.cmb_fundo.setCurrentIndex(max(0, self.cmb_fundo.findData(fundo)) if fundo else 0)
@@ -558,6 +559,8 @@ class Janela(QMainWindow):
         return [(l, list(l.selectedFeatureIds())) for l in self.nucleo.camadas_rede() if l.selectedFeatureCount()]
 
     def _estado_edicao(self):
+        import time
+        self._ultima_edicao = time.monotonic()
         if not hasattr(self, "_timer_edicao"):
             from qgis.PyQt.QtCore import QTimer
             self._timer_edicao = QTimer(self)
@@ -570,6 +573,63 @@ class Janela(QMainWindow):
         n = sum(1 for l in self.nucleo.camadas_rede() if l.isEditable() and l.isModified())
         self.st_ed.setText(f"<span style='color:#ffb547'>● {n} camada(s) com edições não salvas</span>" if n else
                            "Sem edições pendentes")
+
+    # ------------------------------------------------ salvamento automático (Configurações > Salvamento)
+    def iniciar_auto_salvar(self):
+        from qgis.PyQt.QtCore import QTimer
+        if getattr(self, "_timer_auto", None) is None:
+            import time
+            self._ultimo_salvar = time.monotonic()
+            self._timer_auto = QTimer(self)
+            self._timer_auto.setInterval(10_000)  # confere a cada 10 s; só salva no intervalo escolhido
+            self._timer_auto.timeout.connect(self._talvez_salvar)
+        self._timer_auto.start()
+
+    def _camadas_do_cadastro(self):
+        gpkg = self.nucleo.cadastro()
+        return [lyr for caminho, _, lyr in self.nucleo._camadas_gpkg() if caminho == gpkg]
+
+    def _talvez_salvar(self):
+        """Salva sozinho as camadas do cadastro com edições, no intervalo das Configurações, quando o usuário
+        está parado (não salva no meio de um desenho, de um arraste ou com uma janela aberta)."""
+        import time
+        from qgis.PyQt.QtWidgets import QApplication
+        from . import desempenho
+        minutos = desempenho.ler()["auto_min"]
+        if not minutos or not self.nucleo.cadastro():
+            return
+        agora = time.monotonic()
+        if agora - getattr(self, "_ultimo_salvar", 0) < minutos * 60:
+            return
+        if agora - getattr(self, "_ultima_edicao", 0) < 8:  # editou agora há pouco: espera parar
+            return
+        if QApplication.activeModalWidget() is not None or QApplication.mouseButtons() != Qt.MouseButton.NoButton:
+            return
+        if getattr(self.nucleo.topologia, "ocupado", False) or getattr(self.nucleo.topologia, "fila", None):
+            return
+        self.salvar_camadas(automatico=True)
+
+    def salvar_camadas(self, automatico=False):
+        """Grava as camadas do cadastro com edições (continuam em edição). Devolve (salvas, erros)."""
+        import time
+        from datetime import datetime
+        pendentes = [l for l in self._camadas_do_cadastro() if l.isEditable() and l.isModified()]
+        self._ultimo_salvar = time.monotonic()
+        if not pendentes:
+            return [], []
+        salvas, erros = [], []
+        for lyr in pendentes:
+            if lyr.commitChanges(False):
+                salvas.append(lyr.name())
+            else:
+                erros.append(f"{lyr.name()}: {'; '.join(lyr.commitErrors()[:2])}")
+        if erros:
+            self.nucleo.aviso("Salvamento automático: não consegui gravar " + " | ".join(erros))
+        elif automatico:
+            self.statusBar().showMessage(f"Salvo automaticamente às {datetime.now():%H:%M} ({', '.join(salvas)}).",
+                                         8000)
+        self._contar_edicoes()
+        return salvas, erros
 
     def _editado(self):
         self._estado_edicao()

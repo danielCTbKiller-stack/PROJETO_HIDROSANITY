@@ -105,6 +105,14 @@ fonte = Fonte("curvas", curvas, n.camada("trecho").crs(), "COTA")
 feitos = medir("TRex (curvas de nível, todos os nós)", 30, lambda: ferramentas.preencher_cotas(n, fonte, True))
 print("     cotas:", feitos[0], "sem cota:", len(feitos[1]))
 medir("salvar as cotas", 20, n.acao_salvar)
+# o uso do dia a dia: poucas edições num cadastro grande (o salvar não pode reler a rede inteira)
+_tr, _nos = n.camada("trecho"), n.camada("no_juncao")
+for lyr_, campo_, val_ in ((_tr, "material", "PEAD"), (_nos, "demanda_base", 0.05)):
+    lyr_.startEditing()
+    i_ = lyr_.fields().indexOf(campo_)
+    for f_ in list(lyr_.getFeatures())[:30]:
+        lyr_.changeAttributeValue(f_.id(), i_, val_)
+medir("salvar poucas edições (30 tubos e 30 nós)", 3, n.acao_salvar)
 medir("desfazer e refazer", 15, lambda: (j.desfazer(), j.refazer()))
 
 medir("fechar o projeto", 15, lambda: j.fechar_projeto(False))

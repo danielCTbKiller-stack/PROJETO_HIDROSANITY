@@ -9,7 +9,7 @@ import sqlite3
 import zipfile
 from datetime import datetime
 
-from qgis.core import QgsProject
+from qgis.core import QgsFeatureRequest, QgsProject
 from qgis.PyQt.QtWidgets import QComboBox, QFileDialog, QLineEdit
 
 from gwater.estilo import COR
@@ -157,7 +157,10 @@ def _antes(nucleo, lyr):
     apagados = list(buf.deletedFeatureIds())
     mudados = buf.changedAttributeValues()
     geoms = buf.changedGeometries()
-    originais = {f.id(): f for f in prov.getFeatures()} if (apagados or mudados or geoms) else {}
+    # só os elementos mexidos (ler a camada inteira travava o salvar em cadastros grandes)
+    alvo = [fid for fid in set(apagados) | set(mudados) | set(geoms) if fid >= 0]
+    originais = {f.id(): f for f in prov.getFeatures(QgsFeatureRequest().setFilterFids(alvo)
+                                                    .setFlags(QgsFeatureRequest.Flag.NoGeometry))} if alvo else {}
     for fid in apagados:
         o = originais.get(fid)
         linhas.append((agora, quem, lyr.name(), str(o.attribute(idx_id)) if o and idx_id >= 0 else str(fid),

@@ -272,10 +272,21 @@ def configurar(janela):
     dica.setObjectName("sub")
     fd.addRow(dica)
     d.lay.addWidget(caixa)
+    cx2 = QGroupBox("Salvamento")
+    fs = QFormLayout(cx2)
+    auto = QSpinBox()
+    auto.setRange(0, 120)
+    auto.setValue(cfg["auto_min"])
+    auto.setSuffix(" min")
+    auto.setSpecialValueText("desligado")
+    auto.setToolTip("Grava sozinho as camadas do cadastro com edições, neste intervalo, quando você está parado "
+                    "(não salva no meio de um desenho). Depois de salvar, o Ctrl+Z não volta antes do salvamento.")
+    fs.addRow("Salvar automaticamente a cada:", auto)
+    d.lay.addWidget(cx2)
     d.botoes("Aplicar")
     if d.exec():
         aplicar_tema(cmb.currentData(), QApplication.instance())
-        desempenho.gravar(nuc.value(), mem.value(), par.isChecked())
+        desempenho.gravar(nuc.value(), mem.value(), par.isChecked(), auto.value())
         desempenho.aplicar(janela)
         return True
     return False

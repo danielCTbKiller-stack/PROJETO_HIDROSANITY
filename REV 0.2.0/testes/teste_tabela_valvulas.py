@@ -13,7 +13,7 @@ os.environ["GWATER_TESTE"] = "1"
 AQUI = os.path.dirname(os.path.abspath(__file__))
 RAIZ = os.path.dirname(AQUI)
 sys.path.insert(0, os.path.join(RAIZ, "app"))
-from qgis.core import QgsApplication, QgsFeature, QgsFeatureRequest, QgsGeometry, QgsPointXY  # noqa: E402
+from qgis.core import QgsApplication, QgsFeature, QgsFeatureRequest, QgsGeometry, QgsPointXY, QgsVectorLayer  # noqa: E402
 from qgis.PyQt.QtCore import Qt  # noqa: E402
 
 app = QgsApplication([b"teste"], True)
@@ -511,6 +511,30 @@ linha_tab = [hist[0][3], *hist[0][:3], *hist[0][4:]]
 rv.desfazer_registros(n, [linha_tab])
 checar(trl.getFeature(fh.id())["material"] == mat0, f"desfazer pelo histórico volta o material ({mat0})")
 trl.rollBack()
+
+print("\n== salvamento automático")
+from programa import desempenho as dsp  # noqa: E402
+cfg0 = dsp.ler()
+dsp.gravar(cfg0["nucleos"], cfg0["cache_mb"], cfg0["mapa_paralelo"], 1)
+trl = n.camada("trecho")
+trl.startEditing()
+f_a = next(trl.getFeatures())
+trl.changeAttributeValue(f_a.id(), trl.fields().indexOf("observacao"), "auto")
+app.processEvents()
+j._ultimo_salvar = j._ultima_edicao = -1e9  # como se já tivesse passado o intervalo e o usuário estivesse parado
+QDialog.exec = lambda self: 0
+j._talvez_salvar()
+checar(not trl.isModified() and trl.isEditable(), "salvou sozinho e continua em edição")
+gravado = next(QgsVectorLayer(f"{n.cadastro()}|layername=trecho", "x", "ogr").getFeatures(
+    QgsFeatureRequest().setFilterExpression(f"\"id\" = '{f_a['id']}'")))
+checar(gravado["observacao"] == "auto", "a alteração está no arquivo do cadastro")
+trl.changeAttributeValue(f_a.id(), trl.fields().indexOf("observacao"), "agora")
+app.processEvents()
+j._ultimo_salvar = -1e9
+j._talvez_salvar()  # acabou de editar: espera o usuário parar
+checar(trl.isModified(), "não salva no meio da edição (espera alguns segundos parado)")
+trl.rollBack()
+dsp.gravar(cfg0["nucleos"], cfg0["cache_mb"], cfg0["mapa_paralelo"], cfg0["auto_min"])
 
 j.fechar_projeto(False)
 app.exitQgis()

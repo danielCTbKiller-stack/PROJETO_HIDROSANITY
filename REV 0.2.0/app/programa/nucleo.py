@@ -279,6 +279,18 @@ class Nucleo(GwaterPlugin):
         if self.iface.newProject(True):
             self.iface.addProject(arq)
 
+    def acao_salvar(self):
+        """Ctrl+S: grava todas as camadas do cadastro com edições (rede e tabelas), sem sair da edição."""
+        if not self._cadastro_ok():
+            return
+        salvas, erros = self.janela.salvar_camadas()
+        if erros:
+            return
+        if salvas:
+            self.aviso("Salvo: " + ", ".join(salvas), Qgis.MessageLevel.Success)
+        else:
+            self.informar("Nada para salvar.")
+
     def acao_salvar_projeto(self):
         if QgsProject.instance().fileName():
             QgsProject.instance().write()
