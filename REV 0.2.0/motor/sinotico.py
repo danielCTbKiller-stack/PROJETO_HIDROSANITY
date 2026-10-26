@@ -5,6 +5,9 @@ Em vez de um desenho fixo, o sinótico sai da topologia da rede, como num SCADA:
   - as tubulações e nós entre equipamentos viram "redes" (áreas de consumo). Um trecho de
     ligação sem consumo entre só dois equipamentos vira uma linha direta; com três ou mais
     equipamentos, vira um ponto de derivação;
+  - com o campo setor preenchido, o setor manda: todos os nós do mesmo setor viram um bloco só
+    (mesmo em pedaços separados da rede), uma rede com dois setores vira dois blocos, e as tubulações
+    entre setores viram a ligação entre os blocos. Nó sem setor fica com o setor do vizinho mais perto;
   - as colunas seguem o caminho da água, a partir das captações (ou dos reservatórios).
 Cada bloco diz quais resultados do EPANET são dele (nós, ligações e sentido dos tubos), e a
 tela (painel/sinotico.html) só precisa ler a simulação de /api/simular-rede.
@@ -62,22 +65,53 @@ def montar(gpkg=GPKG_PADRAO, com_projetados=False):
                     fila.append(y)
         zonas.append(membros)
 
-    # ---- arestas: equipamento <-> rede (pelos tubos de fronteira) e equipamento <-> equipamento
-    fronteira = defaultdict(list)  # (equip, zona) -> [(tubo, sinal: +1 = tubo vai do equip para a rede)]
+    # ---- setores: o campo setor junta os nós do mesmo setor e separa setores diferentes da mesma rede
+    def _setor(r):
+        v = r.get("setor")
+        return None if v is None or str(v).strip() in ("", "NULL", "None", "nan") else str(v).strip()
+    grupo_de = {}  # nó -> chave do bloco: ("s", setor) ou ("c", índice da rede sem setor)
+    for z, membros in enumerate(zonas):
+        fila = deque()
+        for m in membros:
+            st = _setor(elem[m][1])
+            if st:
+                grupo_de[m] = ("s", st)
+                fila.append(m)
+        if not fila:
+            for m in membros:
+                grupo_de[m] = ("c", z)
+            continue
+        while fila:  # nós sem setor: o setor do vizinho mais perto (pelos tubos)
+            x = fila.popleft()
+            for y in viz[x]:
+                if y not in grupo_de:
+                    grupo_de[y] = grupo_de[x]
+                    fila.append(y)
+    grupos = defaultdict(list)
+    for nid, (camada, _) in elem.items():
+        if camada == "no_juncao":
+            grupos[grupo_de[nid]].append(nid)
+
+    # ---- arestas: equipamento <-> bloco (pelos tubos de fronteira), equipamento <-> equipamento e setor <-> setor
+    fronteira = defaultdict(list)  # (equip, grupo) -> [(tubo, sinal: +1 = tubo vai do equip para a rede)]
     diretas = defaultdict(list)    # (equip_a, equip_b) ordenado -> [(tubo, sinal: +1 = de a para b)]
+    entre = defaultdict(list)      # (grupo_a, grupo_b) ordenado -> [(tubo, sinal)]: tubos entre setores
     for t in tubos:
         a, b = str(t["no_inicial"]), str(t["no_final"])
         if eh_eq(a) and eh_eq(b):
             k = tuple(sorted((a, b)))
             diretas[k].append((str(t["id"]), 1 if a == k[0] else -1))
         elif eh_eq(a):
-            fronteira[(a, zona_de[b])].append((str(t["id"]), 1))
+            fronteira[(a, grupo_de[b])].append((str(t["id"]), 1))
         elif eh_eq(b):
-            fronteira[(b, zona_de[a])].append((str(t["id"]), -1))
-    adj_zona = defaultdict(set)
-    for (e, z) in fronteira:
-        adj_zona[z].add(e)
-
+            fronteira[(b, grupo_de[a])].append((str(t["id"]), -1))
+        elif grupo_de[a] != grupo_de[b]:
+            k = tuple(sorted((grupo_de[a], grupo_de[b])))
+            entre[k].append((str(t["id"]), 1 if grupo_de[a] == k[0] else -1))
+    adj_grupo = defaultdict(set)
+    for (e, g) in fronteira:
+        adj_grupo[g].add(e)
+    com_vizinho = {g for k in entre for g in k}
     dn = {str(t["id"]): _num(t.get("diametro_nominal")) for t in tubos}
     blocos, arestas = {}, []
     for nid, (camada, r) in elem.items():
@@ -95,29 +129,36 @@ def montar(gpkg=GPKG_PADRAO, com_projetados=False):
             b.update(carga=_num(r.get("carga_hidraulica")))
         blocos[nid] = b
 
-    for z, membros in enumerate(zonas):
-        eqs = sorted(adj_zona[z])
+    zid_de = {g: (f"setor:{g[1]}" if g[0] == "s" else f"rede:{g[1]}") for g in grupos}
+    for g, membros in sorted(grupos.items(), key=lambda kv: (kv[0][0], str(kv[0][1]))):
+        eqs = sorted(adj_grupo[g])
         recs = [elem[m][1] for m in membros]
         dem = sum(_num(r.get("demanda_base")) for r in recs)
         consumo = [m for m, r in zip(membros, recs) if _num(r.get("demanda_base")) > 0 or r.get("tipo") in CONSUMO]
-        if dem <= 0 and not consumo and len(eqs) == 2:
+        if g[0] == "c" and dem <= 0 and not consumo and len(eqs) == 2 and g not in com_vizinho:
             # ligação sem consumo entre dois equipamentos: vira linha direta
             a, b = eqs
-            tubs = fronteira[(a, z)]
+            tubs = fronteira[(a, g)]
             arestas.append({"de": a, "para": b, "tubos": [[t, s] for t, s in tubs],
-                            "dn": max(dn.get(t, 0) for t, _ in tubs + fronteira[(b, z)])})
+                            "dn": max(dn.get(t, 0) for t, _ in tubs + fronteira[(b, g)])})
             continue
-        if not eqs and not consumo:
+        if not eqs and not consumo and g not in com_vizinho:
             continue  # pedaço solto, sem nada para mostrar
-        zid = f"rede:{z}"
-        setores = sorted({str(r.get("setor")) for r in recs if r.get("setor")})
-        tipo = "zona" if consumo or dem > 0 else "derivacao"
-        rot = (f"Setor {setores[0]}" if len(setores) == 1 else "Rede") if tipo == "zona" else "Derivação"
+        zid = zid_de[g]
+        if g[0] == "s":  # setor: sempre um bloco com o nome dele
+            tipo, rot = "zona", f"Setor {g[1]}"
+        else:
+            tipo = "zona" if consumo or dem > 0 else "derivacao"
+            rot = "Rede" if tipo == "zona" else "Derivação"
         blocos[zid] = {"id": zid, "tipo": tipo, "rotulo": rot, "nos": membros,
                        "consumo": consumo or membros, "n_nos": len(membros), "demanda_base": round(dem, 3)}
         for e in eqs:
-            tubs = fronteira[(e, z)]
+            tubs = fronteira[(e, g)]
             arestas.append({"de": e, "para": zid, "tubos": [[t, s] for t, s in tubs],
+                            "dn": max(dn.get(t, 0) for t, _ in tubs)})
+    for (ga, gb), tubs in entre.items():  # tubulações que ligam um setor a outro
+        if zid_de[ga] in blocos and zid_de[gb] in blocos:
+            arestas.append({"de": zid_de[ga], "para": zid_de[gb], "tubos": [[t, s] for t, s in tubs],
                             "dn": max(dn.get(t, 0) for t, _ in tubs)})
     for (a, b), tubs in diretas.items():
         arestas.append({"de": a, "para": b, "tubos": [[t, s] for t, s in tubs], "dn": max(dn.get(t, 0) for t, _ in tubs)})

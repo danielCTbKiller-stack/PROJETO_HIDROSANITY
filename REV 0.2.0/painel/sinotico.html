@@ -214,7 +214,8 @@ function desenhar(){
   svg.innerHTML=s;
   svg.querySelectorAll('.alvo').forEach(g=>g.addEventListener('click',()=>detalhe(g.dataset.id)));
 }
-function cab(b){ const id=b.id.startsWith('rede:')?(b.n_nos+' nó'+(b.n_nos>1?'s':'')):b.id;
+function ehRede(b){ return b.tipo==='zona'||b.tipo==='derivacao'; }
+function cab(b){ const id=ehRede(b)?(b.n_nos+' nó'+(b.n_nos>1?'s':'')):b.id;
   return `<text y="${-BH/2-8}" class="rot" text-anchor="middle">${esc(b.rotulo)}</text><text y="${BH/2+14}" class="ident" text-anchor="middle">${esc(id)}</text>`; }
 function bloco(b){
   const box=`<rect x="${-BW/2}" y="${-BH/2}" width="${BW}" height="${BH}" rx="10" class="bl"/>`;
@@ -316,7 +317,7 @@ function detalhe(id){
   if(b.tipo==='valvula'){ add('Tipo / ajuste',esc(b.tipo_valvula)+' · '+nf(b.ajuste)); }
   if(b.tipo==='bomba'){ add('Curva',esc(b.curva||'—')); }
   S.arestas.filter(a=>a.de===id||a.para===id).forEach(a=>{const q=qAresta(a,i); add((a.de===id?'→ ':'← ')+(S.blocos.find(x=>x.id===(a.de===id?a.para:a.de))||{}).rotulo, nf(q==null?null:Math.abs(q))+' L/s · '+a.tubos.map(t=>t[0]).join(', '));});
-  $('detT').textContent=b.rotulo+(b.id.startsWith('rede:')?'':' · '+b.id); $('detL').innerHTML=linhas.join(''); $('det').hidden=false;
+  $('detT').textContent=b.rotulo+(ehRede(b)?'':' · '+b.id); $('detL').innerHTML=linhas.join(''); $('det').hidden=false;
 }
 
 // ------------------------------------------------ carregar e simular
