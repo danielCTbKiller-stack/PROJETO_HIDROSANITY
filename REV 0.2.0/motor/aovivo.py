@@ -148,7 +148,7 @@ class Gemeo:
         hd = int(hora_do_dia(t0) // 60 * 60)
         tm = wn.options.time
         tm.duration, tm.pattern_start, tm.start_clocktime = 24 * 3600, hd, hd
-        with tempfile.TemporaryDirectory() as tmp:
+        with tempfile.TemporaryDirectory(prefix="gwater_sim_", ignore_cleanup_errors=True) as tmp:
             res = wntr.sim.EpanetSimulator(wn).run_sim(file_prefix=os.path.join(tmp, "g"))
         self.prev = {"t0": t0, "rel": res.node["pressure"].index.to_numpy(float), "res": res}
 
@@ -362,7 +362,7 @@ class Simulador(threading.Thread):
             k0 = int(float(vazamento["hora"]) * 3600 // passo)
             wn.add_pattern("VAZAMENTO", [0.0] * k0 + [1.0] * (n - k0))
             wn.get_node(vazamento["no"]).add_demand(float(vazamento["lps"]) / 1000, "VAZAMENTO")
-        with tempfile.TemporaryDirectory() as tmp:
+        with tempfile.TemporaryDirectory(prefix="gwater_sim_", ignore_cleanup_errors=True) as tmp:
             self.res = wntr.sim.EpanetSimulator(wn).run_sim(file_prefix=os.path.join(tmp, "real"))
         self.rel = self.res.node["pressure"].index.to_numpy(float)
 

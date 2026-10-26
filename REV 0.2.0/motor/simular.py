@@ -106,13 +106,28 @@ def ler_relatorio(texto):
     return sorted(out, key=lambda x: x[0] != "ERRO")
 
 
+def _limpar_sobras(horas=6):
+    """Pastas temporárias de cálculos antigos que o Windows não deixou apagar na hora (arquivo preso pelo
+    antivírus ou pelo EPANET): apaga as que já passaram de algumas horas, sem nunca interromper o cálculo."""
+    import glob
+    import shutil
+    limite = time.time() - horas * 3600
+    for d in glob.glob(os.path.join(tempfile.gettempdir(), "gwater_sim_*")):
+        try:
+            if os.path.getmtime(d) < limite:
+                shutil.rmtree(d, ignore_errors=True)
+        except OSError:
+            pass
+
+
 def rodar(inp, avisos=None):
     """Roda um texto .inp no EPANET e devolve (resultados WNTR, segundos).
 
     avisos: lista que recebe o relatório do EPANET traduzido (bomba fora da curva, nó isolado...).
     Se o EPANET parar, levanta FalhaEpanet com o motivo, em vez do erro sem sentido da leitura do arquivo."""
     t0 = time.perf_counter()
-    with tempfile.TemporaryDirectory() as tmp:
+    _limpar_sobras()
+    with tempfile.TemporaryDirectory(prefix="gwater_sim_", ignore_cleanup_errors=True) as tmp:
         arq = os.path.join(tmp, "modelo.inp")
         with open(arq, "w", encoding="utf-8") as f:
             f.write(inp)
