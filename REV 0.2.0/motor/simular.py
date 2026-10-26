@@ -72,6 +72,13 @@ AVISOS_RPT = [
      "{e}: fechou e isolou parte da rede"),
     (r"Node (\S+) disconnected", "AVISO", 1, "nó {e}: ficou sem ligação com nenhuma fonte de água"),
     (r"Negative pressures at ([\d:]+) hrs", "AVISO", None, "pressões negativas na rede às {h}"),
+    (r"Error 215: duplicate ID label (\S+)", "ERRO", 1,
+     "código '{e}' repetido: dois elementos com o mesmo código (o EPANET não aceita). Ferramentas > Centro de "
+     "códigos renumera"),
+    (r"Error 203: undefined node (\S+)", "ERRO", 1, "uma tubulação liga num nó '{e}' que não existe"),
+    (r"Error 205: undefined curve (\S+)", "ERRO", 1, "curva '{e}' não existe (Curvas de bomba ou de válvula)"),
+    (r"Error 206: undefined pattern (\S+)", "ERRO", 1, "padrão '{e}' não existe (Padrões)"),
+    (r"Error 213: illegal option value.*?:?\s*(.*)", "ERRO", None, "opção de cálculo com valor inválido: {t}"),
     (r"(?:Error|Erro) (\d+):?\s*(.*)", "ERRO", None, "erro {e} do EPANET: {t}"),
 ]
 

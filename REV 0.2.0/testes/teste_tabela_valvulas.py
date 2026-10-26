@@ -512,6 +512,32 @@ rv.desfazer_registros(n, [linha_tab])
 checar(trl.getFeature(fh.id())["material"] == mat0, f"desfazer pelo histórico volta o material ({mat0})")
 trl.rollBack()
 
+print("\n== códigos repetidos")
+trl = n.camada("trecho")
+fs_ = list(trl.getFeatures())[:3]
+trl.startEditing()
+for f_ in fs_:
+    trl.changeAttributeValue(f_.id(), trl.fields().indexOf("id"), "projeto")
+trl.commitChanges()
+r = motor.rodar("validar", n.cadastro())
+checar(any("'projeto' repetido em 3 tubulações" in i["msg"] for i in r.get("itens", [])),
+       "validar aponta o código de tubulação repetido")
+from programa.tabelas import TabelaFlex  # noqa: E402
+t2 = TabelaFlex(n, "trecho")
+c_id = t2.campos.index("id")
+antes_ids = sorted(str(f["id"]) for f in trl.getFeatures())
+t2._gravar([(0, c_id, "X1"), (1, c_id, "X1")], "teste")
+checar(sorted(str(f["id"]) for f in trl.getFeatures()) == antes_ids, "tabela recusa gravar código repetido")
+QDialog.exec = lambda self: 1
+QMessageBox.question = staticmethod(lambda *a, **k: QMessageBox.StandardButton.Yes)
+from programa.ferramentas_modelo import ids as centro_codigos  # noqa: E402
+centro_codigos(n)  # Trechos é o primeiro tipo da lista; "só os repetidos" vem marcado
+ids_agora = [str(f["id"]) for f in trl.getFeatures()]
+checar(ids_agora.count("projeto") == 1 and len(set(ids_agora)) == len(ids_agora),
+       f"Centro de códigos renumera só os repetidos: {sorted(ids_agora)[:6]}")
+trl.commitChanges()
+checar(motor.rodar("validar", n.cadastro()).get("ok"), "rede volta a validar")
+
 print("\n== salvamento automático")
 from programa import desempenho as dsp  # noqa: E402
 cfg0 = dsp.ler()

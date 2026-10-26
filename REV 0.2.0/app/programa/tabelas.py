@@ -316,6 +316,19 @@ class TabelaFlex(QWidget):
     def _gravar(self, mudancas, titulo):
         """mudancas: [(linha, coluna, texto)]. Grava no cadastro num só Ctrl+Z e atualiza as células."""
         lyr = self.lyr()
+        if "id" in self.campos:  # o código é a identidade do elemento: não pode repetir
+            c_id = self.campos.index("id")
+            novos = [str(txt).strip() for r, c, txt in mudancas if c == c_id]
+            if novos:
+                mudando = {r for r, c, _ in mudancas if c == c_id}
+                outros = {self.t.item(r, c_id).text() for r in range(self.t.rowCount())
+                          if r not in mudando and self.t.item(r, c_id)}
+                rep = sorted({v for v in novos if not v or novos.count(v) > 1 or v in outros})
+                if rep:
+                    self.nucleo.aviso("A coluna id não pode ter códigos repetidos ou vazios: "
+                                      f"{', '.join(repr(v) for v in rep[:5])}. Nada foi alterado. Para renumerar "
+                                      "use Ferramentas > Centro de códigos.")
+                    return
         ja_editava = lyr.isEditable()
         if not ja_editava:
             lyr.startEditing()

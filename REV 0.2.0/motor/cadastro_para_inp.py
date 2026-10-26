@@ -276,6 +276,18 @@ def converter(gpkg=GPKG_PADRAO, com_projetados=False, alteracoes=None, camadas=N
     trechos = ativos(c["trecho"])
     rugos = dict(zip(c["dominio_material"]["material"], c["dominio_material"]["rugosidade_hw"]))
     pipes, chegam, saem, ligados = [], defaultdict(list), defaultdict(list), set()
+    # códigos repetidos: no EPANET tubulações, bombas e válvulas dividem o mesmo espaço de nomes
+    cont = defaultdict(int)
+    for v in trechos["id"]:
+        if not _vazio(v):
+            cont[str(v)] += 1
+    for v, n in cont.items():
+        if n > 1:
+            rel.erro(f"código '{v}' repetido em {n} tubulações: cada tubulação precisa de um código só dela "
+                     "(Ferramentas > Centro de códigos renumera os repetidos)", ref=("trecho", v))
+        elif v in nos and nos[v][0] in ("bomba", "valvula"):
+            rel.erro(f"código '{v}' é de uma tubulação e de uma {nos[v][0]} ao mesmo tempo: troque um dos dois",
+                     ref=("trecho", v))
     for _, t in trechos.iterrows():
         tid = t["id"] or "(sem id)"
         a, b = t["no_inicial"], t["no_final"]

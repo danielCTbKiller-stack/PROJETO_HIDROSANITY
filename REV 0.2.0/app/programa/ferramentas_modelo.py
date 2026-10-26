@@ -338,6 +338,9 @@ def ids(nucleo):
     d.linha("Elemento:", tipo)
     so_sel = QCheckBox("Só os selecionados no mapa")
     d.lay.addWidget(so_sel)
+    so_rep = QCheckBox("Só os códigos repetidos ou vazios (o primeiro de cada código fica como está)")
+    so_rep.setChecked(bool(rep))
+    d.lay.addWidget(so_rep)
     pref = d.linha("Prefixo:", QLineEdit("T-"))
     tipo.currentIndexChanged.connect(lambda _i: pref.setText(
         {"trecho": "T-", "no_juncao": "N-", "valvula": "V-", "bomba": "B-", "reservatorio": "R-",
@@ -360,6 +363,14 @@ def ids(nucleo):
     c = tipo.currentData()
     lyr = nucleo.camada(c)
     fids = list(lyr.selectedFeatureIds()) if so_sel.isChecked() else [f.id() for f in lyr.getFeatures()]
+    if so_rep.isChecked():
+        vistos, so = set(), []
+        for f in sorted(lyr.getFeatures(fids), key=lambda x: x.id()):
+            cod = "" if f["id"] is None or str(f["id"]) == "NULL" else str(f["id"]).strip()
+            if not cod or cod in vistos:
+                so.append(f.id())
+            vistos.add(cod)
+        fids = so
     if not fids:
         return nucleo.informar("Nada para renumerar.")
     existentes = {str(f["id"]) for l in nucleo.camadas_rede() for f in l.getFeatures()}
@@ -383,7 +394,8 @@ def ids(nucleo):
     i = lyr.fields().indexOf("id")
     for fid, (_, novo) in mapa.items():
         lyr.changeAttributeValue(fid, i, novo)
-    troca = {velho: novo for velho, novo in mapa.values()}
+    # repetidos: o código velho continua existindo (no primeiro), então as tubulações não são trocadas de nó
+    troca = {} if so_rep.isChecked() else {velho: novo for velho, novo in mapa.values()}
     if c != "trecho":
         tr = nucleo.camada("trecho")
         ia, ib = tr.fields().indexOf("no_inicial"), tr.fields().indexOf("no_final")
