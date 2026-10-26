@@ -71,6 +71,9 @@ FAIXA = [
             ("topologia_ativa", "Topologia ativa", "topologia", "G", "Ativa ou desativa elementos: os desativados ficam no cadastro mas saem do cálculo."),
             ("modelbuilder", "ModelBuilder", "modelbuilder", "G", "Importa elementos de qualquer arquivo (shapefile, GeoPackage...) com de-para de colunas."),
         ]),
+        ("Assistente", [
+            ("assistente", "Assistente de IA", "ajuda", "G", "Claude, GPT ou Gemini dentro do programa: pela sua conta (site oficial, assinatura Pro) ou pela API, com a escolha do modelo e os dados da rede como contexto."),
+        ]),
     ]),
     ("desenho", "Desenho", [
         ("Desenho", [
