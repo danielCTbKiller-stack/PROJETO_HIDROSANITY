@@ -68,7 +68,7 @@ class Grafico(QWidget):
         self.lista.itemSelectionChanged.connect(self._variaveis)
         self.var.currentIndexChanged.connect(self.desenhar)
         ligar(nucleo.janela.resultados, self, lambda *_: self.desenhar())
-        ligar(nucleo.dock.slider.valueChanged, self, lambda *_: self.desenhar())
+        ligar(nucleo.dock.hora_lenta, self, lambda *_: self.desenhar())
         self._variaveis()
 
     def _somar(self):
@@ -256,7 +256,7 @@ class Perfil(QWidget):
         L = self.dist[-1]
         self.info.setText(f"Perfil de <b>{caminho[0]}</b> a <b>{caminho[-1]}</b>: {len(caminho)} nós, "
                           f"{num(L, 1)} m. A linha piezométrica é da hora escolhida (linha do tempo).")
-        ligar(nucleo.dock.slider.valueChanged, self, lambda *_: self.desenhar())
+        ligar(nucleo.dock.hora_lenta, self, lambda *_: self.desenhar())
         ligar(nucleo.janela.resultados, self, lambda *_: self.desenhar())
         self.desenhar()
 

@@ -264,7 +264,13 @@ def configurar(janela):
                    "programas.")
     par = QCheckBox("Desenhar as camadas do mapa em paralelo")
     par.setChecked(cfg["mapa_paralelo"])
+    fps = QSpinBox()
+    fps.setRange(5, 30)
+    fps.setValue(cfg["fluxo_fps"])
+    fps.setSuffix(" quadros/s")
+    fps.setToolTip("Animação do fluxo da água: mais quadros = mais suave, e mais trabalho para o computador")
     fd.addRow("Núcleos (threads):", nuc)
+    fd.addRow("Animação do fluxo:", fps)
     fd.addRow("Memória para cache:", mem)
     fd.addRow(par)
     dica = QLabel("A memória do cache do GDAL e do SQLite vale por completo ao reabrir o GWATER.")
@@ -286,7 +292,9 @@ def configurar(janela):
     d.botoes("Aplicar")
     if d.exec():
         aplicar_tema(cmb.currentData(), QApplication.instance())
-        desempenho.gravar(nuc.value(), mem.value(), par.isChecked(), auto.value())
+        desempenho.gravar(nuc.value(), mem.value(), par.isChecked(), auto.value(), fps.value())
         desempenho.aplicar(janela)
+        if getattr(janela, "bt_fluxo", None) is not None and janela.bt_fluxo.isChecked():
+            janela._fluxo(True, gravar=False)
         return True
     return False

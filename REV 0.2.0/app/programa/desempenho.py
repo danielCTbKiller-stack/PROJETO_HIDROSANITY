@@ -48,11 +48,14 @@ def ler():
     return {"nucleos": max(1, min(n or nucleos_maquina(), nucleos_maquina())),
             "cache_mb": int(s.value("desempenho/cache_mb", 0) or 0) or padrao_cache_mb(),
             "mapa_paralelo": str(s.value("desempenho/mapa_paralelo", "true")).lower() in ("true", "1"),
-            "auto_min": int(s.value("salvar/auto_min", 5) or 0)}
+            "auto_min": int(s.value("salvar/auto_min", 5) or 0),
+            "fluxo_fps": int(s.value("fluxo/fps", 15) or 15)}
 
 
-def gravar(nucleos, cache_mb, mapa_paralelo, auto_min=None):
+def gravar(nucleos, cache_mb, mapa_paralelo, auto_min=None, fluxo_fps=None):
     s = QSettings(*CHAVE)
+    if fluxo_fps is not None:
+        s.setValue("fluxo/fps", int(fluxo_fps))
     if auto_min is not None:
         s.setValue("salvar/auto_min", int(auto_min))
     s.setValue("desempenho/nucleos", int(nucleos))

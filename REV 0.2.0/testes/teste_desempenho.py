@@ -147,6 +147,97 @@ for lyr in n.camadas_rede():
         print("     não salvou", lyr.name(), lyr.commitErrors()[:3], flush=True)
 print("     captações:", cap.featureCount(), flush=True)
 medir("calcular (24 h)", 90, lambda: j.acionar("simular"))
+# animação hora a hora: cada quadro termina de desenhar antes do próximo (nada de mapa pela metade)
+from qgis.PyQt.QtCore import QEventLoop, QTimer  # noqa: E402
+d_ = n.dock
+j.resize(1600, 1000)
+j.show()
+j.canvas.resize(1200, 800)
+quadros = {"inicio": 0, "fim": 0, "cortados": 0}
+j.canvas.renderStarting.connect(lambda: quadros.__setitem__("inicio", quadros["inicio"] + 1))
+j.canvas.mapCanvasRefreshed.connect(lambda: quadros.__setitem__("fim", quadros["fim"] + 1))
+n.res.aplicar(9)  # a primeira vez monta as séries; o que importa é o passo a passo
+t_ap = time.perf_counter()
+n.res.aplicar(10)
+t_ap = time.perf_counter() - t_ap
+k0 = d_.slider.value()
+d_.vel.setCurrentIndex(3)  # 4×: pede quadros mais rápido do que o mapa desenha
+j._animar()
+laco = QEventLoop()
+QTimer.singleShot(8000, laco.quit)
+laco.exec()
+passos = (d_.slider.value() - k0) % (d_.slider.maximum() + 1)
+durante = dict(quadros)  # contado com a animação rodando (ao pausar, os rótulos voltam e o mapa redesenha)
+j._animar()
+for _ in range(20):
+    app.processEvents()
+print(f"     animação: {passos} horas em 8 s; desenhos começados {durante['inicio']}, terminados {durante['fim']}; "
+      f"atualizar a hora no mapa: {t_ap * 1000:.0f} ms", flush=True)
+ok_anim = passos >= 3 and durante["fim"] >= durante["inicio"] - 1 and j.bt_play.text() == "▶"
+print(f"  {'OK   ' if ok_anim else 'LENTO'} animação fluida (todo quadro terminado antes do próximo)", flush=True)
+if not ok_anim:
+    falhas.append("animação")
+# fluxo da água: setas animadas. Mede o quadro só da camada do fluxo (é só ela que redesenha a cada quadro) e
+# confere que as setas andam de um quadro para o outro; depois, o fluxo junto com a hora andando
+from qgis.core import QgsMapRendererSequentialJob  # noqa: E402
+j.bt_fluxo.setChecked(True)
+j._fluxo(True, gravar=False)
+fl_ = n.res.fl
+ms = j.canvas.mapSettings()
+ms.setLayers([fl_])
+ms.setFrameRate(15)
+imgs, tempos_q = [], []
+c_ = n.res.tr.extent().center()  # no meio da rede
+from qgis.core import QgsRectangle  # noqa: E402
+for frame in (0, 4):  # quadro na rede toda (tempo) e, com zoom num bairro, se as setas andaram
+    ms.setCurrentFrame(frame)
+    job = QgsMapRendererSequentialJob(ms)
+    t0 = time.perf_counter()
+    job.start()
+    job.waitForFinished()
+    tempos_q.append(time.perf_counter() - t0)
+ms.setExtent(QgsRectangle(c_.x() - 300, c_.y() - 200, c_.x() + 300, c_.y() + 200))
+for frame in (0, 4):
+    ms.setCurrentFrame(frame)
+    job = QgsMapRendererSequentialJob(ms)
+    job.start()
+    job.waitForFinished()
+    imgs.append(job.renderedImage())
+anda = imgs[0] != imgs[1]
+if os.environ.get("GWATER_FOTO"):
+    imgs[0].save(os.environ["GWATER_FOTO"] + "_f0.png")
+    imgs[1].save(os.environ["GWATER_FOTO"] + "_f4.png")
+from qgis.PyQt.QtGui import QColor  # noqa: E402
+fundo = imgs[0].pixel(0, 0)
+tem_seta = any(imgs[0].pixel(x, y) != fundo for x in range(0, imgs[0].width(), 3)
+               for y in range(0, imgs[0].height(), 3))
+zoom = j.canvas.extent()
+ms2 = j.canvas.mapSettings()
+centro = zoom.center()
+from qgis.core import QgsRectangle  # noqa: E402
+ms2.setExtent(QgsRectangle(centro.x() - 300, centro.y() - 200, centro.x() + 300, centro.y() + 200))
+ms2.setLayers([fl_])
+ms2.setFrameRate(15)
+job = QgsMapRendererSequentialJob(ms2)
+t0 = time.perf_counter()
+job.start()
+job.waitForFinished()
+t_zoom = time.perf_counter() - t0
+quadros.update(inicio=0, fim=0)
+j._animar()
+laco = QEventLoop()
+QTimer.singleShot(5000, laco.quit)
+laco.exec()
+junto = dict(quadros)
+j._animar()
+print(f"     fluxo: quadro das setas {min(tempos_q) * 1000:.0f} ms na rede toda, {t_zoom * 1000:.0f} ms com zoom num "
+      f"bairro; setas aparecem: {tem_seta}, andam entre quadros: {anda}; hora andando junto: {junto['fim'] / 5:.1f} horas/s "
+      f"({junto['inicio']}/{junto['fim']})", flush=True)
+ok_fl = anda and tem_seta and min(tempos_q) < 0.2 and junto["fim"] >= junto["inicio"] - 1 and junto["fim"] >= 5
+print(f"  {'OK   ' if ok_fl else 'LENTO'} fluxo da água animado", flush=True)
+if not ok_fl:
+    falhas.append("fluxo")
+j._fluxo(False, gravar=False)
 # análises com milhares de cálculos independentes: 1 núcleo × todos os núcleos
 alvo_nos = [str(f["id"]) for f in n.camada("no_juncao").getFeatures()][:int(os.environ.get("GWATER_N_INCENDIO", "400"))]
 tempos = {}

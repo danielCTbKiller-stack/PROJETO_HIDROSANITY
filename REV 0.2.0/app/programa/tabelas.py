@@ -142,7 +142,7 @@ class TabelaFlex(QWidget):
         self.tipo.currentIndexChanged.connect(self.carregar)
         self.filtro.activated.connect(self._filtro)
         ligar(self.janela.resultados, self, lambda *_: self.carregar())
-        ligar(nucleo.dock.slider.valueChanged, self, lambda _k: self._resultados())
+        ligar(nucleo.dock.hora_lenta, self, lambda _k: self._resultados())
         ligar(self.janela.selecao, self, lambda *_: self._selecao_mapa())
         self.carregar()
 

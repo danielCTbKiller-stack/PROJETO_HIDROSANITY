@@ -113,6 +113,7 @@ class Janela(QMainWindow):
         self.dock_prop.raise_()
         QTimer.singleShot(0, self._tamanhos)
         self.nucleo.dock.slider.valueChanged.connect(self._hora_mudou)
+        self.nucleo.dock.hora_lenta.connect(lambda _k: self.dock_prop.atualizar())
 
         # ---- ferramentas de mapa
         camadas = self.nucleo.camadas_rede
@@ -202,6 +203,22 @@ class Janela(QMainWindow):
         self.lb_hora = QLabel("Sem resultados")
         self.lb_hora.setMinimumWidth(130)
         h.addWidget(self.lb_hora)
+        self.bt_play = QToolButton()
+        self.bt_play.setText("▶")
+        self.bt_play.setToolTip("Animação hora a hora (pausa e volta: mesmo botão)")
+        self.bt_play.setEnabled(False)
+        self.bt_play.clicked.connect(self._animar)
+        h.addWidget(self.bt_play)
+        self.bt_fluxo = QToolButton()
+        self.bt_fluxo.setText("💧 Fluxo")
+        self.bt_fluxo.setCheckable(True)
+        self.bt_fluxo.setToolTip("Animação do fluxo da água: setas correndo nas tubulações no sentido da vazão, mais "
+                                 "rápidas onde a água corre mais (segue a hora mostrada)")
+        self.bt_fluxo.setChecked(str(QSettings("GWATER", "GWATER").value("fluxo/ligado", "true")).lower()
+                                 in ("true", "1"))
+        self.bt_fluxo.setEnabled(False)
+        self.bt_fluxo.toggled.connect(self._fluxo)
+        h.addWidget(self.bt_fluxo)
         self.sl_hora = QSlider(Qt.Orientation.Horizontal)
         self.sl_hora.setMaximumWidth(320)
         self.sl_hora.setEnabled(False)
@@ -676,6 +693,9 @@ class Janela(QMainWindow):
         self.sl_hora.blockSignals(True)
         if res:
             self.sl_hora.setEnabled(True)
+            self.bt_play.setEnabled(True)
+            self.bt_fluxo.setEnabled(True)
+            self._fluxo(self.bt_fluxo.isChecked(), gravar=False)
             self.sl_hora.setRange(0, len(res.horas) - 1)
             self.sl_hora.setValue(self.nucleo.dock.slider.value())
         else:
@@ -689,6 +709,21 @@ class Janela(QMainWindow):
     def passo(self):
         return self.nucleo.dock.slider.value() if self.nucleo.res else 0
 
+    def _fluxo(self, ligar, gravar=True):
+        if gravar:
+            QSettings("GWATER", "GWATER").setValue("fluxo/ligado", bool(ligar))
+        res = self.nucleo.res
+        if res is None:
+            return
+        from . import desempenho
+        res.fluxo(bool(ligar), desempenho.ler()["fluxo_fps"])
+
+    def _animar(self):
+        d = self.nucleo.dock
+        d._alternar()
+        self.bt_play.setText("❚❚" if d.timer.isActive() else "▶")
+        d.play.setText(self.bt_play.text())
+
     def _hora_mudou(self, k):
         res = self.nucleo.res
         if not res:
@@ -698,7 +733,6 @@ class Janela(QMainWindow):
         self.sl_hora.blockSignals(True)
         self.sl_hora.setValue(k)
         self.sl_hora.blockSignals(False)
-        self.dock_prop.atualizar()
 
     def _configurar(self):
         from . import tema

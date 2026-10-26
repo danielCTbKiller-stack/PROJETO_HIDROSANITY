@@ -288,6 +288,9 @@ def rotulos_resultados(nucleo, no=None, tubo=None, casas=None):
         no, tubo, casas = cn.currentData(), ct.currentData(), cd.value()
     from gwater.resultados import _rotulo
     casas = 1 if casas is None else casas
+    res.campo_rotulo_tr = tubo or None  # a hora que muda atualiza também este campo
+    if getattr(res, "_k", None) is not None:
+        res.aplicar(res._k)
     for lyr, campo in ((res.nos, no), (res.tr, tubo)):
         if campo:
             un = {"p": "", "q": "", "v": "", "perda_m_km": "", "dn": ""}[campo]

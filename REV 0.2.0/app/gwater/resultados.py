@@ -77,8 +77,8 @@ def salvar_faixas(var, lista):
 
 
 def var_tubos():
-    v = QgsProject.instance().readEntry(CHAVE, "cor_tubos", "v")[0]
-    return v if v in ("v", "hl", "q") else "v"
+    v = QgsProject.instance().readEntry(CHAVE, "cor_tubos", "hl")[0]
+    return v if v in ("v", "hl", "q") else "hl"
 
 
 def escolher_var_tubos(var):
@@ -216,25 +216,160 @@ class Resultados:
         nome, un, campo, _ = VARIAVEIS[var]
         self.tr.setRenderer(_graduado(campo, faixas(var), un, linha))
         self.tr.setName(f"{nome} nos trechos ({un})")
+        if getattr(self, "_k", None) is not None:  # trocou a variável dos tubos: preenche a nova na hora atual
+            self.aplicar(self._k)
         arvore = getattr(self.plugin.iface, "layerTreeView", lambda: None)()
         for lyr in (self.nos, self.tr):
             lyr.triggerRepaint()
             if arvore is not None:  # legenda do painel de camadas com as faixas novas
                 arvore.refreshLayerSymbology(lyr.id())
 
-    def aplicar(self, k):
-        """Mostra o passo k (0..n-1) no mapa."""
-        ip = self.nos.fields().indexOf("p")
-        self.nos.dataProvider().changeAttributeValues(
-            {fid: {ip: self.d["nos"][rid]["p"][k]} for fid, rid in self.fid_nos})
-        iq, iv, ih, ia = (self.tr.fields().indexOf(c) for c in ("q", "v", "perda_m_km", "q_abs"))
-        mud = {}
-        for fid, rid in self.fid_tr:
-            l = self.d["links"][rid]
-            mud[fid] = {iq: l["q"][k], iv: abs(l["v"][k]), ih: abs(l["hl"][k]), ia: abs(l["q"][k])}
-        self.tr.dataProvider().changeAttributeValues(mud)
+    # ------------------------------------------------ fluxo da água (setas animadas no sentido da vazão)
+    INTERVALO_SETA = 7.0  # mm de tela entre as setas
+
+    def fluxo(self, ligar, fps=15):
+        """Liga ou desliga a animação do fluxo: setas correndo nas tubulações, no sentido da vazão da hora mostrada,
+        mais rápidas onde a velocidade é maior. É um símbolo animado do próprio QGIS: só esta camada é redesenhada
+        a cada quadro (o resto do mapa fica no cache), e as setas são espaçadas na tela, então o custo não cresce
+        com o tamanho da rede."""
+        from qgis.core import (Qgis, QgsMarkerLineSymbolLayer, QgsSymbolAnimationSettings, QgsVectorSimplifyMethod)
+        prj = QgsProject.instance()
+        fl = getattr(self, "fl", None)
+        try:
+            vivo = fl is not None and prj.mapLayer(fl.id()) is not None
+        except RuntimeError:
+            vivo = False
+        if not ligar:
+            if vivo:
+                prj.removeMapLayer(fl.id())
+            self.fl = None
+            return None
+        if not vivo:
+            crs = self.tr.crs().authid()
+            fl = QgsVectorLayer(f"LineString?crs={crs}", "Fluxo da água", "memory")
+            fl.dataProvider().addAttributes([QgsField("id", QVariant.String), QgsField("q", QVariant.Double),
+                                             QgsField("v", QVariant.Double)])
+            fl.updateFields()
+            feats = []
+            for f in self.tr.getFeatures():
+                nf = QgsFeature(fl.fields())
+                nf.setGeometry(f.geometry())
+                nf.setAttributes([f["id"], 0.0, 0.0])
+                feats.append(nf)
+            _, feats = fl.dataProvider().addFeatures(feats)
+            self.fid_fl = [(nf.id(), rid) for nf, (_, rid) in zip(feats, self.fid_tr)]
+            self.__dict__.pop("_serie_fl", None)
+            simp = QgsVectorSimplifyMethod()
+            simp.setSimplifyHints(QgsVectorSimplifyMethod.SimplifyHint.GeometrySimplification)
+            simp.setThreshold(1.0)
+            fl.setSimplifyMethod(simp)
+            self.fl = fl
+            prj.addMapLayer(fl, False)
+            grupo = prj.layerTreeRoot().findGroup(GRUPO)
+            (grupo or prj.layerTreeRoot()).insertLayer(0, fl)  # por cima das cores dos tubos
+        seta = QgsMarkerSymbol.createSimple({"name": "filled_arrowhead", "size": "2.6", "color": "#e8f7ff",
+                                             "outline_color": "#06315c", "outline_width": "0.25"})
+        seta.symbolLayer(0).setDataDefinedProperty(QgsSymbolLayer.Property.Angle,
+                                                   QgsProperty.fromExpression('CASE WHEN "q" < 0 THEN 180 ELSE 0 END'))
+        linha = QgsMarkerLineSymbolLayer(True, self.INTERVALO_SETA)
+        linha.setSubSymbol(seta)
+        try:
+            linha.setIntervalUnit(Qgis.RenderUnit.Millimeters)
+            linha.setOffsetAlongLineUnit(Qgis.RenderUnit.Millimeters)
+        except AttributeError:
+            pass
+        i = self.INTERVALO_SETA
+        # sempre andando (mesmo com água devagar) e mais rápido onde a velocidade é maior; independe dos quadros/s
+        # (least/coalesce não funcionam nesta expressão de símbolo animado: CASE simples)
+        anda = (f'(@symbol_frame * (0.35 + 0.6 * (CASE WHEN "v" > 3 THEN 3 WHEN "v" > 0 THEN "v" ELSE 0 END)) '
+                f'/ {max(fps, 1) / 15:g}) % {i:g}')
+        linha.setDataDefinedProperty(QgsSymbolLayer.Property.OffsetAlongLine, QgsProperty.fromExpression(
+            f'CASE WHEN "q" >= 0 THEN {anda} ELSE {i:g} - {anda} END'))
+        simbolo = QgsLineSymbol()
+        simbolo.changeSymbolLayer(0, linha)
+        anim = QgsSymbolAnimationSettings()
+        anim.setIsAnimated(True)
+        anim.setFrameRate(fps)
+        simbolo.setAnimationSettings(anim)
+        regras = QgsRuleBasedRenderer(simbolo)
+        raiz = regras.rootRule()
+        # sem setas no tubo parado (o zoom afastado demais é cortado pela escala da camada, logo abaixo)
+        raiz.children()[0].setFilterExpression('abs("q") > 0.01 AND "v" > 0.005')
+        self.fl.setRenderer(regras)
+        # zoom tão afastado que nenhum tubo comporta uma seta: a camada nem é desenhada (nada de custo à toa)
+        comps = sorted(f.geometry().length() for f in self.fl.getFeatures())
+        if comps:
+            tipico = comps[int(len(comps) * 0.75)]
+            self.fl.setScaleBasedVisibility(True)
+            self.fl.setMinimumScale(max(500.0, tipico * 1000 / i))
+            self.fl.setMaximumScale(0.0)
+        self.fl.setAutoRefreshInterval(int(1000 / max(fps, 1)))
+        try:
+            self.fl.setAutoRefreshMode(Qgis.AutoRefreshMode.RedrawOnly)
+        except AttributeError:
+            self.fl.setAutoRefreshEnabled(True)
+        if getattr(self, "_k", None) is not None:
+            self.aplicar(self._k)
+        return self.fl
+
+    def rotulos_animacao(self, ligar):
+        """Durante a animação hora a hora: os rótulos de pressão saem (voltam como estavam ao pausar) e o fluxo deixa
+        de pedir redesenho sozinho (as setas andam junto com cada hora; dois pedidos ao mesmo tempo cortariam o
+        quadro)."""
+        fl = getattr(self, "fl", None)
+        if fl is not None:
+            try:
+                from qgis.core import Qgis
+                fl.setAutoRefreshMode(Qgis.AutoRefreshMode.RedrawOnly if ligar else Qgis.AutoRefreshMode.Disabled)
+            except (AttributeError, RuntimeError):
+                pass
+        if not ligar:
+            self._rotulos = self.nos.labelsEnabled()
+            self.nos.setLabelsEnabled(False)
+        elif getattr(self, "_rotulos", None) is not None:
+            self.nos.setLabelsEnabled(self._rotulos)
+            self._rotulos = None
         self.nos.triggerRepaint()
-        self.tr.triggerRepaint()
+
+    def _series_tubos(self, var):
+        """[(feição, série já em módulo)] da variável que colore os tubos (montada uma vez por variável)."""
+        cache = self.__dict__.setdefault("_cache_tr", {})
+        if var not in cache:
+            chave = {"v": "v", "hl": "hl", "q": "q"}[var]
+            cache[var] = [(fid, [abs(x) for x in self.d["links"][rid][chave]]) for fid, rid in self.fid_tr]
+        return cache[var]
+
+    def aplicar(self, k):
+        """Mostra o passo k (0..n-1) no mapa. Só os campos que estão no mapa mudam (pressão nos nós e a variável
+        dos tubos): é o que deixa a animação hora a hora leve em redes grandes."""
+        self._k = k
+        if "_serie_p" not in self.__dict__:
+            self._serie_p = [(fid, self.d["nos"][rid]["p"]) for fid, rid in self.fid_nos]
+        ip = self.nos.fields().indexOf("p")
+        self.nos.dataProvider().changeAttributeValues({fid: {ip: s[k]} for fid, s in self._serie_p})
+        var = var_tubos()
+        i = self.tr.fields().indexOf(VARIAVEIS[var][2])
+        mud = {fid: {i: s[k]} for fid, s in self._series_tubos(var)}
+        rot = {"q": "q", "v": "v", "perda_m_km": "hl"}.get(getattr(self, "campo_rotulo_tr", None))
+        if rot and rot != var:  # o rótulo dos tubos mostra outra variável: ela também anda com a hora
+            j = self.tr.fields().indexOf(self.campo_rotulo_tr)
+            for fid, s in self._series_tubos(rot):
+                mud.setdefault(fid, {})[j] = s[k]
+        self.tr.dataProvider().changeAttributeValues(mud)
+        fl = getattr(self, "fl", None)
+        if fl is not None:  # o fluxo segue a hora: sentido e velocidade daquele momento
+            try:
+                if "_serie_fl" not in self.__dict__:
+                    self._serie_fl = [(fid, self.d["links"][rid]["q"], [abs(x) for x in self.d["links"][rid]["v"]])
+                                      for fid, rid in self.fid_fl]
+                iq, iv = fl.fields().indexOf("q"), fl.fields().indexOf("v")
+                fl.dataProvider().changeAttributeValues({fid: {iq: q[k], iv: v[k]} for fid, q, v in self._serie_fl})
+            except RuntimeError:  # a camada foi tirada do mapa
+                self.fl = None
+        # adiado: espera o quadro em andamento terminar em vez de cortá-lo (sem mapa pela metade)
+        for lyr in (self.nos, self.tr, getattr(self, "fl", None)):
+            if lyr is not None:
+                lyr.triggerRepaint(True)
 
     def resumo(self, k):
         """Texto (HTML) do passo k: extremos, reservatórios, bombas e válvulas."""

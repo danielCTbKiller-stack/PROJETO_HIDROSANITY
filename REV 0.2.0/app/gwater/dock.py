@@ -6,7 +6,7 @@ O visual é o mesmo do Centro de Operações web (estilo.py), independente do te
 """
 import os
 
-from qgis.PyQt.QtCore import QEvent, QPoint, QRect, QSize, Qt, QTimer
+from qgis.PyQt.QtCore import QEvent, QPoint, QRect, QSize, Qt, QTimer, pyqtSignal
 from qgis.PyQt.QtGui import QColor, QIcon
 from qgis.PyQt.QtWidgets import (
     QAbstractItemView, QBoxLayout, QCheckBox, QComboBox, QDockWidget, QFrame, QGridLayout, QHBoxLayout, QHeaderView,
@@ -92,6 +92,9 @@ class Fluxo(QLayout):
 
 
 class GwaterDock(QDockWidget):
+    # hora escolhida "parada": tabelas, gráficos e propriedades atualizam com ela, não a cada quadro da animação
+    hora_lenta = pyqtSignal(int)
+
     def __init__(self, plugin):
         super().__init__("Central GWATER")
         self.setObjectName("GwaterCentral")  # nome novo: o QGIS não reaproveita a posição antiga (flutuante)
@@ -142,8 +145,15 @@ class GwaterDock(QDockWidget):
         self.critico = QPushButton("Pior momento")
         self.critico.setToolTip("Vai para o passo com a menor pressão da rede")
         self.critico.clicked.connect(lambda: self.res and self.slider.setValue(self.res.pior_momento()))
+        self.vel = QComboBox()
+        for txt, ms in (("0,5×", 900), ("1×", 450), ("2×", 220), ("4×", 110)):
+            self.vel.addItem(txt, ms)
+        self.vel.setCurrentIndex(1)
+        self.vel.setToolTip("Velocidade da animação (cada quadro ainda espera o mapa terminar de desenhar)")
+        self.vel.currentIndexChanged.connect(lambda _: self.timer.setInterval(self.vel.currentData()))
         tempo.addWidget(self.play)
         tempo.addWidget(self.slider, 1)
+        tempo.addWidget(self.vel)
         tempo.addWidget(self.critico)
         rl.addLayout(tempo)
         cores = QHBoxLayout()
@@ -169,8 +179,13 @@ class GwaterDock(QDockWidget):
         self.setWidget(corpo)
 
         self.timer = QTimer(self)
-        self.timer.setInterval(350)
+        self.timer.setInterval(450)
         self.timer.timeout.connect(self._avancar)
+        self._lenta = QTimer(self)  # hora parada há 250 ms: avisa os painéis pesados
+        self._lenta.setSingleShot(True)
+        self._lenta.setInterval(250)
+        self._lenta.timeout.connect(lambda: self.hora_lenta.emit(self.slider.value()))
+        self._ultimo_resumo = 0.0
         self._modo(False)
 
     # ------------------------------------------------ aba Central
@@ -474,19 +489,41 @@ class GwaterDock(QDockWidget):
         self._passo(self.slider.value())
 
     def _passo(self, k):
-        if self.res:
-            self.res.aplicar(k)
+        if not self.res:
+            return
+        self.res.aplicar(k)
+        import time
+        agora = time.monotonic()
+        if not self.timer.isActive() or agora - self._ultimo_resumo > 1.5:  # o resumo é pesado: devagar na animação
+            self._ultimo_resumo = agora
             self.resumo.setText(self.res.resumo(k))
+        if not self.timer.isActive():
+            self._lenta.start()
+
+    def _canvas(self):
+        try:
+            return self.plugin.iface.mapCanvas()
+        except AttributeError:
+            return None
 
     def _alternar(self):
         if self.timer.isActive():
-            self.timer.stop()
-            self.play.setText("▶")
+            self.parar()
         elif self.res:
+            c = self._canvas()
+            if c is not None:  # só mostra o mapa pronto (sem o desenho pela metade, que faz os nós sumirem)
+                self._intervalo_mapa = c.mapUpdateInterval()
+                c.setMapUpdateInterval(60000)
+            self.res.rotulos_animacao(False)  # rótulos de milhares de nós a cada quadro travam a animação
+            self.timer.setInterval(self.vel.currentData())
             self.timer.start()
             self.play.setText("❚❚")
+        self._sincronizar_botao()
 
     def _avancar(self):
+        c = self._canvas()
+        if c is not None and c.isDrawing():  # o quadro anterior ainda está desenhando: espera, não recomeça
+            return
         self.slider.setValue((self.slider.value() + 1) % (self.slider.maximum() + 1))
 
     def limpar_resultados(self):
@@ -494,6 +531,21 @@ class GwaterDock(QDockWidget):
         self.res = None
         self.resumo.setText("Simule a rede para ver os resultados.")
 
+    def _sincronizar_botao(self):
+        bt = getattr(getattr(self.plugin, "janela", None), "bt_play", None)
+        if bt is not None:
+            bt.setText("❚❚" if self.timer.isActive() else "▶")
+
     def parar(self):
+        estava = self.timer.isActive()
         self.timer.stop()
         self.play.setText("▶")
+        self._sincronizar_botao()
+        if estava:
+            c = self._canvas()
+            if c is not None:
+                c.setMapUpdateInterval(getattr(self, "_intervalo_mapa", 250))
+            if self.res:
+                self.res.rotulos_animacao(True)
+                self.resumo.setText(self.res.resumo(self.slider.value()))
+            self.hora_lenta.emit(self.slider.value())
