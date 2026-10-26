@@ -17,7 +17,7 @@ O objetivo é juntar, sem licença comercial, o que hoje exige três produtos:
 | Modelagem, cenários e calibração | WaterGEMS | Motor Python + EPANET/WNTR ([motor](REV%200.1.0/motor)) e plugin QGIS ([qgis_plugin](REV%200.1.0/qgis_plugin)) |
 | Operação, alarmes e gêmeo digital | Elipse Water | Painel web ([painel](REV%200.1.0/painel)) |
 
-O fluxograma do projeto está em [fluxo/GWATER - Fluxo de Trabalho.drawio](fluxo) (abrir com o draw.io desktop). Ele tem uma página com o fluxo de trabalho (fases 0 a 13 e próximos passos) e outra com a arquitetura. O diagrama do programa (GWATER.exe) está em [fluxo/GWATER.exe - Programa.drawio](fluxo): como ele abre, a janela, as abas da faixa, os dados e o motor, e as melhorias da fase 14.
+O fluxograma do projeto está em [fluxo/GWATER - Fluxo de Trabalho.drawio](fluxo) (abrir com o draw.io desktop). Ele tem uma página com o fluxo de trabalho (fases 0 a 13 e próximos passos) e outra com a arquitetura. O diagrama do programa (GWATER.exe) está em [fluxo/GWATER.exe - Programa.drawio](fluxo): como ele abre, a janela, as abas da faixa, os dados e o motor, e as melhorias das fases 14 e 15.
 
 ---
 
@@ -39,14 +39,14 @@ Requisitos: Windows e o **QGIS 4.2** (ou 3.44 LTR) instalado. O GWATER usa as bi
 
 | Aba | Ferramentas (nome no WaterGEMS) |
 |---|---|
-| **Início** | Cenários (Scenarios), Alternativas, Opções, Calcular (Compute), Validar, Tempos, Resumo, Notificações, Alertas · Desenhar, Medir, Selecionar (clique, janela, polígono, por elemento, por atributo), Excluir, Localizar · Central de demanda (Demand Center), Padrões, Curvas de bomba (Pump Definitions), Controles · Gráficos, Tabelas (FlexTables), Conjuntos de seleção, Propriedades · Topologia ativa, ModelBuilder |
-| **Desenho** | Tubulação, Nó, Reservatório (Tank), Captação (Reservoir), Hidrante, Ponto de consumo, Bomba, Estação elevatória, Rotação variável (VSP), PRV, PSV, PBV, FCV, TCV, GPV, Registro (Isolation Valve), Ponto cotado (Spot Elevation), Borda, Texto, Linha, Comprimento, Área, Mover, Dividir, Propriedades, Protótipos |
-| **Análise** | Incêndio (Fire Flow), Descarga (Flushing), Renovação de redes (Pipe Renewal Planner), Otimização: dimensionar diâmetros e calibrar (Darwin), Custo de energia (Energy Cost), Zonas de pressão, Criticidade, Idade da água e cloro · Gráficos, Tabelas, Consultas, Navegador, Contornos · Simulador SCADA |
-| **Componentes** | Central de demanda, Padrões, Curvas, Controles, Zonas, Bibliotecas de engenharia (materiais, C, vida útil, diâmetros e custos), Protótipos, Qualidade da água, Perdas localizadas (biblioteca de K), Extensões de dados, Séries de campo |
-| **Revisão** | Comparação de cenários, Histórico de alterações (Change Tracking), Arquivo compactado (Bulk Archive) |
-| **Exibir** | Zoom total, aproximar, afastar, mover, vista anterior e seguinte, zoom na seleção, Vistas com nome, Vista aérea, Simbologia, Mapa de fundo (OpenStreetMap, satélite, arquivo), Rótulos, Perfis, Gráfico rápido, painéis |
-| **Ferramentas** | Topologia ativa, ModelBuilder, TRex, LoadBuilder, Polígonos de Thiessen, Distribuir demanda, Centro de códigos (GIS-ID), Ferramentas externas (QGIS, EPANET, pasta), Esqueletizador (Skelebrator), Faixas e cores |
-| **Relatório** | Relatório personalizado (PDF, HTML, impressora), tabelas de tubulações, nós, bombas, válvulas e reservatórios, Resumo do cenário, Inventário do modelo, Inventário de tubulações |
+| **Início** | Cenários (Scenarios), Alternativas, Opções (Calculation Options), Calcular (Compute), Validar, Tempos, Resumo, Notificações, Alertas · Desenhar, Medir, Selecionar (clique, janela, polígono, por elemento, por atributo), Excluir, Localizar · Central de demanda (Demand Control Center), Demandas unitárias (Unit Demands), Padrões (Patterns), Curvas de bomba (Pump Definitions), Controles simples e lógicos (Controls / Logical Controls) · Gráficos, Tabelas (FlexTables), Conjuntos de seleção, Propriedades · Topologia ativa, ModelBuilder |
+| **Desenho** | Tubulação, Nó, Reservatório (Tank), Captação (Reservoir), Hidrante, Ponto de consumo, Bomba, Estação elevatória, Rotação variável (VSP), PRV, PSV, PBV, FCV, TCV, GPV, Registro (Isolation Valve), Ponto cotado (Spot Elevation), Borda, Texto, Linha, Comprimento, Área, Mover, Converter em… (Morph), Dividir, Inverter sentido (Reverse), Unir nós próximos (Merge Nodes), Propriedades, Protótipos |
+| **Análise** | Incêndio (Fire Flow), Descarga (Flushing), Renovação de redes (Pipe Renewal Planner), **Calibração (Darwin Calibrator)**, Otimização: dimensionar diâmetros (Darwin Designer), Custo de energia (Energy Cost), Zonas de pressão, Criticidade por tubulação ou por segmento (Criticality / Segmentation), Idade da água, cloro e origem da água (Trace) · Gráficos, Tabelas, Consultas, Navegador, Contornos · Simulador SCADA |
+| **Componentes** | Central de demanda, Demandas unitárias, Padrões, Curvas de bomba, Controles, Zonas, Bibliotecas de engenharia (materiais, C, vida útil, diâmetros e custos), Protótipos, Qualidade da água, Curvas de válvula GPV (Valve Characteristics), Tarifas de energia (Energy Pricing), Perdas localizadas (biblioteca de K), Extensões de dados, Séries de campo, Calibração |
+| **Revisão** | Comparação de cenários (dia todo ou um instante, com as diferenças de dados), Histórico de alterações (Change Tracking, com filtros e desfazer), Arquivo compactado (Bulk Archive) |
+| **Exibir** | Zoom total, aproximar, afastar, mover, vista anterior e seguinte, zoom na seleção, Vistas com nome, Vista aérea, Simbologia, Mapa de fundo (claro, escuro, terreno, OpenStreetMap, satélite, arquivo), Rótulos, Rótulos de resultados (Annotation), Perfis, Gráfico rápido, painéis |
+| **Ferramentas** | Topologia ativa, ModelBuilder (com sincronização), TRex, LoadBuilder, Polígonos de Thiessen, Distribuir demanda, Centro de códigos (GIS-ID), Ferramentas externas (QGIS, EPANET, pasta), Esqueletizador (Skelebrator), Faixas e cores |
+| **Relatório** | Relatório personalizado (PDF, HTML, impressora), Detalhes do elemento (Element Details), tabelas de tubulações, nós, bombas, válvulas e reservatórios, Resumo do cenário, Inventário do modelo, Inventário de tubulações |
 | **Centro de Operações** | Sinótico, Dados recebidos, Mapa e propostas, Calibração, Ao vivo (dentro do programa) |
 
 **Tipos de elemento:** tubulação (aberta, fechada, com retenção), nó/junção, ponto de consumo, hidrante, ponta de rede, reservatório, captação, bomba e cada tipo de válvula (PRV, PSV, PBV, FCV, TCV, GPV e **registro de manobra**), cada um com símbolo próprio no mapa e na lista. O registro entra no EPANET como TCV totalmente aberta (ou fechada, pelo status), com o diâmetro da tubulação ligada se faltar o dele.
@@ -87,14 +87,27 @@ O que cada análise faz:
 
 | Análise | Como funciona |
 |---|---|
-| **Incêndio** | Para cada hidrante (ou nó escolhido), a maior vazão mantendo a pressão residual no próprio nó e, se pedido, a pressão mínima nos outros nós. Mostra se atende a vazão exigida. |
-| **Descarga** | Abre cada ponto com a vazão escolhida e lista as tubulações que passam da velocidade de limpeza. |
-| **Criticidade** | Fecha cada tubulação, uma de cada vez, e mede a água que deixa de chegar aos consumidores e os nós que ficam abaixo da pressão mínima. |
+| **Incêndio** | Para cada hidrante (ou nó escolhido), a maior vazão (somada ou no lugar da demanda do nó, até um limite) que mantém a pressão residual no próprio nó e, se pedido, a pressão mínima na zona de pressão do hidrante, a pressão mínima em toda a rede e a velocidade máxima nas tubulações. Mostra se atende e o que limitou a vazão. |
+| **Descarga** | Abre cada ponto com uma vazão fixa ou com a maior vazão que mantém a pressão residual no hidrante, e lista as tubulações que passam da velocidade de limpeza, a velocidade máxima e a menor pressão na rede. |
+| **Criticidade** | Tira de operação cada tubulação ou cada segmento entre registros de manobra (o trecho que fica isolado ao fechar os registros em volta) e mede a água que deixa de chegar e os nós abaixo da pressão mínima. Por segmento, mostra os registros a fechar. |
 | **Zonas de pressão** | Separa a rede pelas bombas, válvulas reguladoras e registros fechados; mostra demanda, cotas, pressões e por onde a água entra e sai. |
-| **Custo de energia** | kWh e R$ de cada bomba com tarifa de ponta e fora de ponta, kWh/m³ e a parte do custo que cai na ponta. |
+| **Custo de energia** | kWh e R$ de cada bomba com a tarifa escolhida (as Tarifas de energia por hora, ou ponta e fora de ponta), o rendimento da curva de cada bomba, kWh/m³ e a parte do custo que cai na ponta. |
 | **Renovação de redes** | Nota de 0 a 100 por tubulação (idade frente à vida útil, material, perda de carga e velocidade, criticidade) e custo acumulado para planejar por orçamento. |
-| **Dimensionar** | Menores diâmetros das tubulações selecionadas que atendem pressão mínima e velocidade máxima no pico, com o custo. Vira cenário ou é aplicado no cadastro. |
-| **Qualidade** | Idade da água ou cloro residual (decaimento no volume e na parede), no último dia de uma simulação longa. |
+| **Dimensionar** | Menores diâmetros das tubulações selecionadas que atendem pressão mínima e velocidade máxima no pico, com o custo, pelo método genético (como o Darwin Designer) ou guloso (rápido). Vira cenário ou é aplicado no cadastro. |
+| **Calibração** | Darwin Calibrator: momentos de medição (hora, fator de demanda, leituras de pressão, carga, vazão e nível, condições de contorno), grupos de rugosidade (por material, zona, diâmetro, idade…, valor ou multiplicador), de demanda e de status desconhecido, aptidão (quadrados, absolutos ou maior diferença, com mca e L/s por ponto), método genético ou gradiente. As melhores soluções viram cenário ou vão ao cadastro. |
+| **Qualidade** | Idade da água, cloro residual (decaimento no volume e na parede) ou origem da água (% de uma captação ou reservatório em cada nó), no último dia de uma simulação longa. |
+
+**Revisão das abas contra o WaterGEMS** (fase 15):
+- **Opções de cálculo** em abas: período estendido ou regime permanente, hora de início, passos (hidráulico, resultados, padrões), multiplicador global de demanda, precisão, iterações, o que fazer se não convergir, viscosidade e densidade relativas, expoente do emissor, PDD (pressões mínima e requerida, expoente) e **Limites** (pressão mínima e máxima, velocidade, perda de carga) usados nos Alertas, Consultas, gráficos, perfis, comparação e relatórios.
+- **Central de demanda:** cada nó com várias demandas, cada uma com padrão e categoria (tabela *Demandas por nó*; a demanda_base do nó guarda o total e as partes acompanham quando ele muda). Entra no EPANET pela seção [DEMANDS]. **Demandas unitárias** (L/dia por habitante, m², leito…) e o **LoadBuilder** podem gravar direto como uma categoria.
+- **Padrões:** em degraus ou contínuos, com multiplicador inicial e pontos por hora (tabela *Padrões (definição)*); o motor gera os passos do EPANET no passo das Opções.
+- **Curvas de bomba:** 1 ponto, 3 pontos, vários pontos ou **potência constante**, e a **curva de rendimento** (constante, ponto de melhor rendimento ou vários pontos), usada no Custo de energia.
+- **Controles:** simples com ABERTA, FECHADA ou AJUSTE e condição de nível, pressão, hora do relógio ou tempo desde o início; **controles lógicos** com SE / E / OU … ENTÃO … SENÃO e prioridade (tabela *Controles lógicos*, seção [RULES]).
+- **Componentes:** curvas das válvulas **GPV** (perda × vazão) e **tarifas de energia** por hora.
+- **ModelBuilder:** elemento do arquivo com o mesmo código de um que já existe é atualizado (dados, e opcionalmente a posição), não duplicado. **LoadBuilder:** consumo ou população × per capita; nó mais próximo, tubulação mais próxima (proporcional ou metade), polígono igual, por comprimento ou por área de influência (Thiessen). **Esqueletizador:** séries com DN parecido e paralelos viram tubulações equivalentes de Hazen-Williams, ramais por DN e comprimento, nós protegidos (seleção e pontos de medição).
+- **Desenho:** Inverter sentido, Converter em… (troca o tipo no mesmo lugar) e Unir nós próximos.
+- **Exibir e Relatório:** as leituras de campo da calibração aparecem nos gráficos, **Rótulos de resultados** escreve pressão, vazão ou velocidade no mapa na hora escolhida, e **Detalhes do elemento** gera o relatório de cada elemento (dados, resultados hora a hora, gráfico e leituras de campo).
+- **Revisão:** comparação de cenários no dia todo ou num instante, com vazões e a aba de diferenças de dados; histórico de alterações com filtros e **desfazer** as alterações escolhidas.
 
 **Desempenho** (rede de 20 mil tubulações e 10 mil nós, medido em `teste_desempenho.py`):
 
@@ -283,6 +296,7 @@ Outras rotas da API usadas pelas telas: `GET /api/sinotico`, `GET /api/dados` e 
 │  ├─ motor/                  motor (cópia) + analises.py
 │  ├─ painel/, cadastro/      Centro de Operações e cadastro de exemplo
 │  ├─ app/programa/abertura.html  logos animados da abertura
+│  ├─ motor/darwin.py         calibração (Darwin Calibrator) direto na biblioteca do EPANET
 │  ├─ ROTEIRO_FAIXA.md        roteiro de conferência da faixa × WaterGEMS
 │  └─ testes/                 teste_programa, teste_analises, teste_modelbuilder, teste_desempenho, teste_tabela_valvulas
 └─ REV 0.1.0/
@@ -353,7 +367,7 @@ cd "REV 0.2.0\testes"
 set QT_QPA_PLATFORM=offscreen
 "C:\Program Files\QGIS 4.2.2\bin\python-qgis.bat" teste_programa.py   # clica nos 118 botões, desenha, calcula, analisa
 "C:\Program Files\QGIS 4.2.2\bin\python-qgis.bat" teste_desempenho.py # rede de 20 mil tubos: importar, salvar, TRex, tabela, calcular (com limites de tempo)
-"C:\Program Files\QGIS 4.2.2\bin\python-qgis.bat" teste_tabela_valvulas.py  # TCV sem ajuste, PRV INATIVA, notificações por tipo, colar e edição global
+"C:\Program Files\QGIS 4.2.2\bin\python-qgis.bat" teste_tabela_valvulas.py  # válvulas, notificações, tabelas, demandas, curvas, controles lógicos, padrões, análises, componentes, ferramentas, desenho, calibração Darwin, gráficos, relatórios e revisão
 ```
 
 O roteiro para conferir, aba por aba, os 113 botões da faixa contra o WaterGEMS está em [`REV 0.2.0\ROTEIRO_FAIXA.md`](REV%200.2.0/ROTEIRO_FAIXA.md).
@@ -379,10 +393,11 @@ O roteiro para conferir, aba por aba, os 113 botões da faixa contra o WaterGEMS
 | 12 | Dados recebidos: sistema padrão, 24 h digitadas por dia, comparação entre dias e balanço hídrico |
 | 13 | **GWATER.exe** (REV 0.2.0): programa à parte com faixa de menus como o WaterGEMS, propriedades, tabelas, consultas, cenários, ferramentas de análise (incêndio, descarga, criticidade, zonas, energia, renovação, dimensionamento, qualidade), relatórios e o Centro de Operações dentro do programa |
 | 14 | GWATER.exe: abertura animada, temas claro e escuros nas Configurações, mapas de fundo claro/escuro/terreno, editor de simbologia (tamanho, rótulos, color coding), ModelBuilder um tipo por arquivo, otimização (salvar 4×, TRex 4×, tabelas 3× mais rápidos), notificações por tipo, TCV aberta/fechada, PRV INATIVA, edição global e Ctrl+V nas tabelas |
+| 15 | GWATER.exe revisado aba por aba contra o WaterGEMS: Opções de cálculo completas, várias demandas por nó, demandas unitárias, padrões contínuos, curvas de bomba com potência constante e rendimento, controles lógicos, **Calibração Darwin**, incêndio, descarga, criticidade por segmentos, rastreio de fonte, dimensionamento genético, curvas de GPV, tarifas de energia, ModelBuilder com sincronização, LoadBuilder por população e Thiessen, esqueletizador com equivalência, Morph, Reverse, Merge Nodes, rótulos de resultados, detalhes do elemento, comparação por instante e desfazer pelo histórico |
 
 ## Limitações conhecidas e próximos passos
 - **GWATER.exe:** precisa do QGIS instalado no computador (usa as bibliotecas dele). Um instalador único, com QGIS e Python embutidos, é um próximo passo.
-- **Dimensionamento:** é uma primeira rodada gulosa (aumenta, a cada passo, o diâmetro que dá mais ganho por real), não o algoritmo genético do Darwin; serve para propor e comparar.
+- **Dimensionamento e calibração:** o método genético é a evolução diferencial do SciPy (busca global da mesma família do algoritmo genético do Darwin), não o código do Darwin; os resultados são comparáveis, não idênticos.
 - **Transientes, fire flow por hidrante de coluna com perdas do hidrante, PDD por curva de emissores e a análise de rompimento de redes por segmentos de registros** do WaterGEMS não estão no GWATER.
 - **Dados reais:** ainda não foram testados com cadastro, shapefile ou medições reais. Até agora só com o exemplo e com dados sintéticos.
 - **SCADA:** nenhum conectado. O gêmeo digital foi testado só com o simulador.
@@ -393,5 +408,6 @@ O roteiro para conferir, aba por aba, os 113 botões da faixa contra o WaterGEMS
 - **Alarmes:** aparecem só na tela, sem e-mail, WhatsApp ou SMS.
 - **Localização de vazamento:** é feita por setor, a partir dos macromedidores. Achar o trecho exato exige mais sensores de pressão.
 - **Banco de telemetria:** SQLite. Para muitos sensores e anos de histórico, o caminho é TimescaleDB ou InfluxDB.
-- **Energia:** estimada com rendimento de bomba de 70%, porque o cadastro ainda não tem curva de rendimento.
+- **Energia:** bombas sem curva de rendimento usam o rendimento geral da análise (70% por padrão).
+- **Padrões:** o EPANET tem uma hora de início só para todos os padrões (a das Opções); o WaterGEMS permite uma por padrão.
 - **Internet:** o painel carrega a biblioteca MapLibre, as fontes e o mapa de fundo da internet.
