@@ -57,6 +57,129 @@ def _vazio(v):
     return v is None or (isinstance(v, float) and math.isnan(v)) or (isinstance(v, str) and not v.strip())
 
 
+# ---------------------------------------------------------------- controles lógicos (Logical Controls)
+# tabela regra: uma linha por condição ou ação
+#   id_regra, prioridade, ordem, secao (SE | ENTAO | SENAO), conector (SE | E | OU; nas ações, E),
+#   elemento (código, ou SISTEMA), atributo, operador, valor
+ATRIB_CONDICAO = {"PRESSAO": "PRESSURE", "CARGA": "HEAD", "NIVEL": "LEVEL", "DEMANDA": "DEMAND", "VAZAO": "FLOW",
+                  "STATUS": "STATUS", "AJUSTE": "SETTING", "HORA_RELOGIO": "CLOCKTIME", "TEMPO": "TIME",
+                  "DEMANDA_SISTEMA": "DEMAND"}
+OPERADORES = {"=": "=", "<>": "<>", "<": "<", ">": ">", "<=": "<=", ">=": ">="}
+VALOR_STATUS = {"ABERTA": "OPEN", "FECHADA": "CLOSED", "ATIVA": "ACTIVE", "ABERTO": "OPEN", "FECHADO": "CLOSED"}
+
+
+def regras_epanet(df, nos, tubos, rel):
+    """Linhas da seção [RULES] do EPANET a partir da tabela regra (vazia se não houver)."""
+    if df is None or not len(df):
+        return []
+    out = []
+    df = df.sort_values(["id_regra", "ordem"])
+    links = {n for n, (cam, _, _) in nos.items() if cam in ("bomba", "valvula")} | set(tubos)
+    nos_hid = {n for n, (cam, _, _) in nos.items() if cam not in ("bomba", "valvula")}
+
+    def tempo(v):
+        h = float(str(v).replace(",", "."))
+        return f"{int(h)}:{int(round((h - int(h)) * 60)):02d}"
+
+    for rid, g in df.groupby("id_regra", sort=False):
+        linhas, erro = [f"RULE {str(rid).replace(' ', '_')}"], False
+        conds = g[g["secao"] == "SE"]
+        if not len(conds) or not len(g[g["secao"] == "ENTAO"]):
+            rel.erro(f"controle lógico {rid}: precisa de pelo menos uma condição (SE) e uma ação (ENTÃO)")
+            continue
+        for k, (_, r) in enumerate(conds.iterrows()):
+            con = "IF" if k == 0 else ("OR" if str(r["conector"]).upper() == "OU" else "AND")
+            el, at = str(r["elemento"] or "").strip(), str(r["atributo"] or "").upper()
+            op = OPERADORES.get(str(r["operador"] or "=").strip())
+            if not op or at not in ATRIB_CONDICAO:
+                rel.erro(f"controle lógico {rid}: condição com atributo '{at}' ou operador '{r['operador']}' inválido")
+                erro = True
+                continue
+            if el.upper() == "SISTEMA" or at in ("HORA_RELOGIO", "TEMPO", "DEMANDA_SISTEMA"):
+                v = tempo(r["valor"]) if at in ("HORA_RELOGIO", "TEMPO") else f"{float(r['valor']):g}"
+                linhas.append(f"{con} SYSTEM {ATRIB_CONDICAO[at]} {op} {v}")
+            elif el in links and at in ("VAZAO", "STATUS", "AJUSTE"):
+                v = VALOR_STATUS.get(str(r["valor"]).upper(), str(r["valor"])) if at == "STATUS" else \
+                    f"{float(str(r['valor']).replace(',', '.')):g}"
+                linhas.append(f"{con} LINK {el} {ATRIB_CONDICAO[at]} {op if at != 'STATUS' else ('IS' if op == '=' else 'NOT')} {v}")
+            elif el in nos_hid and at in ("PRESSAO", "CARGA", "NIVEL", "DEMANDA"):
+                linhas.append(f"{con} NODE {el} {ATRIB_CONDICAO[at]} {op} {float(str(r['valor']).replace(',', '.')):g}")
+            else:
+                rel.erro(f"controle lógico {rid}: '{el}' não existe ou não tem {at.lower()}")
+                erro = True
+        for secao, palavra in (("ENTAO", "THEN"), ("SENAO", "ELSE")):
+            for k, (_, r) in enumerate(g[g["secao"] == secao].iterrows()):
+                el, at = str(r["elemento"] or "").strip(), str(r["atributo"] or "").upper()
+                if el not in links:
+                    rel.erro(f"controle lógico {rid}: a ação tem que ser numa bomba, válvula ou tubulação ('{el}')")
+                    erro = True
+                    continue
+                if at == "STATUS":
+                    v = VALOR_STATUS.get(str(r["valor"]).upper())
+                    if not v:
+                        rel.erro(f"controle lógico {rid}: status '{r['valor']}' inválido (ABERTA ou FECHADA)")
+                        erro = True
+                        continue
+                    acao = f"LINK {el} STATUS IS {v}"
+                else:
+                    try:
+                        acao = f"LINK {el} SETTING IS {float(str(r['valor']).replace(',', '.')):g}"
+                    except ValueError:
+                        rel.erro(f"controle lógico {rid}: ajuste '{r['valor']}' não é número")
+                        erro = True
+                        continue
+                linhas.append(f"{palavra if k == 0 else 'AND'} {acao}")
+        pri = g["prioridade"].dropna()
+        if len(pri) and float(pri.iloc[0]) > 0:
+            linhas.append(f"PRIORITY {float(pri.iloc[0]):g}")
+        if not erro:
+            out += linhas + [""]
+    return out
+
+
+def passos_padrao(formato, pontos, passo_min, ciclo_h=24.0):
+    """Multiplicadores do EPANET (um por passo de `passo_min`) de um padrão do WaterGEMS.
+    pontos: [(hora desde o início, multiplicador)], com a hora 0 = multiplicador inicial. O ciclo tem 24 h (ou
+    vai até o último ponto, se passar disso). DEGRAUS: vale o último ponto já alcançado. CONTINUO: reta entre os
+    pontos, fechando o ciclo no multiplicador inicial; cada passo leva o valor do meio do passo."""
+    pts = sorted(pontos)
+    if not pts:
+        return [1.0]
+    if pts[0][0] > 0:
+        pts.insert(0, (0.0, pts[0][1]))
+    ciclo = max(ciclo_h, pts[-1][0])
+    n = max(1, int(round(ciclo * 60 / passo_min)))
+    out = []
+    for k in range(n):
+        if str(formato).upper().startswith("CONT"):
+            t = (k + 0.5) * passo_min / 60
+            fim = pts + ([(ciclo, pts[0][1])] if pts[-1][0] < ciclo else [])
+            a = max(i for i, (h, _) in enumerate(fim) if h <= t)
+            if a + 1 < len(fim):
+                (h0, m0), (h1, m1) = fim[a], fim[a + 1]
+                v = m0 + (m1 - m0) * (t - h0) / (h1 - h0) if h1 > h0 else m1
+            else:
+                v = fim[a][1]
+        else:
+            t = k * passo_min / 60 + 1e-9
+            v = [m for h, m in pts if h <= t][-1]
+        out.append(round(v, 4))
+    return out
+
+
+def curva_rendimento(pts):
+    """Pontos (vazão L/s, rendimento %) para o EPANET a partir da definição do rendimento, como no WaterGEMS:
+    1 ponto em vazão 0 = constante; 1 ponto com vazão = melhor rendimento (BEP), parábola que zera em 0 e em 2·Q;
+    vários pontos = a própria curva."""
+    pts = sorted(pts)
+    if len(pts) == 1 and pts[0][0] <= 0:
+        return [(0.0, pts[0][1]), (100000.0, pts[0][1])]
+    if len(pts) == 1:
+        qb, eb = pts[0]
+        return [(round(qb * k / 5, 4), round(max(1.0, eb * (2 * k / 5 - (k / 5) ** 2)), 2)) for k in range(11)]
+    return pts
+
+
 def ler_cadastro(gpkg):
     camadas = {}
     for nome, _ in pyogrio.list_layers(gpkg):
@@ -116,6 +239,13 @@ def aplicar_alteracoes(c, alteracoes, rel):
                 c["controle"] = ctl[ctl["elemento"] != eid]
                 rel.aviso(f"proposta: controles automáticos de {eid} desconsiderados (forçado fechado)",
                           ref=(camada, eid))
+            rg = c.get("regra")
+            if rg is not None and len(rg):
+                alvo = rg[(rg["secao"] != "SE") & (rg["elemento"] == eid)]["id_regra"].unique()
+                if len(alvo):
+                    c["regra"] = rg[~rg["id_regra"].isin(alvo)]
+                    rel.aviso(f"proposta: controles lógicos que mexem em {eid} desconsiderados (forçado fechado)",
+                              ref=(camada, eid))
 
 
 def converter(gpkg=GPKG_PADRAO, com_projetados=False, alteracoes=None, camadas=None):
@@ -251,14 +381,46 @@ def converter(gpkg=GPKG_PADRAO, com_projetados=False, alteracoes=None, camadas=N
             rel.aviso(f"{cam} {nid}: fica isolado pelos trechos/válvulas fechados", ref=(cam, nid))
 
     # ---------------------------------------------------- tabelas do modelo
-    curvas = defaultdict(list)
+    # tabela curva: tipo BOMBA = altura × vazão; POTENCIA = bomba de potência constante (y = kW);
+    # RENDIMENTO = rendimento (%) × vazão da mesma definição de bomba (1 ponto em vazão 0 = constante;
+    # 1 ponto com vazão = ponto de melhor rendimento; vários = curva)
+    curvas, potencia, rend, gpv = defaultdict(list), {}, defaultdict(list), defaultdict(list)
     for _, r in c["curva"].iterrows():
-        curvas[r["id_curva"]].append((r["x"], r["y"]))
+        tipo = str(r.get("tipo") or "BOMBA").upper()
+        if tipo == "POTENCIA":
+            potencia[r["id_curva"]] = float(r["y"])
+        elif tipo == "RENDIMENTO":
+            rend[r["id_curva"]].append((float(r["x"]), float(r["y"])))
+        elif tipo == "GPV":  # curva perda de carga × vazão de uma válvula GPV (id_curva = código da válvula)
+            gpv[r["id_curva"]].append((float(r["x"]), float(r["y"])))
+        elif tipo in ("BOMBA", "PUMP", "NONE", "NULL", ""):
+            curvas[r["id_curva"]].append((r["x"], r["y"]))
     curvas = {k: sorted(v) for k, v in curvas.items()}  # o EPANET exige vazão crescente
+    energia = []
     padroes = defaultdict(list)
     for _, r in c["padrao_consumo"].sort_values("passo").iterrows():
         padroes[r["id_padrao"]].append(r["multiplicador"])
     opc = dict(zip(c["opcoes_simulacao"]["chave"], c["opcoes_simulacao"]["valor"]))
+    # padrões definidos como no WaterGEMS (em degraus ou contínuo, com multiplicador inicial): os passos do
+    # EPANET saem da definição, no passo dos padrões das opções
+    if "padrao_def" in c and len(c["padrao_def"]):
+        defs = defaultdict(list)
+        for _, r in c["padrao_def"].iterrows():
+            if not _vazio(r["hora"]) and not _vazio(r["multiplicador"]):
+                defs[r["id_padrao"]].append((r["formato"] or "DEGRAUS", float(r["hora"]), float(r["multiplicador"])))
+        passo_p = float(str(opc.get("passo_padrao_min", 15)).replace(",", "."))
+        for pid, linhas in defs.items():
+            padroes[pid] = passos_padrao(linhas[0][0], [(h, m) for _, h, m in linhas], passo_p)
+
+    # várias demandas por nó (Demand Collection do WaterGEMS): tabela "demanda" (no_id, demanda, padrao, categoria).
+    # A demanda_base do nó é o total: as linhas dizem como ele se divide e o padrão de cada parte. Se o total mudou
+    # por fora (cenário, calibração, LoadBuilder), as partes acompanham na mesma proporção.
+    colecao = defaultdict(list)
+    if "demanda" in c:
+        for _, r in c["demanda"].iterrows():
+            if not _vazio(r["no_id"]) and not _vazio(r["demanda"]):
+                colecao[str(r["no_id"])].append((float(r["demanda"]), r["padrao"] or "", r.get("categoria") or ""))
+    demandas = []
 
     juncs, reserv, tanques, bombas, valvulas, status, coords = [], [], [], [], [], [], []
     usados = set()
@@ -272,7 +434,18 @@ def converter(gpkg=GPKG_PADRAO, com_projetados=False, alteracoes=None, camadas=N
             if pad and pad not in padroes:
                 rel.erro(f"nó {nid}: padrão de consumo '{pad}' não existe", ref=("no_juncao", nid))
             usados.add(pad)
-            juncs.append(f"{nid:<14} {r['cota'] or 0:<9g} {r['demanda_base'] or 0:<10g} {pad}")
+            partes = colecao.get(nid)
+            soma = sum(q for q, _, _ in partes) if partes else 0
+            if partes and soma > 0:
+                k = (r["demanda_base"] if not _vazio(r["demanda_base"]) else soma) / soma
+                for q, p, cat in partes:
+                    if p and p not in padroes:
+                        rel.erro(f"nó {nid}: padrão '{p}' da demanda {cat or ''} não existe", ref=("no_juncao", nid))
+                    usados.add(p)
+                    demandas.append(f"{nid:<14} {q * k:<10g} {p:<12} ;{cat}")
+                juncs.append(f"{nid:<14} {r['cota'] or 0:<9g} 0")
+            else:
+                juncs.append(f"{nid:<14} {r['cota'] or 0:<9g} {r['demanda_base'] or 0:<10g} {pad}")
             coords.append((nid, x, y))
         elif camada == "captacao":
             cota_t = r.get("cota")
@@ -302,7 +475,11 @@ def converter(gpkg=GPKG_PADRAO, com_projetados=False, alteracoes=None, camadas=N
                 juncs.append(f"{nid + '__' + lado:<14} {r['cota'] or 0:<9g} 0")
                 coords.append((f"{nid}__{lado}", x, y))
             if camada == "bomba":
-                if r["curva"] not in curvas:
+                if r["curva"] in potencia:
+                    if potencia[r["curva"]] <= 0:
+                        rel.erro(f"bomba {nid}: a potência da definição {r['curva']} tem que ser maior que zero",
+                                 ref=("bomba", nid))
+                elif r["curva"] not in curvas:
                     rel.erro(f"bomba {nid}: curva '{r['curva']}' não existe na tabela de curvas"
                              if not _vazio(r["curva"]) else f"bomba {nid}: escolha a curva da bomba "
                              "(Curvas de bomba, no menu GWATER)", ref=("bomba", nid))
@@ -316,7 +493,12 @@ def converter(gpkg=GPKG_PADRAO, com_projetados=False, alteracoes=None, camadas=N
                         rel.erro(f"curva {r['curva']} (bomba {nid}): as vazões têm que crescer ponto a ponto",
                                  ref=("bomba", nid))
                 vel = r["rotacao_relativa"] if not _vazio(r["rotacao_relativa"]) else 1
-                bombas.append(f"{nid:<10} {nid}__M  {nid}__J  HEAD {r['curva']}  SPEED {vel:g}")
+                if r["curva"] in potencia:
+                    bombas.append(f"{nid:<10} {nid}__M  {nid}__J  POWER {potencia[r['curva']]:g}  SPEED {vel:g}")
+                else:
+                    bombas.append(f"{nid:<10} {nid}__M  {nid}__J  HEAD {r['curva']}  SPEED {vel:g}")
+                if rend.get(r["curva"]):
+                    energia.append(f"Pump {nid:<10} Efficiency {r['curva']}__EF")
                 if r["status_inicial"] == "FECHADA":
                     status.append(f"{nid:<10} Closed")
             else:
@@ -327,6 +509,20 @@ def converter(gpkg=GPKG_PADRAO, com_projetados=False, alteracoes=None, camadas=N
                     r["ajuste"] = 0 if _vazio(r["ajuste"]) else r["ajuste"]
                     if _vazio(r["diametro"]) and dns:
                         r["diametro"] = max(dns)
+                if r["tipo"] == "GPV":  # GPV: o "ajuste" é a curva perda × vazão (Valve Characteristics)
+                    if not gpv.get(nid):
+                        rel.erro(f"válvula {nid} (GPV): falta a curva perda de carga × vazão (Componentes > "
+                                 "Curvas de válvula)", ref=("valvula", nid))
+                        continue
+                    if _vazio(r["diametro"]):
+                        rel.erro(f"válvula {nid}: tipo e diâmetro são obrigatórios", ref=("valvula", nid))
+                        continue
+                    curvas[f"{nid}__GPV"] = sorted(gpv[nid])
+                    valvulas.append(f"{nid:<10} {nid}__M  {nid}__J  {r['diametro']:<6g} GPV  {nid}__GPV  "
+                                    f"{r['perda_localizada'] or 0:g}")
+                    if r["status"] in STATUS_LINK:
+                        status.append(f"{nid:<10} {STATUS_LINK[r['status']]}")
+                    continue
                 if r["tipo"] == "TCV":  # TCV é aberta (sem perda) ou fechada: não tem ajuste
                     r = r.copy()
                     r["ajuste"] = 0
@@ -352,15 +548,27 @@ def converter(gpkg=GPKG_PADRAO, com_projetados=False, alteracoes=None, camadas=N
 
     controles = []
     for _, r in c["controle"].iterrows():
-        acao = STATUS_LINK.get(r["acao"], r["acao"]).upper()
+        acao = str(r["acao"] or "").strip().upper()
+        if acao.startswith("AJUSTE"):  # novo ajuste da válvula ou rotação relativa da bomba
+            try:
+                acao = f"{float(acao.replace('AJUSTE', '').replace(',', '.').strip()):g}"
+            except ValueError:
+                rel.erro(f"controle de {r['elemento']}: ação '{r['acao']}' sem valor (use AJUSTE e o número)")
+                continue
+        else:
+            acao = STATUS_LINK.get(acao, acao).upper()
         if r["condicao"] == "HORA":
             controles.append(f"LINK {r['elemento']} {acao} AT CLOCKTIME {r['valor']:g}")
+        elif r["condicao"] == "TEMPO":
+            controles.append(f"LINK {r['elemento']} {acao} AT TIME {r['valor']:g}")
         elif r["condicao"] in CONDICAO:
             controles.append(f"LINK {r['elemento']} {acao} IF NODE {r['no_ref']} {CONDICAO[r['condicao']]} {r['valor']:g}")
         else:
             rel.erro(f"controle de {r['elemento']}: condição '{r['condicao']}' desconhecida")
         if r["elemento"] not in nos:
             rel.erro(f"controle: elemento '{r['elemento']}' não existe")
+
+    regras = regras_epanet(c.get("regra"), nos, {p["id"] for p in pipes}, rel)
 
     if not rel.ok:
         return "", rel
@@ -373,24 +581,51 @@ def converter(gpkg=GPKG_PADRAO, com_projetados=False, alteracoes=None, camadas=N
     inp += sec("TANKS", tanques)
     inp += sec("PIPES", [f"{p['id']:<14} {p['a']:<12} {p['b']:<12} {p['L']:<9.2f} {p['D']:<6g} "
                          f"{p['C']:<6g} {p['km']:<4g} {p['st']}" for p in pipes])
+    inp += sec("DEMANDS", demandas)
     inp += sec("PUMPS", bombas)
     inp += sec("VALVES", valvulas)
     inp += sec("STATUS", status)
+    for cid, pts in rend.items():  # curva de rendimento de cada definição usada
+        if not any(e.endswith(f" {cid}__EF") for e in energia):
+            continue
+        curvas[f"{cid}__EF"] = curva_rendimento(pts)
     inp += sec("CURVES", [f"{cid:<12} {x:<8g} {y:g}" for cid, pts in curvas.items() for x, y in pts])
+    inp += sec("ENERGY", energia)
     inp += sec("PATTERNS", [f"{pid:<12} " + " ".join(f"{m:g}" for m in ms[i:i + 8])
                             for pid, ms in padroes.items() for i in range(0, len(ms), 8)])
     inp += sec("CONTROLS", controles)
-    inp += sec("TIMES", [f"Duration {opc.get('duracao_h', '24')}:00",
-                         f"Hydraulic Timestep 0:{passo:02d}",
-                         f"Pattern Timestep 0:{int(opc.get('passo_padrao_min', 15)):02d}",
-                         f"Report Timestep 0:{passo:02d}", "Report Start 0:00"])
+    inp += sec("RULES", regras)
+    def hm(minutos):  # minutos → h:mm do EPANET
+        m = int(round(float(minutos)))
+        return f"{m // 60}:{m % 60:02d}"
+
+    def num(chave, padrao):
+        try:
+            return float(str(opc.get(chave, padrao)).replace(",", "."))
+        except ValueError:
+            return float(padrao)
+    permanente = str(opc.get("tipo_analise", "EPS")).upper() == "PERMANENTE"  # Steady State do WaterGEMS
+    duracao = 0 if permanente else num("duracao_h", 24) * 60
+    rel_passo = num("passo_relatorio_min", passo)
+    inp += sec("TIMES", [f"Duration {hm(duracao)}", f"Hydraulic Timestep {hm(passo)}",
+                         f"Quality Timestep {hm(min(5, passo))}",
+                         f"Pattern Timestep {hm(num('passo_padrao_min', 15))}",
+                         f"Pattern Start {hm(num('inicio_h', 0) * 60)}",
+                         f"Report Timestep {hm(rel_passo)}", "Report Start 0:00",
+                         f"Start ClockTime {hm(num('inicio_h', 0) * 60)}"])
     # PDA (demanda dependente da pressão, EPANET 2.2): abaixo da pressão requerida o nó recebe menos
     # água, em vez de o cálculo falhar. As linhas de PDA precisam vir depois de Units/Headloss.
+    nao_conv = str(opc.get("se_nao_convergir", "CONTINUAR")).upper()
     opcoes = [f"Units {opc.get('unidades', 'LPS')}", f"Headloss {opc.get('perda_carga', 'H-W')}",
-              "Trials 100", "Accuracy 0.001"]
+              f"Trials {int(num('tentativas', 100))}", f"Accuracy {num('precisao', 0.001):g}",
+              f"Unbalanced {'Stop' if nao_conv == 'PARAR' else 'Continue 10'}",
+              f"Demand Multiplier {num('multiplicador_demanda', 1):g}",
+              f"Viscosity {num('viscosidade_relativa', 1):g}", f"Specific Gravity {num('densidade_relativa', 1):g}",
+              f"Emitter Exponent {num('expoente_emissor', 0.5):g}"]
     if pda:
         opcoes += ["Demand Model PDA", f"Minimum Pressure {opc.get('pressao_minima', '0')}",
-                   f"Required Pressure {opc.get('pressao_requerida', '10')}", "Pressure Exponent 0.5"]
+                   f"Required Pressure {opc.get('pressao_requerida', '10')}",
+                   f"Pressure Exponent {num('expoente_pressao', 0.5):g}"]
     inp += sec("OPTIONS", opcoes)
     inp += sec("COORDINATES", [f"{n:<14} {x:.3f} {y:.3f}" for n, x, y in coords])
     inp += sec("VERTICES", [f"{p['id']:<14} {x:.3f} {y:.3f}" for p in pipes for x, y in p["vert"]])

@@ -34,73 +34,24 @@ def _filtro_camada(cmb, tipo):
         cmb.setFilters({"ponto": QgsMapLayerProxyModel.PointLayer, "poligono": QgsMapLayerProxyModel.PolygonLayer}[tipo])
 
 
-def loadbuilder(nucleo):
-    if not nucleo.cadastro():
-        return
-    d = Dialogo(nucleo.janela, "LoadBuilder",
-                "Distribui consumos medidos para os nós do modelo, como o LoadBuilder do WaterGEMS. Pontos (hidrômetros, "
-                "ligações): cada consumo vai para o nó mais próximo, ou para as duas pontas da tubulação mais próxima, "
-                "proporcional à distância. Polígonos (setores, quadras): o consumo do polígono é dividido entre os nós "
-                "de dentro, igual ou pelo comprimento de tubulação.", largura=640)
-    pts = QRadioButton("Pontos com consumo (hidrômetros)")
-    pts.setChecked(True)
-    pol = QRadioButton("Polígonos com consumo (setores, quadras)")
-    d.lay.addWidget(pts)
-    d.lay.addWidget(pol)
-    camada = QgsMapLayerComboBox()
-    _filtro_camada(camada, "ponto")
-    d.linha("Camada (abra o arquivo antes, por Mapa de fundo › Arquivo):", camada)
-    campo = QgsFieldComboBox()
-    campo.setLayer(camada.currentLayer())
-    camada.layerChanged.connect(campo.setLayer)
-    d.linha("Campo do consumo:", campo)
-    un = QComboBox()
-    un.addItems(list(UNIDADES))
-    un.setCurrentText("m³/mês (30 dias)")
-    d.linha("Unidade do consumo:", un)
-    metodo = QComboBox()
-    d.linha("Método:", metodo)
-
-    def metodos():
-        metodo.clear()
-        if pts.isChecked():
-            metodo.addItem("Nó mais próximo", "no")
-            metodo.addItem("Tubulação mais próxima (divide entre as pontas)", "tubo")
-        else:
-            metodo.addItem("Igual entre os nós de dentro", "igual")
-            metodo.addItem("Proporcional ao comprimento de tubulação de dentro", "comprimento")
-        _filtro_camada(camada, "ponto" if pts.isChecked() else "poligono")
-    pts.toggled.connect(metodos)
-    metodos()
-    fator = d.linha("Fator (perdas, pico):", QDoubleSpinBox(), "1 = consumo medido; 1,25 = 25% a mais (perdas)")
-    fator.setRange(0, 10)
-    fator.setDecimals(3)
-    fator.setValue(1.0)
-    somar = QCheckBox("Somar às demandas que os nós já têm (desmarcado: substitui)")
-    d.lay.addWidget(somar)
-    padrao = QLineEdit()
-    d.linha("Padrão para os nós que receberem demanda:", padrao, "vazio = não muda o padrão")
-    d.botoes("Calcular")
-    if not d.exec():
-        return
-    lyr = camada.currentLayer()
-    if lyr is None or not campo.currentField():
-        return nucleo.aviso("Escolha a camada e o campo do consumo.")
+def distribuir_cargas(nucleo, lyr, campo, k, pontos, metodo):
+    """Cálculo do LoadBuilder: {nó: L/s} e quantos registros ficaram sem valor ou fora.
+    k: fator do valor do campo para L/s; pontos: camada de pontos (True) ou polígonos; metodo: no, tubo,
+    tubo_igual, igual, comprimento ou area."""
     nos = nucleo.camada("no_juncao")
     from qgis.core import QgsCoordinateTransform
     tr = QgsCoordinateTransform(lyr.crs(), nos.crs(), QgsProject.instance())
-    k = UNIDADES[un.currentText()] * fator.value()
     destino = {}
     idx_n = QgsSpatialIndex(nos.getFeatures(), flags=QgsSpatialIndex.Flag.FlagStoreFeatureGeometries)
     id_de = {f.id(): str(f["id"]) for f in nos.getFeatures()}
     codigos_nos = set(id_de.values())
     sem = 0
-    if pts.isChecked():
+    if pontos:
         tubos = nucleo.camada("trecho")
         idx_t = QgsSpatialIndex(tubos.getFeatures(), flags=QgsSpatialIndex.Flag.FlagStoreFeatureGeometries)
         tf = {f.id(): f for f in tubos.getFeatures()}
         for f in lyr.getFeatures():
-            v = f[campo.currentField()]
+            v = f[campo]
             try:
                 q = float(v) * k
             except (TypeError, ValueError):
@@ -109,7 +60,7 @@ def loadbuilder(nucleo):
             g = QgsGeometry(f.geometry())
             g.transform(tr)
             p = g.asPoint() if not g.isMultipart() else QgsPointXY(g.vertexAt(0))
-            if metodo.currentData() == "no":
+            if metodo == "no":
                 viz = idx_n.nearestNeighbor(p, 1)
                 if viz:
                     destino[id_de[viz[0]]] = destino.get(id_de[viz[0]], 0) + q
@@ -120,6 +71,8 @@ def loadbuilder(nucleo):
                 t = tf[viz[0]]
                 gt = t.geometry()
                 frac = gt.lineLocatePoint(QgsGeometry.fromPointXY(p)) / max(gt.length(), 1e-9)
+                if metodo == "tubo_igual":
+                    frac = 0.5
                 for nid, w in ((str(t["no_inicial"]), 1 - frac), (str(t["no_final"]), frac)):
                     if nid in codigos_nos:
                         destino[nid] = destino.get(nid, 0) + q * w
@@ -128,20 +81,43 @@ def loadbuilder(nucleo):
                         destino[outra] = destino.get(outra, 0) + q * w
     else:
         tubos = nucleo.camada("trecho")
+        celulas = {}
+        if metodo == "area":  # área de influência de cada nó (Voronoi), uma vez só
+            pts_n = [(id_de[i], idx_n.geometry(i).asPoint()) for i in id_de]
+            env = QgsGeometry.fromMultiPointXY([p for _, p in pts_n])
+            caixa = env.boundingBox()
+            caixa.grow(max(caixa.width(), caixa.height(), 100.0))
+            vor = env.voronoiDiagram(QgsGeometry.fromRect(caixa))
+            pols = list(vor.asGeometryCollection())
+            for nid, p in pts_n:
+                cel = next((g for g in pols if g.contains(QgsGeometry.fromPointXY(p))), None)
+                if cel is not None:
+                    celulas[nid] = cel
         for f in lyr.getFeatures():
             try:
-                q = float(f[campo.currentField()]) * k
+                q = float(f[campo]) * k
             except (TypeError, ValueError):
                 sem += 1
                 continue
             g = QgsGeometry(f.geometry())
             g.transform(tr)
+            if metodo == "area":
+                pesos = {nid: cel.intersection(g).area() for nid, cel in celulas.items()
+                         if cel.boundingBox().intersects(g.boundingBox())}
+                pesos = {nid: a for nid, a in pesos.items() if a > 0}
+                tot = sum(pesos.values())
+                if not tot:
+                    sem += 1
+                    continue
+                for nid, a in pesos.items():
+                    destino[nid] = destino.get(nid, 0) + q * a / tot
+                continue
             dentro = [id_de[i] for i in idx_n.intersects(g.boundingBox())
                       if g.contains(idx_n.geometry(i))]
             if not dentro:
                 sem += 1
                 continue
-            if metodo.currentData() == "igual":
+            if metodo == "igual":
                 for nid in dentro:
                     destino[nid] = destino.get(nid, 0) + q / len(dentro)
             else:
@@ -154,6 +130,83 @@ def loadbuilder(nucleo):
                 tot = sum(peso.values())
                 for nid in dentro:
                     destino[nid] = destino.get(nid, 0) + q * (peso[nid] / tot if tot else 1 / len(dentro))
+    return destino, sem
+
+
+def loadbuilder(nucleo):
+    if not nucleo.cadastro():
+        return
+    d = Dialogo(nucleo.janela, "LoadBuilder",
+                "Distribui consumos medidos para os nós do modelo, como o LoadBuilder do WaterGEMS. Pontos (hidrômetros, "
+                "ligações): cada consumo vai para o nó mais próximo ou para as pontas da tubulação mais próxima. "
+                "Polígonos (setores, quadras, setores censitários): o consumo ou a população do polígono é dividido "
+                "entre os nós, igual, pelo comprimento de tubulação ou pela área de influência de cada nó.",
+                largura=680)
+    pts = QRadioButton("Pontos com consumo (hidrômetros)")
+    pts.setChecked(True)
+    pol = QRadioButton("Polígonos com consumo (setores, quadras)")
+    d.lay.addWidget(pts)
+    d.lay.addWidget(pol)
+    camada = QgsMapLayerComboBox()
+    _filtro_camada(camada, "ponto")
+    d.linha("Camada (abra o arquivo antes, por Mapa de fundo › Arquivo):", camada)
+    campo = QgsFieldComboBox()
+    campo.setLayer(camada.currentLayer())
+    camada.layerChanged.connect(campo.setLayer)
+    d.linha("Campo do consumo:", campo)
+    natureza = QComboBox()
+    natureza.addItem("Consumo (vazão ou volume)", "consumo")
+    natureza.addItem("População (habitantes × consumo per capita)", "populacao")
+    d.linha("O campo é:", natureza)
+    un = QComboBox()
+    un.addItems(list(UNIDADES))
+    un.setCurrentText("m³/mês (30 dias)")
+    d.linha("Unidade do consumo:", un)
+    percap = d.linha("Consumo per capita:", QDoubleSpinBox(), "L por habitante por dia (ex.: 150)")
+    percap.setRange(1, 2000)
+    percap.setValue(150)
+    percap.setSuffix(" L/hab/dia")
+    percap.setEnabled(False)
+    natureza.currentIndexChanged.connect(lambda _: (un.setEnabled(natureza.currentData() == "consumo"),
+                                                    percap.setEnabled(natureza.currentData() == "populacao")))
+    metodo = QComboBox()
+    d.linha("Método:", metodo)
+
+    def metodos():
+        metodo.clear()
+        if pts.isChecked():
+            metodo.addItem("Nó mais próximo (Nearest Node)", "no")
+            metodo.addItem("Tubulação mais próxima, proporcional à distância das pontas", "tubo")
+            metodo.addItem("Tubulação mais próxima, metade para cada ponta", "tubo_igual")
+        else:
+            metodo.addItem("Igual entre os nós de dentro (Equal Distribution)", "igual")
+            metodo.addItem("Proporcional ao comprimento de tubulação de dentro", "comprimento")
+            metodo.addItem("Proporcional à área de influência (Thiessen) dentro do polígono", "area")
+        _filtro_camada(camada, "ponto" if pts.isChecked() else "poligono")
+    pts.toggled.connect(metodos)
+    metodos()
+    fator = d.linha("Fator (perdas, pico):", QDoubleSpinBox(), "1 = consumo medido; 1,25 = 25% a mais (perdas)")
+    fator.setRange(0, 10)
+    fator.setDecimals(3)
+    fator.setValue(1.0)
+    somar = QCheckBox("Somar às demandas que os nós já têm (desmarcado: substitui)")
+    d.lay.addWidget(somar)
+    categoria = QLineEdit()
+    categoria.setPlaceholderText("vazio = direto na demanda base do nó")
+    d.linha("Gravar como demanda da categoria:", categoria,
+            "Ex.: 'Hidrômetros 2025': entra como mais uma demanda de cada nó na Central de demanda (substitui a "
+            "da mesma categoria, sem mexer nas outras)")
+    padrao = QLineEdit()
+    d.linha("Padrão para os nós que receberem demanda:", padrao, "vazio = não muda o padrão")
+    d.botoes("Calcular")
+    if not d.exec():
+        return
+    lyr = camada.currentLayer()
+    if lyr is None or not campo.currentField():
+        return nucleo.aviso("Escolha a camada e o campo do consumo.")
+    nos = nucleo.camada("no_juncao")
+    k = (percap.value() / 86400 if natureza.currentData() == "populacao" else UNIDADES[un.currentText()]) * fator.value()
+    destino, sem = distribuir_cargas(nucleo, lyr, campo.currentField(), k, pts.isChecked(), metodo.currentData())
     if not destino:
         return nucleo.aviso("Nenhum consumo foi distribuído (confira a camada, o campo e o sistema de coordenadas).")
     total = sum(destino.values())
@@ -162,6 +215,12 @@ def loadbuilder(nucleo):
                             f"{f' ({sem} registros sem valor ou fora)' if sem else ''}.\n\nAplicar nos nós? "
                             "(fica na edição até Salvar edições)") != QMessageBox.StandardButton.Yes:
         return
+    if categoria.text().strip():
+        _loadbuilder_categoria(nucleo, destino, categoria.text().strip(), padrao.text().strip())
+        return janela_resultado(nucleo, "LoadBuilder", f"{num(total, 3)} L/s ({num(total * 86.4, 0)} m³/dia) "
+                                f"distribuídos como a categoria '{categoria.text().strip()}' na Central de demanda.",
+                                ["Nó", "Demanda atribuída (L/s)"],
+                                [[k2, round(v, 5)] for k2, v in sorted(destino.items())], "loadbuilder")
     if not nos.isEditable():
         nos.startEditing()
     i_d, i_p = nos.fields().indexOf("demanda_base"), nos.fields().indexOf("padrao")
@@ -179,6 +238,34 @@ def loadbuilder(nucleo):
     janela_resultado(nucleo, "LoadBuilder", f"{num(total, 3)} L/s ({num(total * 86.4, 0)} m³/dia) distribuídos.",
                      ["Nó", "Demanda atribuída (L/s)"], [[k2, round(v, 5)] for k2, v in sorted(destino.items())],
                      "loadbuilder")
+
+
+def _loadbuilder_categoria(nucleo, destino, cat, padrao):
+    """Resultado do LoadBuilder como uma categoria da coleção de demandas de cada nó (troca a categoria se já existir)."""
+    from .componentes import _substituir, ler_colecao, tabela_demandas
+    col = ler_colecao(nucleo)
+    nos = nucleo.camada("no_juncao")
+    if not nos.isEditable():
+        nos.startEditing()
+    nos.beginEditCommand(f"LoadBuilder: {cat}")
+    for f in nos.getFeatures():
+        nid = str(f["id"])
+        tem = nid in col
+        lst = col.get(nid)
+        if lst is None:
+            base = float(f["demanda_base"] or 0) if str(f["demanda_base"]) != "NULL" else 0.0
+            p0 = "" if f["padrao"] is None or str(f["padrao"]) == "NULL" else str(f["padrao"])
+            lst = [[base, p0, ""]] if base else []
+        lst = [x for x in lst if x[2] != cat]
+        if nid in destino:
+            lst.append([round(destino[nid], 6), padrao, cat])
+        if nid in destino or tem:
+            col[nid] = lst
+            nos.changeAttributeValue(f.id(), nos.fields().indexOf("demanda_base"), round(sum(x[0] for x in lst), 6))
+    nos.endEditCommand()
+    linhas = [{"no_id": k, "demanda": a, "padrao": b or None, "categoria": c or None}
+              for k, lst in col.items() for a, b, c in lst]
+    _substituir(nucleo, tabela_demandas(nucleo), linhas, ["no_id", "demanda", "padrao", "categoria"])
 
 
 # ================================================================ Thiessen
@@ -326,18 +413,30 @@ def esqueletizar(nucleo):
         return
     d = Dialogo(nucleo.janela, "Esqueletizador",
                 "Cria uma CÓPIA simplificada da rede (o cadastro original não muda), como o Skelebrator do WaterGEMS: "
-                "corta ramais de ponta finos (a demanda vai para o nó de onde o ramal sai) e une tubulações em série de "
-                "mesmo DN e material. Bombas, válvulas e reservatórios ficam.")
+                "corta ramais de ponta finos (a demanda vai para o nó de onde o ramal sai), une tubulações em série e "
+                "em paralelo em tubulações equivalentes (mesma perda de carga). Bombas, válvulas, reservatórios e os nós "
+                "protegidos ficam.")
     dn = d.linha("Ramais até DN:", QDoubleSpinBox(), "Só ramais de ponta com diâmetro até este são cortados")
     dn.setRange(0, 2000)
     dn.setValue(75)
     dn.setSuffix(" mm")
-    ramais = QCheckBox("Cortar ramais de ponta")
+    comp = d.linha("Ramais até o comprimento:", QDoubleSpinBox(), "0 = qualquer comprimento")
+    comp.setRange(0, 100000)
+    comp.setSuffix(" m")
+    tol = d.linha("Série: diferença de DN aceita:", QDoubleSpinBox(),
+                  "0 = só une tubos de mesmo DN e material; ex.: 30% une 100 com 75 num tubo equivalente")
+    tol.setRange(0, 100)
+    tol.setSuffix(" %")
+    ramais = QCheckBox("Cortar ramais de ponta (Branch Trimming)")
     ramais.setChecked(True)
-    serie = QCheckBox("Unir tubulações em série")
+    serie = QCheckBox("Unir tubulações em série (Series Pipe Merging)")
     serie.setChecked(True)
-    d.lay.addWidget(ramais)
-    d.lay.addWidget(serie)
+    paral = QCheckBox("Unir tubulações em paralelo (Parallel Pipe Merging)")
+    paral.setChecked(True)
+    proteger = QCheckBox("Proteger os nós selecionados no mapa e os pontos de medição da calibração")
+    proteger.setChecked(True)
+    for w in (ramais, serie, paral, proteger):
+        d.lay.addWidget(w)
     destino = d.linha("Salvar a cópia em:", QLineEdit(os.path.splitext(gpkg)[0] + "_esqueleto.gpkg"))
     abrir = QCheckBox("Abrir a cópia depois")
     abrir.setChecked(True)
@@ -346,12 +445,20 @@ def esqueletizar(nucleo):
     if not d.exec():
         return
     from .analise_ui import rodar
+    prot = []
+    if proteger.isChecked():
+        from .util import ids_selecionados
+        prot = list(ids_selecionados(nucleo))
+        for mo in nucleo.janela._ler_json("calibracao", {}).get("momentos", []):
+            prot += [o["elemento"] for o in mo.get("observacoes", [])]
     r = rodar(nucleo, "esqueletizar", "Esqueletizando…", destino=destino.text(), dn_max=dn.value(),
-              cortar_ramais=ramais.isChecked(), unir_serie=serie.isChecked())
+              cortar_ramais=ramais.isChecked(), unir_serie=serie.isChecked(), unir_paralelos=paral.isChecked(),
+              comprimento_max=comp.value() or None, tol_dn_pct=tol.value(), protegidos=sorted(set(prot)))
     if not r:
         return
     msg = (f"Esqueleto gravado em {os.path.basename(r['gpkg'])}: {r['tubos_final']} tubulações e {r['nos_final']} nós "
-           f"({r['tubos_removidos']} ramais cortados, {r['tubos_unidos']} uniões em série). Demanda total "
+           f"({r['tubos_removidos']} ramais cortados, {r['tubos_unidos']} uniões em série, "
+           f"{r.get('paralelos_unidos', 0)} paralelos unidos). Demanda total "
            f"conservada: {num(r['demanda_total'], 3)} L/s.")
     if abrir.isChecked() and r.get("qgz") and nucleo.janela.fechar_projeto(True):
         nucleo.janela.abrir_projeto(r["qgz"])

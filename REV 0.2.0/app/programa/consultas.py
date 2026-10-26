@@ -434,6 +434,11 @@ def _res(nucleo):
     return nucleo.res
 
 
+def _lim(nucleo, chave):
+    from .componentes import limites
+    return limites(nucleo)[chave]
+
+
 def res_nos(nucleo, cond, texto):
     res = _res(nucleo)
     if not res:
@@ -493,9 +498,8 @@ def bombas_fora_curva(nucleo):
     if not res:
         return None
     try:
-        curvas = defaultdict(list)
-        for f in nucleo.camada("curva").getFeatures():
-            curvas[str(f["id_curva"])].append((float(f["x"]), float(f["y"])))
+        from gwater.curvas import ler
+        curvas = ler(nucleo.camada("curva"))  # só altura × vazão (potência e rendimento ficam de fora)
     except LookupError:
         return []
     out = []
@@ -565,8 +569,10 @@ CONSULTAS = [
     ]),
     ("Resultados", [
         ("Pressões negativas", lambda n: res_nos(n, lambda p: min(p) < 0, "mínima {min:.1f} mca")),
-        ("Pressão abaixo de 10 mca", lambda n: res_nos(n, lambda p: min(p) < 10, "mínima {min:.1f} mca")),
-        ("Pressão acima de 50 mca", lambda n: res_nos(n, lambda p: max(p) > 50, "máxima {max:.1f} mca")),
+        ("Pressão abaixo da mínima (Opções > Limites)", lambda n: res_nos(
+            n, lambda p, m=_lim(n, "limite_pressao_min"): min(p) < m, "mínima {min:.1f} mca")),
+        ("Pressão acima da máxima (Opções > Limites)", lambda n: res_nos(
+            n, lambda p, m=_lim(n, "limite_pressao_max"): max(p) > m, "máxima {max:.1f} mca")),
         ("Bombas fora da curva", bombas_fora_curva),
         ("Válvulas que não regulam", valvulas_sem_regular),
         ("Reservatórios vazios", lambda n: res_reservatorios(n, False)),

@@ -89,27 +89,41 @@ def incendio(nucleo):
     if not nucleo.cadastro():
         return
     d = Dialogo(nucleo.janela, "Incêndio (Fire Flow)",
-                "Para cada nó: a maior vazão que dá para tirar dele mantendo a pressão residual, como o Fire Flow do "
-                "WaterGEMS. Atende = a vazão disponível é maior ou igual à exigida.")
+                "Para cada nó: a maior vazão que dá para tirar dele respeitando as restrições escolhidas, como o Fire "
+                "Flow do WaterGEMS. Atende = a vazão disponível é maior ou igual à exigida.")
     alvo, sel = _alvo_nos(d, nucleo, "Hidrantes / nós:")
-    q = d.linha("Vazão exigida:", _espin(0.5, 1000, 10, 1, "L/s"), "NBR 12218: hidrante de coluna urbano, 10 L/s")
+    q = d.linha("Vazão exigida (Needed Fire Flow):", _espin(0.5, 1000, 10, 1, "L/s"),
+                "NBR 12218: hidrante de coluna urbano, 10 L/s")
+    modo = QComboBox()
+    modo.addItem("Somar à demanda do nó", "somar")
+    modo.addItem("Substituir a demanda do nó", "substituir")
+    d.linha("A vazão de incêndio:", modo, "Apply Fire Flows By: somar (Adding to Baseline) ou substituir (Replacing)")
+    qmax = d.linha("Vazão máxima a testar (Upper Limit):", _espin(1, 5000, 500, 0, "L/s"))
     pr = d.linha("Pressão residual no hidrante:", _espin(0, 100, 10, 1, "mca"))
-    zona = QCheckBox("Exigir também uma pressão mínima em todos os outros nós")
+    zona = QCheckBox("Pressão mínima na zona de pressão do hidrante (Minimum Zone Pressure)")
     d.lay.addWidget(zona)
-    pz = d.linha("Pressão mínima nos outros nós:", _espin(0, 100, 10, 1, "mca"))
+    pz = d.linha("   pressão mínima na zona:", _espin(0, 100, 10, 1, "mca"))
+    sis = QCheckBox("Pressão mínima em toda a rede (Minimum System Pressure)")
+    d.lay.addWidget(sis)
+    ps = d.linha("   pressão mínima na rede:", _espin(0, 100, 5, 1, "mca"))
+    vel = QCheckBox("Velocidade máxima nas tubulações (Use Velocity Constraint)")
+    d.lay.addWidget(vel)
+    vm = d.linha("   velocidade máxima:", _espin(0.1, 10, 3.0, 2, "m/s"))
     hora = _hora_campo(d)
     d.botoes("Calcular")
     if not d.exec():
         return
     r = rodar(nucleo, "incendio", "Calculando a vazão de incêndio…", nos=_nos_de(nucleo, alvo.currentData(), sel),
               vazao=q.value(), p_residual=pr.value(), p_min_zona=pz.value() if zona.isChecked() else None,
-              hora=hora.currentData())
+              p_min_sistema=ps.value() if sis.isChecked() else None, v_max=vm.value() if vel.isChecked() else None,
+              modo=modo.currentData(), vazao_max=qmax.value(), hora=hora.currentData())
     if not r:
         return
     linhas, cores = [], {}
     for i, x in enumerate(r["linhas"]):
-        linhas.append([x["id"], x["q_necessaria"], x["q_disponivel"], "SIM" if x["atende"] else "NÃO", x["p_residual"],
-                       x["p_min_zona"], x["no_p_min_zona"] or "", x["limitado_por"]])
+        linhas.append([x["id"], x["q_necessaria"], x["q_disponivel"], x["q_total"], "SIM" if x["atende"] else "NÃO",
+                       x["p_residual"], x["p_min_zona"], x["no_p_min_zona"] or "", x["p_min_sistema"],
+                       x["no_p_min_sistema"] or "", x["v_max"], x["tubo_v_max"] or "", x["limitado_por"]])
         cores[i] = COR["ok"] if x["atende"] else COR["crit"]
     camada_resultado(nucleo, "Incêndio · vazão disponível (L/s)", {x["id"]: x["q_disponivel"] for x in r["linhas"]},
                      "q_disponivel", faixas=[(None, q.value(), "#e5484d", f"< {num(q.value(), 1)} L/s (não atende)"),
@@ -119,8 +133,10 @@ def incendio(nucleo):
                      f"Instante {r['hora']}: <b>{r['atendem']} de {r['total']}</b> nós atendem {num(q.value(), 1)} L/s "
                      f"com {num(pr.value(), 1)} mca de pressão residual. Clique duplo leva até o nó. A camada "
                      "'Incêndio · vazão disponível' pinta os nós no mapa.",
-                     ["Nó", "Vazão exigida (L/s)", "Vazão disponível (L/s)", "Atende", "Pressão residual (mca)",
-                      "Pressão mín. outros nós", "Onde", "Limitado por"], linhas, "incendio", cores=cores)
+                     ["Nó", "Vazão exigida (L/s)", "Vazão disponível (L/s)", "Vazão total no nó (L/s)", "Atende",
+                      "Pressão residual (mca)", "Pressão mín. na zona", "Onde (zona)", "Pressão mín. na rede",
+                      "Onde (rede)", "Velocidade máx (m/s)", "Tubulação", "Limitado por"], linhas, "incendio",
+                     cores=cores)
 
 
 # ================================================================ descarga
@@ -128,17 +144,28 @@ def descarga(nucleo):
     if not nucleo.cadastro():
         return
     d = Dialogo(nucleo.janela, "Descarga de rede (Flushing)",
-                "Abre cada nó sozinho com a vazão escolhida e mostra que tubulações passam da velocidade de arraste "
-                "(limpeza), como o Flushing do WaterGEMS. 0,76 m/s (2,5 pés/s) é a referência usual.")
+                "Abre cada nó sozinho e mostra que tubulações passam da velocidade de arraste (limpeza), como o "
+                "Flushing do WaterGEMS. 0,76 m/s (2,5 pés/s) é a referência usual.")
     alvo, sel = _alvo_nos(d, nucleo, "Pontos de descarga:")
+    modo = QComboBox()
+    modo.addItem("Vazão fixa", "vazao")
+    modo.addItem("Pela pressão no hidrante (a maior vazão que a rede dá)", "pressao")
+    d.linha("A descarga tira:", modo)
     q = d.linha("Vazão da descarga:", _espin(0.5, 1000, 20, 1, "L/s"))
+    ph = d.linha("Pressão residual no hidrante:", _espin(0, 100, 10, 1, "mca"),
+                 "A descarga abre até a pressão no próprio hidrante cair a este valor")
     v = d.linha("Velocidade de limpeza:", _espin(0.1, 5, 0.76, 2, "m/s"))
+    pmin = d.linha("Avisar se algum ponto de consumo ficar abaixo de:", _espin(0, 100, 10, 1, "mca"))
+    modo.currentIndexChanged.connect(lambda _: (q.setEnabled(modo.currentData() == "vazao"),
+                                                ph.setEnabled(modo.currentData() == "pressao")))
+    ph.setEnabled(False)
     hora = _hora_campo(d)
     d.botoes("Calcular")
     if not d.exec():
         return
     r = rodar(nucleo, "descarga", "Simulando as descargas…", nos=_nos_de(nucleo, alvo.currentData(), sel),
-              vazao=q.value(), v_alvo=v.value(), hora=hora.currentData())
+              vazao=q.value(), v_alvo=v.value(), hora=hora.currentData(), modo=modo.currentData(),
+              p_hidrante=ph.value(), p_min=pmin.value())
     if not r:
         return
     melhor = {}
@@ -155,13 +182,15 @@ def descarga(nucleo):
             selecionar_ids(nucleo, [no] + [t["id"] for t in e["tubos"]])
             nucleo.informar(f"Descarga em {no}: {e['n_tubos']} tubulação(ões) limpas ({num(e['comprimento_m'], 0)} m).")
 
-    linhas = [[e["id"], e["vazao"], e["p_no"], e["n_tubos"], e["comprimento_m"], "sim" if e["convergiu"] else "NÃO"]
-              for e in r["eventos"]]
+    linhas = [[e["id"], e["vazao"], e["p_no"], e["n_tubos"], e["comprimento_m"], e["v_max"], e["p_min_rede"],
+               e["no_p_min"] or "", "sim" if e["convergiu"] else "NÃO"] for e in r["eventos"]]
+    cores = {i: COR["warn"] for i, e in enumerate(r["eventos"]) if e["abaixo_p_min"]}
     janela_resultado(nucleo, "Descarga",
                      f"Instante {r['hora']}. Clique duplo num ponto seleciona as tubulações que ele limpa. A camada "
                      f"'Descarga · velocidade máxima' mostra tudo o que alguma descarga limpa (≥ {num(v.value(), 2)} m/s).",
                      ["Ponto", "Vazão (L/s)", "Pressão no ponto (mca)", "Tubulações limpas", "Comprimento limpo (m)",
-                      "Calculou"], linhas, "descarga", ao_clicar=mostrar_tubos)
+                      "Velocidade máx (m/s)", "Pressão mín. na rede", "Onde", "Calculou"], linhas, "descarga",
+                     ao_clicar=mostrar_tubos, cores=cores)
 
 
 # ================================================================ criticidade
@@ -169,36 +198,54 @@ def criticidade(nucleo):
     if not nucleo.cadastro():
         return
     d = Dialogo(nucleo.janela, "Criticidade",
-                "Tira cada tubulação de operação, uma de cada vez, e mede a água que deixa de chegar aos consumidores "
-                "(demanda dependente da pressão), como o Criticality do WaterGEMS. Mostra também os nós que ficam "
-                "abaixo da pressão mínima.")
+                "Tira de operação uma parte da rede de cada vez e mede a água que deixa de chegar aos consumidores "
+                "(demanda dependente da pressão), como o Criticality do WaterGEMS. Por segmento: cada trecho entre "
+                "registros (o que de fato fica sem água numa manobra). Por tubulação: cada uma sozinha.")
     alvo = QComboBox()
     sel = ids_selecionados(nucleo, "trecho")
     if sel:
         alvo.addItem(f"As {len(sel)} tubulações selecionadas", "sel")
     alvo.addItem("Todas as tubulações", "todas")
     d.linha("Tubulações:", alvo)
+    modo = QComboBox()
+    modo.addItem("Por segmento entre registros (Segmentation)", "segmento")
+    modo.addItem("Por tubulação", "trecho")
+    d.linha("Tirar de operação:", modo, "Os segmentos saem dos registros de manobra do cadastro (tipo REGISTRO ou TCV)")
     pm = d.linha("Pressão mínima:", _espin(0, 100, 10, 1, "mca"))
     hora = _hora_campo(d)
     d.botoes("Calcular")
     if not d.exec():
         return
     r = rodar(nucleo, "criticidade", "Calculando a criticidade…", trechos=sel if alvo.currentData() == "sel" else None,
-              p_min=pm.value(), hora=hora.currentData())
+              p_min=pm.value(), hora=hora.currentData(), modo=modo.currentData())
     if not r:
         return
-    camada_resultado(nucleo, "Criticidade · água que falta (%)", {x["id"]: x["falta_pct"] for x in r["linhas"]},
+    seg = r.get("modo") == "segmento"
+    valores = {t: x["falta_pct"] for x in r["linhas"] for t in x.get("tubos", [x["id"]])}
+    camada_resultado(nucleo, "Criticidade · água que falta (%)", valores,
                      "falta_pct", camadas=["trecho"],
                      faixas=[(None, 0.5, "#9aa5b1", "< 0,5% (pouco crítica)"), (0.5, 5, "#74c0fc", "0,5 a 5%"),
                              (5, 20, "#f59f00", "5 a 20%"), (20, None, "#e5484d", "> 20% (muito crítica)")])
-    linhas = [[x["id"], x["falta_lps"], x["falta_pct"], x["nos_baixa_pressao"], x["nos_sem_agua"],
-               ", ".join(x["exemplos"])] for x in r["linhas"]]
+    if seg:
+        linhas = [[x["id"], x["n_tubos"], x["comprimento_m"], ", ".join(x["registros"]) or "(nenhum: não isola)",
+                   x["falta_lps"], x["falta_pct"], x["nos_baixa_pressao"], x["nos_sem_agua"], ", ".join(x["exemplos"])]
+                  for x in r["linhas"]]
+        cols = ["Segmento", "Tubulações", "Comprimento (m)", "Registros a fechar", "Água que falta (L/s)", "Falta (%)",
+                "Nós abaixo da mínima", "Nós sem água", "Exemplos de nós afetados"]
+        por_seg = {x["id"]: x for x in r["linhas"]}
+        clicar = lambda sid: selecionar_ids(nucleo, por_seg[sid]["tubos"] + por_seg[sid]["registros"])  # noqa: E731
+    else:
+        linhas = [[x["id"], x["falta_lps"], x["falta_pct"], x["nos_baixa_pressao"], x["nos_sem_agua"],
+                   ", ".join(x["exemplos"])] for x in r["linhas"]]
+        cols = ["Tubulação", "Água que falta (L/s)", "Falta (%)", "Nós abaixo da mínima", "Nós sem água",
+                "Exemplos de nós afetados"]
+        clicar = None
     cores = {i: COR["crit"] for i, x in enumerate(r["linhas"]) if (x["falta_pct"] or 0) >= 20}
     janela_resultado(nucleo, "Criticidade",
                      f"Instante {r['hora']}, consumo pedido {num(r['pedido_lps'], 2)} L/s. As mais críticas primeiro. "
-                     "A camada 'Criticidade' pinta as tubulações.",
-                     ["Tubulação", "Água que falta (L/s)", "Falta (%)", "Nós abaixo da mínima", "Nós sem água",
-                      "Exemplos de nós afetados"], linhas, "criticidade", cores=cores)
+                     "A camada 'Criticidade' pinta as tubulações."
+                     + (" Clique duplo seleciona o segmento e os registros que o isolam." if seg else ""),
+                     cols, linhas, "criticidade", cores=cores, ao_clicar=clicar)
 
 
 # ================================================================ zonas de pressão
@@ -240,7 +287,14 @@ def energia(nucleo):
     d = Dialogo(nucleo.janela, "Custo de energia",
                 "Energia e custo das bombas na simulação de 24 h, com tarifa diferente no horário de ponta, como o "
                 "Energy Cost do WaterGEMS.")
-    eta = d.linha("Rendimento do conjunto motor-bomba:", _espin(10, 95, 70, 0, "%"))
+    eta = d.linha("Rendimento das bombas sem curva:", _espin(10, 95, 70, 0, "%"),
+                  "As bombas com curva de rendimento (Curvas de bomba) usam a delas; este vale para as outras")
+    tarifas_salvas = nucleo.janela._ler_json("tarifas", {})
+    tar = QComboBox()
+    for k in tarifas_salvas:
+        tar.addItem(f"Tarifa: {k}", k)
+    tar.addItem("Ponta e fora de ponta (abaixo)", None)
+    d.linha("Tarifa:", tar, "As tarifas por hora ficam em Componentes > Tarifas de energia")
     fora = d.linha("Tarifa fora de ponta:", _espin(0, 20, 0.55, 3, "R$/kWh"))
     ponta = d.linha("Tarifa na ponta:", _espin(0, 20, 2.10, 3, "R$/kWh"))
     ini = QSpinBox()
@@ -259,6 +313,8 @@ def energia(nucleo):
     if not d.exec():
         return
     tarifa = [ponta.value() if (h - ini.value()) % 24 < dur.value() else fora.value() for h in range(24)]
+    if tar.currentData():
+        tarifa = [float(x) for x in tarifas_salvas[tar.currentData()]]
     r = rodar(nucleo, "energia", "Calculando a energia das bombas…", eficiencia=eta.value() / 100, tarifa=tarifa,
               dias_mes=dias.value())
     if not r:
@@ -341,15 +397,25 @@ def dimensionar(nucleo):
     bib = biblioteca(nucleo)
     d = Dialogo(nucleo.janela, "Dimensionamento de diâmetros",
                 f"Escolhe os diâmetros das {len(sel)} tubulações selecionadas com o menor custo que atenda a pressão "
-                "mínima nos pontos de consumo e a velocidade máxima, no instante de maior consumo (como uma primeira "
-                "rodada do Darwin Designer). Diâmetros e custos vêm de Bibliotecas de engenharia.")
+                "mínima nos pontos de consumo e a velocidade máxima, no instante de maior consumo, como o Darwin "
+                "Designer. Diâmetros e custos vêm de Bibliotecas de engenharia.")
     pm = d.linha("Pressão mínima nos pontos de consumo:", _espin(0, 100, 10, 1, "mca"))
     vm = d.linha("Velocidade máxima nas candidatas:", _espin(0.3, 6, 3.0, 2, "m/s"))
+    met = QComboBox()
+    met.addItem("Genético (Darwin Designer: busca o menor custo global)", "genetico")
+    met.addItem("Guloso (rápido: aumenta o DN que mais ajuda por real)", "guloso")
+    d.linha("Método:", met)
+    aval = QSpinBox()
+    aval.setRange(100, 100000)
+    aval.setSingleStep(500)
+    aval.setValue(3000)
+    d.linha("Máximo de avaliações (genético):", aval)
     d.botoes("Dimensionar")
     if not d.exec():
         return
     r = rodar(nucleo, "dimensionar", "Dimensionando…", trechos=sel, p_min=pm.value(), v_max=vm.value(),
-              dns=sorted(bib["custos"]), custo_m={str(k): v for k, v in bib["custos"].items()})
+              dns=sorted(bib["custos"]), custo_m={str(k): v for k, v in bib["custos"].items()},
+              metodo=met.currentData(), max_avaliacoes=aval.value())
     if not r:
         return
 
@@ -403,8 +469,15 @@ def qualidade(nucleo, parametro="AGE"):
     tipo = QComboBox()
     tipo.addItem("Idade da água (h)", "AGE")
     tipo.addItem("Cloro residual (mg/L)", "CHEMICAL")
-    tipo.setCurrentIndex(0 if parametro == "AGE" else 1)
+    tipo.addItem("Rastrear a origem da água (% de uma fonte)", "TRACE")
+    tipo.setCurrentIndex(max(0, tipo.findData(parametro)))
     d.linha("Calcular:", tipo)
+    fonte = QComboBox()
+    for c in ("captacao", "reservatorio"):
+        if _tem(nucleo, c):
+            fonte.addItems(sorted(str(f["id"]) for f in nucleo.camada(c).getFeatures()))
+    fonte.setEditable(True)
+    d.linha("Fonte a rastrear:", fonte, "Trace: que parte da água de cada nó veio desta captação ou reservatório")
     dur = QSpinBox()
     dur.setRange(24, 720)
     dur.setValue(96)
@@ -417,11 +490,17 @@ def qualidade(nucleo, parametro="AGE"):
     if not d.exec():
         return
     r = rodar(nucleo, "qualidade", "Simulando a qualidade da água…", parametro=tipo.currentData(),
-              duracao_h=dur.value(), conc_fonte=c0.value(), kb_dia=kb.value(), kw=kw.value())
+              duracao_h=dur.value(), conc_fonte=c0.value(), kb_dia=kb.value(), kw=kw.value(),
+              fonte=fonte.currentText().strip() or None)
     if not r:
         return
     idade = tipo.currentData() == "AGE"
-    if idade:
+    if tipo.currentData() == "TRACE":
+        faixas = [(None, 10, "#9aa5b1", "< 10%"), (10, 50, "#74c0fc", "10 a 50%"), (50, 90, "#1c7ed6", "50 a 90%"),
+                  (90, None, "#2fb36f", "> 90%")]
+        campo, val = "pct_fonte", {k: v["media"] for k, v in r["nos"].items()}
+        nome = f"Água de {fonte.currentText()} (%)"
+    elif idade:
         faixas = [(None, 12, "#2fb36f", "< 12 h"), (12, 24, "#74c0fc", "12 a 24 h"), (24, 48, "#f59f00", "24 a 48 h"),
                   (48, None, "#e5484d", "> 48 h (água velha)")]
         campo, val = "idade_max", {k: v["max"] for k, v in r["nos"].items()}
@@ -530,6 +609,10 @@ def alertas(nucleo):
     from gwater.resultados import _hora
     d, horas = res.d, res.horas
     linhas, cores = [], {}
+    from .componentes import limites
+    lim = limites(nucleo)
+    pmin, pmax, vmax, hmax = (lim[k] for k in ("limite_pressao_min", "limite_pressao_max", "limite_velocidade",
+                                                 "limite_perda"))
 
     def add(eid, tipo, valor, quando, cor):
         cores[len(linhas)] = cor
@@ -539,17 +622,17 @@ def alertas(nucleo):
         p = d["nos"][nid]["p"]
         if min(p) < 0:
             add(nid, "Pressão negativa", round(min(p), 1), _hora(horas[p.index(min(p))]), COR["crit"])
-        elif min(p) < 10:
-            add(nid, "Pressão abaixo de 10 mca (NBR 12218)", round(min(p), 1), _hora(horas[p.index(min(p))]), COR["crit"])
-        if max(p) > 50:
-            add(nid, "Pressão acima de 50 mca (NBR 12218)", round(max(p), 1), _hora(horas[p.index(max(p))]), COR["warn"])
+        elif min(p) < pmin:
+            add(nid, f"Pressão abaixo de {pmin:g} mca", round(min(p), 1), _hora(horas[p.index(min(p))]), COR["crit"])
+        if max(p) > pmax:
+            add(nid, f"Pressão acima de {pmax:g} mca", round(max(p), 1), _hora(horas[p.index(max(p))]), COR["warn"])
     for lid in res.rid_tr:
         v = [abs(x) for x in d["links"][lid]["v"]]
         hl = [abs(x) for x in d["links"][lid]["hl"]]
-        if max(v) > 2.5:
-            add(lid, "Velocidade acima de 2,5 m/s", round(max(v), 2), _hora(horas[v.index(max(v))]), COR["warn"])
-        if max(hl) > 10:
-            add(lid, "Perda de carga acima de 10 m/km", round(max(hl), 1), _hora(horas[hl.index(max(hl))]), COR["warn"])
+        if max(v) > vmax:
+            add(lid, f"Velocidade acima de {vmax:g} m/s", round(max(v), 2), _hora(horas[v.index(max(v))]), COR["warn"])
+        if max(hl) > hmax:
+            add(lid, f"Perda de carga acima de {hmax:g} m/km", round(max(hl), 1), _hora(horas[hl.index(max(hl))]), COR["warn"])
     try:
         for f in nucleo.camada("reservatorio").getFeatures():
             n = d["nos"].get(str(f["id"]))
@@ -580,5 +663,6 @@ def alertas(nucleo):
 ACOES = {"incendio": incendio, "descarga": descarga, "criticidade": criticidade, "zonas_pressao": zonas_pressao,
          "energia": energia, "renovacao": renovacao, "dimensionar": dimensionar, "darwin": dimensionar,
          "idade_agua": lambda n: qualidade(n, "AGE"), "cloro": lambda n: qualidade(n, "CHEMICAL"),
+         "rastreamento": lambda n: qualidade(n, "TRACE"),
          "qualidade_opcoes": lambda n: qualidade(n, "AGE"), "tempos": tempos, "resumo": resumo,
          "notificacoes": notificacoes, "alertas": alertas}

@@ -158,9 +158,58 @@ def _cortar(pts, cortes):
     return [(([q for k, q in enumerate(pp) if k == 0 or q.distance(pp[k - 1]) > 1e-9]), a, b) for pp, a, b in pedacos]
 
 
+def sincronizar(nucleo, trabalhos, mover=False):
+    """Synchronize do ModelBuilder: elemento do arquivo com o mesmo código de um que já existe no cadastro tem os
+    dados atualizados (só os campos ligados no de-para) e, com `mover`, a posição (pontos). Marca em cada trabalho
+    os registros já tratados (job["pular"]), que a importação deixa de criar. Devolve {camada: quantos}."""
+    from qgis.core import QgsCoordinateTransform
+    camadas = nucleo.topologia.camadas or {}
+    out = {}
+    for job in trabalhos:
+        col_id = job["mapa"].get("id")
+        dest = camadas.get(job["camada"]) or nucleo.camada(job["camada"])
+        job["pular"] = set()
+        if not col_id or dest is None:
+            continue
+        existentes = {str(f["id"]): f for f in dest.getFeatures() if not _vazio(f["id"])}
+        if not existentes:
+            continue
+        campos = [c for c, col in job["mapa"].items() if col and c != "id" and dest.fields().indexOf(c) >= 0]
+        numericos = {f.name() for f in dest.fields() if f.isNumeric()}
+        inteiros = {f.name() for f in dest.fields() if f.typeName().lower().startswith("int")}
+        origem = job["origem"]
+        ct = QgsCoordinateTransform(origem.crs(), dest.crs(), QgsProject.instance())
+        if not dest.isEditable():
+            dest.startEditing()
+        dest.beginEditCommand(f"ModelBuilder: atualizar {job['nome']}")
+        n = 0
+        feats = origem.getSelectedFeatures() if job.get("so_sel") else origem.getFeatures()
+        for fo in feats:
+            cod = fo[col_id]
+            if _vazio(cod) or str(cod).strip() not in existentes:
+                continue
+            alvo = existentes[str(cod).strip()]
+            vals = _atributos(campos, numericos, inteiros, fo, job["mapa"], {}, job["traducoes"], {})
+            for c, v in vals.items():
+                if v != alvo[c]:
+                    dest.changeAttributeValue(alvo.id(), dest.fields().indexOf(c), v)
+            if mover and job["camada"] != "trecho" and fo.hasGeometry():
+                g = QgsGeometry(fo.geometry())
+                g.transform(ct)
+                if g.asPoint().distance(alvo.geometry().asPoint()) > 1e-6:
+                    dest.changeGeometry(alvo.id(), g)
+            job["pular"].add(fo.id())
+            n += 1
+        dest.endEditCommand()
+        if n:
+            out[job["camada"]] = out.get(job["camada"], 0) + n
+    return out
+
+
 def importar_lote(nucleo, trabalhos, opcoes, progresso=None):
     """trabalhos: [{"camada", "fixos_tipo", "origem", "mapa", "fixos", "traducoes", "so_sel", "nome"}].
     opcoes: tolerancia, situacao, criar_nos, dividir_t, dividir_tubos, substituir_nos.
+    Registros listados em job["pular"] (já atualizados por sincronizar) não são criados.
     Devolve o resumo {"importados", "por_tipo", "nos_criados", "divididas", "ligados_existentes", "avisos"}."""
     topo = nucleo.topologia
     if not topo.camadas:
@@ -247,6 +296,8 @@ def importar_lote(nucleo, trabalhos, opcoes, progresso=None):
         feats = origem.getSelectedFeatures(req) if job.get("so_sel") else origem.getFeatures(req)
         total = origem.selectedFeatureCount() if job.get("so_sel") else origem.featureCount()
         for k, fo in enumerate(feats):
+            if fo.id() in job.get("pular", ()):  # já atualizado (sincronizar)
+                continue
             if k % 500 == 0:
                 passo(f"Lendo {job['nome']} ({k} de {total})…", k, total)
             if not fo.hasGeometry() or fo.geometry().isEmpty():
@@ -290,6 +341,8 @@ def importar_lote(nucleo, trabalhos, opcoes, progresso=None):
         feats = origem.getSelectedFeatures(req) if job.get("so_sel") else origem.getFeatures(req)
         total = origem.selectedFeatureCount() if job.get("so_sel") else origem.featureCount()
         for k, fo in enumerate(feats):
+            if fo.id() in job.get("pular", ()):  # já atualizado (sincronizar)
+                continue
             if k % 500 == 0:
                 passo(f"Lendo {job['nome']} ({k} de {total})…", k, total)
             if not fo.hasGeometry() or fo.geometry().isEmpty():

@@ -225,7 +225,7 @@ class GwaterPlugin:
     def atualizar_lista_curvas(self):
         """Campo curva das bombas vira lista com as curvas cadastradas."""
         try:
-            curvas.lista_na_bomba(self.camada("bomba"), curvas.ler(self.camada("curva")))
+            curvas.lista_na_bomba(self.camada("bomba"), curvas.nomes(self.camada("curva")))
         except LookupError:
             pass
 
@@ -371,7 +371,7 @@ class GwaterPlugin:
 
     def acao_bomba(self):
         self._desenhar("bomba")
-        if self.cadastro() and not curvas.ler(self.camada("curva")):
+        if self.cadastro() and not curvas.nomes(self.camada("curva")):
             self.aviso("Ainda não há curvas de bomba no cadastro: cadastre em Curvas de bomba (3 · Preparar o modelo) "
                        "para escolher a curva no formulário.")
 

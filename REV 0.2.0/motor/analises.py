@@ -201,36 +201,80 @@ def _candidatos_hidrante(m, nos):
 
 
 # ================================================================ incêndio (Fire Flow)
+def _zona_de(wn):
+    """Zona de pressão de cada nó (bombas, PRV/PSV/PBV/FCV e trechos fechados fazem a divisa)."""
+    g = nx.Graph()
+    g.add_nodes_from(wn.node_name_list)
+    for nome, l in wn.links():
+        if l.link_type == "Pump" or (l.link_type == "Valve" and l.valve_type in VALVULAS_ZONA) or \
+                l.initial_status == LinkStatus.Closed:
+            continue
+        g.add_edge(l.start_node_name, l.end_node_name)
+    out = {}
+    for i, comp in enumerate(nx.connected_components(g)):
+        for n in comp:
+            out[n] = i
+    return out
+
+
 def incendio(gpkg, com_projetados=False, alteracoes=None, nos=None, vazao=10.0, p_residual=10.0,
-             p_min_zona=None, hora=None, vazao_max=500.0):
-    """Para cada nó: a vazão de incêndio disponível mantendo `p_residual` (mca) no próprio nó e, se
-    `p_min_zona` for dado, essa pressão em todos os outros nós de consumo. Atende = disponível ≥ `vazao`."""
+             p_min_zona=None, p_min_sistema=None, v_max=None, modo="somar", hora=None, vazao_max=500.0):
+    """Fire Flow do WaterGEMS: para cada nó, a maior vazão de incêndio que mantém
+      - `p_residual` (mca) no próprio nó;
+      - `p_min_zona` em todos os nós da mesma zona de pressão (opcional);
+      - `p_min_sistema` em todos os nós da rede (opcional);
+      - velocidade até `v_max` (m/s) em todas as tubulações (opcional).
+    modo "somar": a vazão de incêndio soma à demanda do nó; "substituir": ocupa o lugar dela.
+    Atende = disponível ≥ `vazao`."""
     m = Modelo(gpkg, com_projetados, alteracoes)
     try:
         arq, t = m.instante(hora * 3600 if hora is not None else None, dda=True)
         R = Rapido(arq)
         outros = m.consumo
+        avaliados = set(m.pontos_consumo())  # pressões da zona e do sistema: só nos pontos de consumo (NBR 12218)
+        zona = _zona_de(m.wn)
+        tubos = list(m.wn.pipe_name_list)
         try:
             base = {n: R.no_valor(n, EN.BASEDEMAND) for n in outros}
 
             def testar(n, q):
-                R.mudar_no(n, EN.BASEDEMAND, base[n] + q)
+                R.mudar_no(n, EN.BASEDEMAND, (base[n] if modo == "somar" else 0.0) + q)
                 ok = R.resolver()
-                p = R.no_valor(n, EN.PRESSURE) if ok else -1e9
-                pz, onde = math.inf, None
-                if ok and p_min_zona is not None:
-                    for o in outros:
-                        if o != n:
-                            v = R.no_valor(o, EN.PRESSURE)
-                            if v < pz:
-                                pz, onde = v, o
+                r = {"ok": ok, "p": R.no_valor(n, EN.PRESSURE) if ok else -1e9, "pz": None, "no_pz": None,
+                     "ps": None, "no_ps": None, "v": None, "tubo_v": None}
+                if ok:
+                    for o in avaliados:
+                        if o == n:
+                            continue
+                        v = R.no_valor(o, EN.PRESSURE)
+                        if zona.get(o) == zona.get(n) and (r["pz"] is None or v < r["pz"]):
+                            r["pz"], r["no_pz"] = v, o
+                        if r["ps"] is None or v < r["ps"]:
+                            r["ps"], r["no_ps"] = v, o
+                    if v_max is not None:
+                        for tb in tubos:
+                            v = abs(R.link_valor(tb, EN.VELOCITY))
+                            if r["v"] is None or v > r["v"]:
+                                r["v"], r["tubo_v"] = v, tb
                 R.mudar_no(n, EN.BASEDEMAND, base[n])
-                atende = ok and p >= p_residual and (p_min_zona is None or pz >= p_min_zona)
-                return atende, p, (pz if pz < math.inf else None), onde
+                falhas = []
+                if not ok:
+                    falhas.append("o cálculo não convergiu")
+                else:
+                    if r["p"] < p_residual:
+                        falhas.append("pressão residual no nó")
+                    if p_min_zona is not None and r["pz"] is not None and r["pz"] < p_min_zona:
+                        falhas.append(f"pressão na zona ({r['no_pz']})")
+                    if p_min_sistema is not None and r["ps"] is not None and r["ps"] < p_min_sistema:
+                        falhas.append(f"pressão no sistema ({r['no_ps']})")
+                    if v_max is not None and r["v"] is not None and r["v"] > v_max:
+                        falhas.append(f"velocidade ({r['tubo_v']})")
+                r["falhas"] = falhas
+                return not falhas, r
 
             linhas = []
             for n in _candidatos_hidrante(m, nos):
-                atende_q, p_q, pz_q, onde_q = testar(n, vazao)
+                atende_q, rq = testar(n, vazao)
                 lo, hi = 0.0, float(vazao_max)
                 if testar(n, 0.0)[0]:
                     if testar(n, hi)[0]:
@@ -244,60 +288,123 @@ def incendio(gpkg, com_projetados=False, alteracoes=None, nos=None, vazao=10.0, 
                                 hi = meio
                             if hi - lo < 0.05:
                                 break
+                _, rl = testar(n, lo)
+                _, rlim = testar(n, min(hi, lo + 0.1))  # o que limita logo acima da disponível
                 linhas.append({"id": n, "q_necessaria": vazao, "q_disponivel": _r(lo, 1), "atende": bool(atende_q),
-                               "p_residual": _r(p_q, 1), "p_min_zona": _r(pz_q, 1), "no_p_min_zona": onde_q,
-                               "limitado_por": "pressão no próprio nó" if p_q < p_residual else
-                               ("pressão na zona" if not atende_q else "")})
+                               "q_total": _r((base[n] if modo == "somar" else 0) + lo, 1),
+                               "p_residual": _r(rq["p"], 1), "p_min_zona": _r(rq["pz"], 1), "no_p_min_zona": rq["no_pz"],
+                               "p_min_sistema": _r(rq["ps"], 1), "no_p_min_sistema": rq["no_ps"],
+                               "v_max": _r(rq["v"], 2), "tubo_v_max": rq["tubo_v"],
+                               "limitado_por": ", ".join(rlim["falhas"]) if lo < vazao_max else ""})
         finally:
             R.fechar()
         linhas.sort(key=lambda r: (r["atende"], r["q_disponivel"] or 0))
         return {"ok": True, "hora": _hora_txt(t), "linhas": linhas,
                 "atendem": sum(r["atende"] for r in linhas), "total": len(linhas),
-                "parametros": {"vazao": vazao, "p_residual": p_residual, "p_min_zona": p_min_zona}}
+                "parametros": {"vazao": vazao, "p_residual": p_residual, "p_min_zona": p_min_zona,
+                               "p_min_sistema": p_min_sistema, "v_max": v_max, "modo": modo}}
     finally:
         m.fechar()
 
 
 # ================================================================ descarga (Flushing)
-def descarga(gpkg, com_projetados=False, alteracoes=None, nos=None, vazao=20.0, v_alvo=0.76, hora=None):
-    """Cada nó aberto sozinho com `vazao` (L/s): tubos que passam de `v_alvo` (m/s, limpeza) e pressão no nó."""
+def descarga(gpkg, com_projetados=False, alteracoes=None, nos=None, vazao=20.0, v_alvo=0.76, hora=None,
+             modo="vazao", p_hidrante=10.0, vazao_max=200.0, p_min=None):
+    """Flushing do WaterGEMS: cada nó aberto sozinho; as tubulações que passam de `v_alvo` (m/s) ficam limpas.
+    modo "vazao": a descarga tira `vazao` (L/s). modo "pressao": tira o máximo que mantém `p_hidrante` (mca)
+    no próprio hidrante (até `vazao_max`). `p_min` (opcional): aponta quando outro nó fica abaixo dela."""
     m = Modelo(gpkg, com_projetados, alteracoes)
     try:
         arq, t = m.instante(hora * 3600 if hora is not None else None, dda=True)
         R = Rapido(arq)
         tubos = list(m.wn.pipe_name_list)
+        outros = m.pontos_consumo()
         try:
             R.resolver()
             v0 = {p: abs(R.link_valor(p, EN.VELOCITY)) for p in tubos}
             eventos = []
             for n in _candidatos_hidrante(m, nos):
                 base = R.no_valor(n, EN.BASEDEMAND)
-                R.mudar_no(n, EN.BASEDEMAND, base + vazao)
+                q = vazao
+                if modo == "pressao":  # maior vazão com a pressão residual no hidrante
+                    lo, hi = 0.0, float(vazao_max)
+                    for _ in range(18):
+                        meio = (lo + hi) / 2
+                        R.mudar_no(n, EN.BASEDEMAND, base + meio)
+                        if R.resolver() and R.no_valor(n, EN.PRESSURE) >= p_hidrante:
+                            lo = meio
+                        else:
+                            hi = meio
+                        if hi - lo < 0.05:
+                            break
+                    q = lo
+                R.mudar_no(n, EN.BASEDEMAND, base + q)
                 ok = R.resolver()
                 limpos = []
+                pm, onde = None, None
                 if ok:
                     for p in tubos:
                         v = abs(R.link_valor(p, EN.VELOCITY))
                         if v >= v_alvo:
                             limpos.append({"id": p, "v": _r(v, 2), "v_antes": _r(v0[p], 2)})
+                    for o in outros:
+                        if o != n:
+                            v = R.no_valor(o, EN.PRESSURE)
+                            if pm is None or v < pm:
+                                pm, onde = v, o
                 p_no = R.no_valor(n, EN.PRESSURE) if ok else None
                 R.mudar_no(n, EN.BASEDEMAND, base)
                 limpos.sort(key=lambda x: -x["v"])
-                eventos.append({"id": n, "vazao": vazao, "p_no": _r(p_no, 1), "n_tubos": len(limpos),
+                eventos.append({"id": n, "vazao": _r(q, 1), "p_no": _r(p_no, 1), "n_tubos": len(limpos),
                                 "comprimento_m": _r(sum(m.wn.get_link(x["id"]).length for x in limpos), 0),
+                                "v_max": limpos[0]["v"] if limpos else None,
+                                "p_min_rede": _r(pm, 1), "no_p_min": onde,
+                                "abaixo_p_min": bool(p_min is not None and pm is not None and pm < p_min),
                                 "tubos": limpos[:200], "convergiu": ok})
         finally:
             R.fechar()
         eventos.sort(key=lambda e: -e["comprimento_m"])
-        return {"ok": True, "hora": _hora_txt(t), "eventos": eventos, "v_alvo": v_alvo}
+        return {"ok": True, "hora": _hora_txt(t), "eventos": eventos, "v_alvo": v_alvo, "modo": modo}
     finally:
         m.fechar()
 
 
 # ================================================================ criticidade (Criticality)
-def criticidade(gpkg, com_projetados=False, alteracoes=None, trechos=None, hora=None, p_min=10.0):
-    """Cada tubulação fechada sozinha (com demanda dependente da pressão): água que deixa de ser entregue
-    e nós que ficam abaixo de `p_min`."""
+def segmentos(m):
+    """Segmentos da rede (Segmentation do WaterGEMS): trechos que ficam ligados sem passar por um registro.
+    Fechar um segmento = fechar os registros em volta dele. Devolve [{"id", "tubos", "nos", "registros"}]."""
+    tipos = dict(zip(m.c["valvula"]["id"], m.c["valvula"]["tipo"])) if len(m.c["valvula"]) else {}
+    registros = {v for v, tp in tipos.items() if str(tp).upper() in ("REGISTRO", "TCV")}
+    g = nx.MultiGraph()
+    reg_nos = defaultdict(set)  # registro → nós em que ele encosta
+    for nome, l in m.wn.links():
+        a, b = l.start_node_name, l.end_node_name
+        if nome in registros:
+            reg_nos[nome] |= {a, b}
+            continue
+        if l.link_type == "Pipe":
+            g.add_edge(a, b, key=nome)
+        else:  # bombas e outras válvulas não isolam: ligam os dois lados
+            g.add_edge(a, b, key=nome)
+    out = []
+    for comp in nx.connected_components(g):
+        tubos = sorted({k for a, b, k in g.subgraph(comp).edges(keys=True) if k in m.wn.pipe_name_list})
+        if not tubos:
+            continue
+        regs = sorted(r for r, ns in reg_nos.items() if ns & comp)
+        out.append({"tubos": tubos, "nos": sorted(n for n in comp if "__" not in n), "registros": regs})
+    out.sort(key=lambda s_: -len(s_["tubos"]))
+    for i, s_ in enumerate(out, start=1):
+        s_["id"] = f"SEG{i:03d}"
+    return out
+
+
+def criticidade(gpkg, com_projetados=False, alteracoes=None, trechos=None, hora=None, p_min=10.0, modo="trecho"):
+    """Criticality do WaterGEMS, com demanda dependente da pressão: água que deixa de ser entregue e nós abaixo
+    de `p_min` quando sai de operação
+      modo "trecho": cada tubulação, sozinha;
+      modo "segmento": cada segmento entre registros (fecham-se os registros em volta e todo o trecho fica sem
+      água, como numa manobra real)."""
     m = Modelo(gpkg, com_projetados, alteracoes)
     try:
         arq, t = m.instante(hora * 3600 if hora is not None else None, dda=False)
@@ -308,18 +415,25 @@ def criticidade(gpkg, com_projetados=False, alteracoes=None, trechos=None, hora=
             pedido = sum(R.no_valor(n, EN.BASEDEMAND) for n in nos)
             entregue0 = sum(R.no_valor(n, EN.DEMAND) for n in nos)
             baixos0 = {n for n in nos if R.no_valor(n, EN.PRESSURE) < p_min}
-            linhas = []
-            for p in (trechos or m.wn.pipe_name_list):
-                if p not in R.link:
-                    continue
+
+            def fechar_link(p):
                 st = R.link_valor(p, EN.INITSTATUS)
                 try:
                     R.mudar_link(p, EN.INITSTATUS, 0)
-                    fechar = lambda: R.mudar_link(p, EN.INITSTATUS, st)
-                except Exception:  # tubo com retenção (CV): a biblioteca não muda o estado; diâmetro mínimo corta o fluxo
+                    return lambda: R.mudar_link(p, EN.INITSTATUS, st)
+                except Exception:  # tubo com retenção (CV): diâmetro mínimo corta o fluxo
                     d = R.link_valor(p, EN.DIAMETER)
                     R.mudar_link(p, EN.DIAMETER, 0.01)
-                    fechar = lambda: R.mudar_link(p, EN.DIAMETER, d)
+                    return lambda: R.mudar_link(p, EN.DIAMETER, d)
+
+            if modo == "segmento":
+                alvos = [(s_["id"], s_["tubos"], s_) for s_ in segmentos(m)
+                         if not trechos or set(s_["tubos"]) & set(trechos)]
+            else:
+                alvos = [(p, [p], None) for p in (trechos or m.wn.pipe_name_list) if p in R.link]
+            linhas = []
+            for ident, tubos, seg in alvos:
+                desfazer = [fechar_link(p) for p in tubos if p in R.link]
                 ok = R.resolver()
                 if ok:
                     entregue = sum(R.no_valor(n, EN.DEMAND) for n in nos)
@@ -328,16 +442,22 @@ def criticidade(gpkg, com_projetados=False, alteracoes=None, trechos=None, hora=
                                 and R.no_valor(n, EN.DEMAND) < 0.01 * R.no_valor(n, EN.BASEDEMAND)]
                 else:
                     entregue, baixos, sem_agua = 0.0, [], []
-                fechar()
+                for f in reversed(desfazer):
+                    f()
                 falta = max(0.0, entregue0 - entregue)
-                linhas.append({"id": p, "falta_lps": _r(falta, 2),
-                               "falta_pct": _r(100 * falta / pedido, 1) if pedido > 0 else 0.0,
-                               "nos_baixa_pressao": len(baixos), "nos_sem_agua": len(sem_agua),
-                               "exemplos": (sem_agua or baixos)[:8], "convergiu": ok})
+                lin = {"id": ident, "falta_lps": _r(falta, 2),
+                       "falta_pct": _r(100 * falta / pedido, 1) if pedido > 0 else 0.0,
+                       "nos_baixa_pressao": len(baixos), "nos_sem_agua": len(sem_agua),
+                       "exemplos": (sem_agua or baixos)[:8], "convergiu": ok}
+                if seg is not None:
+                    lin.update({"tubos": tubos, "n_tubos": len(tubos), "registros": seg["registros"],
+                                "comprimento_m": _r(sum(m.wn.get_link(p).length for p in tubos), 0)})
+                linhas.append(lin)
         finally:
             R.fechar()
         linhas.sort(key=lambda r: (-(r["falta_pct"] or 0), -r["nos_baixa_pressao"]))
-        return {"ok": True, "hora": _hora_txt(t), "pedido_lps": _r(pedido, 2), "linhas": linhas, "p_min": p_min}
+        return {"ok": True, "hora": _hora_txt(t), "pedido_lps": _r(pedido, 2), "linhas": linhas, "p_min": p_min,
+                "modo": modo}
     finally:
         m.fechar()
 
@@ -369,8 +489,7 @@ def zonas_pressao(gpkg, com_projetados=False, alteracoes=None):
         for i, nos in enumerate(comp, start=1):
             juncs = [n for n in nos if n in wn.junction_name_list]
             cadastro = sorted({n.split("__")[0] for n in nos})
-            dem = sum(wn.get_node(n).demand_timeseries_list[0].base_value * 1000 for n in juncs
-                      if wn.get_node(n).demand_timeseries_list)
+            dem = sum(d.base_value * 1000 for n in juncs for d in wn.get_node(n).demand_timeseries_list)
             cotas = [wn.get_node(n).elevation for n in juncs] or [0]
             pz = p[[n for n in juncs if "__" not in n]] if any("__" not in n for n in juncs) else None
             fontes = [n for n in nos if n in wn.tank_name_list or n in wn.reservoir_name_list]
@@ -416,7 +535,18 @@ def energia(gpkg, com_projetados=False, alteracoes=None, eficiencia=0.70, tarifa
             q = res.link["flowrate"][nome].to_numpy()  # m³/s
             h = (res.node["head"][b.end_node_name] - res.node["head"][b.start_node_name]).to_numpy()
             ligada = (res.link["status"][nome].to_numpy() > 0) & (q > 1e-6)
-            pot = np.where(ligada, 9.81 * q * np.maximum(h, 0) / max(eta, 0.05), 0.0)  # kW
+            curva_ef = getattr(b, "efficiency", None)
+            if curva_ef is not None and getattr(curva_ef, "points", None):  # curva de rendimento da definição
+                xs = np.array([x for x, _ in curva_ef.points]) * 1000 if max(x for x, _ in curva_ef.points) < 10                     else np.array([x for x, _ in curva_ef.points])
+                ys = np.array([y for _, y in curva_ef.points]) / 100
+                etas = np.interp(q * 1000, xs, ys)
+                eta = float(np.mean(etas[ligada])) if ligada.any() else float(ys.mean())
+            else:
+                etas = np.full_like(q, eta)
+            if b.pump_type == "POWER":  # potência constante: a da definição é a entregue à água
+                pot = np.where(ligada, float(b.power) / 1000 / np.maximum(etas, 0.05), 0.0)
+            else:
+                pot = np.where(ligada, 9.81 * q * np.maximum(h, 0) / np.maximum(etas, 0.05), 0.0)  # kW
             kwh = pot * dt
             preco = np.array([tarifa[int(t // 3600) % 24] for t in tempos])
             custo = kwh * preco
@@ -493,7 +623,7 @@ def renovacao(gpkg, com_projetados=False, alteracoes=None, pesos=None, ano=None,
 
 # ================================================================ dimensionamento (Darwin Designer)
 def dimensionar(gpkg, com_projetados=False, alteracoes=None, trechos=None, dns=None, custo_m=None, p_min=10.0,
-                v_max=3.0, hora=None):
+                v_max=3.0, hora=None, metodo="guloso", max_avaliacoes=3000):
     """Menor custo para as tubulações candidatas atenderem `p_min` (mca) nos nós de consumo e `v_max` (m/s)
     no instante de maior consumo. Começa todas no menor DN e aumenta, a cada passo, a que dá mais ganho de
     pressão por real gasto (método guloso, como uma primeira rodada do Darwin Designer)."""
@@ -525,6 +655,23 @@ def dimensionar(gpkg, com_projetados=False, alteracoes=None, trechos=None, dns=N
             atual = {p: dns[0] for p in cand}
             pm, vm = avaliar(atual)
             passos = 0
+            if metodo == "genetico":  # Darwin Designer: busca global do menor custo que atende (DN por índice)
+                from scipy.optimize import differential_evolution
+                caro = sum(custo(dns[-1], p) for p in cand) or 1.0
+
+                def custo_total(x):
+                    teste = {p: dns[int(round(i))] for p, i in zip(cand, x)}
+                    pm2, vm2 = avaliar(teste)
+                    falta = max(0.0, p_min - pm2) + max(0.0, vm2 - v_max) * 5
+                    return sum(custo(d, p) for p, d in teste.items()) + (caro * (1 + falta) if falta > 0 else 0)
+                pop = 15
+                ger = max(5, int(max_avaliacoes) // (pop * len(cand)) - 1)
+                x0 = [dns.index(min(dns, key=lambda d: abs(d - dn0[p]))) for p in cand]
+                sol = differential_evolution(custo_total, [(0, len(dns) - 1)] * len(cand), integrality=[True] * len(cand),
+                                             popsize=pop, maxiter=ger, seed=1, polish=False, x0=x0, tol=1e-8)
+                atual = {p: dns[int(round(i))] for p, i in zip(cand, sol.x)}
+                pm, vm = avaliar(atual)
+                passos = len(cand) * len(dns)  # pula o guloso
             while (pm < p_min or vm > v_max) and passos < len(cand) * len(dns):
                 passos += 1
                 melhor, ganho_melhor = None, -math.inf
@@ -545,7 +692,7 @@ def dimensionar(gpkg, com_projetados=False, alteracoes=None, trechos=None, dns=N
             avaliar(atual)
             linhas = [{"id": p, "dn_atual": _r(dn0[p], 0), "dn_proposto": atual[p], "comprimento": _r(L[p], 1),
                        "custo": _r(custo(atual[p], p), 0)} for p in cand]
-            return {"ok": True, "hora": _hora_txt(t), "atende": bool(pm >= p_min and vm <= v_max),
+            return {"ok": True, "hora": _hora_txt(t), "atende": bool(pm >= p_min and vm <= v_max), "metodo": metodo,
                     "p_min_antes": _r(p_antes, 1), "v_max_antes": _r(v_antes, 2), "p_min_depois": _r(pm, 1),
                     "v_max_depois": _r(vm, 2), "custo_total": _r(sum(x["custo"] for x in linhas), 0), "linhas": linhas,
                     "alteracoes": [{"camada": "trecho", "id": p, "campo": "diametro_nominal", "valor": atual[p]}
@@ -558,9 +705,10 @@ def dimensionar(gpkg, com_projetados=False, alteracoes=None, trechos=None, dns=N
 
 # ================================================================ qualidade da água (Water Quality)
 def qualidade(gpkg, com_projetados=False, alteracoes=None, parametro="AGE", duracao_h=72, conc_fonte=1.0,
-              kb_dia=-0.5, kw=0.0):
-    """Idade da água (h) ou cloro residual (mg/L, decaimento de 1ª ordem `kb_dia` em 1/dia, cloro
-    `conc_fonte` nas captações e reservatórios-fonte). Devolve as últimas 24 h de cada nó."""
+              kb_dia=-0.5, kw=0.0, fonte=None):
+    """Idade da água (h), cloro residual (mg/L, decaimento de 1ª ordem `kb_dia` em 1/dia, cloro `conc_fonte`
+    nas captações e reservatórios-fonte) ou rastreamento (TRACE: % da água de cada nó que veio de `fonte`).
+    Devolve as últimas 24 h de cada nó."""
     m = Modelo(gpkg, com_projetados, alteracoes)
     try:
         wn = m.wn
@@ -569,6 +717,11 @@ def qualidade(gpkg, com_projetados=False, alteracoes=None, parametro="AGE", dura
         parametro = parametro.upper()
         if parametro == "AGE":
             wn.options.quality.parameter = "AGE"
+        elif parametro == "TRACE":
+            if not fonte or fonte not in wn.node_name_list:
+                raise ValueError(f"escolha a fonte a rastrear (captação, reservatório ou nó): '{fonte}'")
+            wn.options.quality.parameter = "TRACE"
+            wn.options.quality.trace_node = fonte
         else:
             wn.options.quality.parameter = "CHEMICAL"
             wn.options.quality.chemical_name = "Cloro"
@@ -590,14 +743,16 @@ def qualidade(gpkg, com_projetados=False, alteracoes=None, parametro="AGE", dura
             s = ult[n]
             nos[nome] = {"max": _r(s.max(), 2), "media": _r(s.mean(), 2), "min": _r(s.min(), 2),
                          "serie": [_r(x, 3) for x in s]}
-        return {"ok": True, "parametro": "idade (h)" if parametro == "AGE" else "cloro (mg/L)",
+        return {"ok": True, "parametro": {"AGE": "idade (h)", "TRACE": f"água de {fonte} (%)"}.get(
+                    parametro, "cloro (mg/L)"),
                 "horas": [_r((t - ult.index[0]) / 3600, 3) for t in ult.index], "nos": nos}
     finally:
         m.fechar()
 
 
 # ================================================================ comparação de cenários
-def _indicadores(m):
+def _indicadores(m, lim=None):
+    lim = {"limite_pressao_min": 10.0, "limite_pressao_max": 50.0, "limite_velocidade": 2.5, **(lim or {})}
     res = m.res
     p = res.node["pressure"][m.consumo] if m.consumo else pd.DataFrame()
     v = res.link["velocity"].abs()
@@ -610,31 +765,42 @@ def _indicadores(m):
     entregue = dem.sum().sum() * dt
     out = {"p_min": _r(p.min().min(), 1) if p.size else None, "p_media": _r(p.mean().mean(), 1) if p.size else None,
            "p_max": _r(p.max().max(), 1) if p.size else None,
-           "nos_abaixo_10": int((p.min() < 10).sum()) if p.size else 0,
-           "nos_acima_50": int((p.max() > 50).sum()) if p.size else 0,
+           "nos_abaixo_10": int((p.min() < lim["limite_pressao_min"]).sum()) if p.size else 0,
+           "nos_acima_50": int((p.max() > lim["limite_pressao_max"]).sum()) if p.size else 0,
            "v_max": _r(v[tubos].max().max(), 2) if tubos else None, "perda_max_m_km": _r(hl.max().max(), 1) if tubos else None,
-           "tubos_v_alta": int((v[tubos].max() > 2.5).sum()) if tubos else 0,
+           "tubos_v_alta": int((v[tubos].max() > lim["limite_velocidade"]).sum()) if tubos else 0,
            "atendimento_pct": _r(100 * entregue / esp, 1) if esp > 0 else 100.0,
            "volume_entregue_m3": _r(entregue, 0)}
     return out
 
 
-def comparar(gpkg, com_projetados=False, cenario_a=None, cenario_b=None):
-    """cenario_a / cenario_b: listas de alterações (None = rede atual). Indicadores e diferenças por elemento."""
+def comparar(gpkg, com_projetados=False, cenario_a=None, cenario_b=None, limites=None, hora=None):
+    """cenario_a / cenario_b: listas de alterações (None = rede atual). Indicadores e diferenças por elemento:
+    pressão (mínima do dia, ou na `hora`), velocidade e vazão (máximas do dia, ou na `hora`)."""
     ma = Modelo(gpkg, com_projetados, cenario_a)
     mb = Modelo(gpkg, com_projetados, cenario_b)
     try:
-        ia, ib = _indicadores(ma), _indicadores(mb)
+        ia, ib = _indicadores(ma, limites), _indicadores(mb, limites)
         pa, pb = ma.res.node["pressure"], mb.res.node["pressure"]
+
+        def na_hora(df, col, agreg):
+            s_ = df[col]
+            if hora is None:
+                return float(agreg(s_))
+            t = s_.index[np.abs(np.asarray(s_.index) - hora * 3600).argmin()]
+            return float(s_.at[t])
         nos = []
         for n in sorted(set(ma.consumo) & set(mb.consumo)):
-            a, b = float(pa[n].min()), float(pb[n].min())
+            a, b = na_hora(pa, n, np.min), na_hora(pb, n, np.min)
             nos.append({"id": n, "p_min_a": _r(a, 1), "p_min_b": _r(b, 1), "dif": _r(b - a, 1)})
         va, vb = ma.res.link["velocity"].abs(), mb.res.link["velocity"].abs()
+        qa, qb = ma.res.link["flowrate"].abs() * 1000, mb.res.link["flowrate"].abs() * 1000
         tubos = []
         for t in sorted(set(ma.wn.pipe_name_list) & set(mb.wn.pipe_name_list)):
-            a, b = float(va[t].max()), float(vb[t].max())
-            tubos.append({"id": t, "v_max_a": _r(a, 2), "v_max_b": _r(b, 2), "dif": _r(b - a, 2)})
+            a, b = na_hora(va, t, np.max), na_hora(vb, t, np.max)
+            q1, q2 = na_hora(qa, t, np.max), na_hora(qb, t, np.max)
+            tubos.append({"id": t, "v_max_a": _r(a, 2), "v_max_b": _r(b, 2), "dif": _r(b - a, 2),
+                          "q_a": _r(q1, 2), "q_b": _r(q2, 2), "dif_q": _r(q2 - q1, 2)})
         nos.sort(key=lambda x: -abs(x["dif"] or 0))
         tubos.sort(key=lambda x: -abs(x["dif"] or 0))
         return {"ok": True, "a": ia, "b": ib, "nos": nos, "tubos": tubos}
@@ -644,13 +810,17 @@ def comparar(gpkg, com_projetados=False, cenario_a=None, cenario_b=None):
 
 
 # ================================================================ esqueletização (Skelebrator)
-def esqueletizar(gpkg, destino, dn_max=100.0, cortar_ramais=True, unir_serie=True, comprimento_max=None):
-    """Grava em `destino` uma cópia do cadastro simplificada:
-    - ramais: tubulação de ponta (nó com 1 só ligação) com DN ≤ `dn_max` sai, e a demanda do nó da ponta
-      passa para o nó de onde o ramal sai (repete até não sobrar ramal);
-    - série: nó de passagem (2 ligações, sem ser bomba/válvula/fonte) entre tubos de mesmo DN e material
-      some, os dois tubos viram um só e a demanda do nó é dividida entre as pontas.
-    Bombas, válvulas, reservatórios e captações nunca são removidos."""
+def esqueletizar(gpkg, destino, dn_max=100.0, cortar_ramais=True, unir_serie=True, comprimento_max=None,
+                 unir_paralelos=True, tol_dn_pct=0.0, dn_max_serie=None, protegidos=()):
+    """Grava em `destino` uma cópia do cadastro simplificada (Skelebrator do WaterGEMS):
+    - ramais (Branch Trimming): tubulação de ponta (nó com 1 só ligação) com DN ≤ `dn_max` (e até
+      `comprimento_max` m) sai, e a demanda do nó da ponta passa para o nó de onde o ramal sai;
+    - série (Series Pipe Merging): nó de passagem (2 ligações, sem ser bomba/válvula/fonte) entre tubos de DN
+      parecido (diferença até `tol_dn_pct` %) some; os dois viram um tubo equivalente (DN do mais longo e C que
+      dá a mesma perda de carga de Hazen-Williams) e a demanda do nó vai metade para cada ponta;
+    - paralelos (Parallel Pipe Merging): tubos entre os mesmos dois nós viram um só, com o DN do maior e o C
+      que conduz a mesma vazão.
+    Bombas, válvulas, reservatórios, captações e os nós `protegidos` (ex.: pontos de medição) nunca saem."""
     import geopandas as gpd
     from shapely.geometry import LineString
     if os.path.abspath(destino) == os.path.abspath(gpkg):
@@ -663,7 +833,10 @@ def esqueletizar(gpkg, destino, dn_max=100.0, cortar_ramais=True, unir_serie=Tru
             fixos |= set(gpd.read_file(gpkg, layer=camada)["id"].astype(str))
         except Exception:
             pass
+    fixos |= {str(p) for p in protegidos}
     tr = tr[tr["situacao"].fillna("EXISTENTE") != "DESATIVADO"].copy()
+    tr["rugosidade_hw"] = tr["rugosidade_hw"].fillna(130.0).astype(float)
+    paralelos = 0
     nos = nos.copy()
     nos["demanda_base"] = nos["demanda_base"].fillna(0.0).astype(float)
     dem = dict(zip(nos["id"], nos["demanda_base"]))
@@ -709,7 +882,12 @@ def esqueletizar(gpkg, destino, dn_max=100.0, cortar_ramais=True, unir_serie=Tru
                 if len(ts) != 2 or n in fixos or n not in dem:
                     continue
                 a, b = tr.loc[ts[0]], tr.loc[ts[1]]
-                if a["diametro_nominal"] != b["diametro_nominal"] or (a["material"] or "") != (b["material"] or ""):
+                da, db = float(a["diametro_nominal"] or 0), float(b["diametro_nominal"] or 0)
+                if not da or not db or abs(da - db) > tol_dn_pct / 100 * max(da, db) + 1e-9:
+                    continue
+                if dn_max_serie is not None and max(da, db) > dn_max_serie:
+                    continue
+                if tol_dn_pct <= 0 and (a["material"] or "") != (b["material"] or ""):
                     continue
                 # orienta: a termina em n, b começa em n
                 ga = list(a.geometry.coords) if a["no_final"] == n else list(a.geometry.coords)[::-1]
@@ -726,6 +904,11 @@ def esqueletizar(gpkg, destino, dn_max=100.0, cortar_ramais=True, unir_serie=Tru
                 novo["geometry"] = LineString(ga + gb[1:])
                 novo["no_inicial"], novo["no_final"] = ini, fim
                 novo["comprimento"] = round((a["comprimento"] or 0) + (b["comprimento"] or 0), 2)
+                la, lb = float(a["comprimento"] or 0) or 1e-3, float(b["comprimento"] or 0) or 1e-3
+                deq = da if la >= lb else db  # Hazen-Williams: mesma perda de carga com o DN do mais longo
+                soma = la / (a["rugosidade_hw"] ** 1.852 * da ** 4.87) + lb / (b["rugosidade_hw"] ** 1.852 * db ** 4.87)
+                novo["diametro_nominal"] = deq
+                novo["rugosidade_hw"] = round(((la + lb) / (deq ** 4.87 * soma)) ** (1 / 1.852), 1)
                 novo["observacao"] = f"unido de {a['id']} + {b['id']} (esqueletização)"
                 tr.loc[ts[0]] = novo
                 tr = tr.drop(index=ts[1])
@@ -733,6 +916,25 @@ def esqueletizar(gpkg, destino, dn_max=100.0, cortar_ramais=True, unir_serie=Tru
                 unidos += 1
                 mudou = True
                 break
+    if unir_paralelos:
+        grupos = defaultdict(list)
+        for i, r in tr.iterrows():
+            grupos[frozenset((r["no_inicial"], r["no_final"]))].append(i)
+        for chave, idx in grupos.items():
+            if len(idx) < 2 or len(chave) < 2:
+                continue
+            rs = [tr.loc[i] for i in idx]
+            base = max(rs, key=lambda r: float(r["diametro_nominal"] or 0))
+            D, L = float(base["diametro_nominal"]), float(base["comprimento"] or 1)
+            # mesma vazão com a mesma perda: Σ C·D^2,63 / L^0,54 do conjunto = C_eq·D^2,63 / L^0,54
+            soma = sum(float(r["rugosidade_hw"]) * float(r["diametro_nominal"] or 0) ** 2.63
+                       / (float(r["comprimento"] or 1) ** 0.54) for r in rs)
+            novo = base.copy()
+            novo["rugosidade_hw"] = round(soma * L ** 0.54 / D ** 2.63, 1)
+            novo["observacao"] = "paralelos " + " + ".join(str(r["id"]) for r in rs) + " (esqueletização)"
+            tr.loc[base.name] = novo
+            tr = tr.drop(index=[i for i in idx if i != base.name])
+            paralelos += len(idx) - 1
     nos = nos[nos["id"].isin(dem.keys())].copy()
     nos["demanda_base"] = nos["id"].map(dem).round(4)
     shutil.copyfile(gpkg, destino)
@@ -751,13 +953,15 @@ def esqueletizar(gpkg, destino, dn_max=100.0, cortar_ramais=True, unir_serie=Tru
     else:
         qgz = None
     return {"ok": True, "gpkg": destino, "qgz": qgz, "tubos_removidos": removidos_t, "nos_removidos": removidos_n,
-            "tubos_unidos": unidos, "tubos_final": int(len(tr)), "nos_final": int(len(nos)),
+            "tubos_unidos": unidos, "paralelos_unidos": paralelos, "tubos_final": int(len(tr)),
+            "nos_final": int(len(nos)),
             "demanda_total": _r(sum(dem.values()), 3)}
 
 
 FUNCOES = {"incendio": incendio, "descarga": descarga, "criticidade": criticidade, "zonas_pressao": zonas_pressao,
            "energia": energia, "renovacao": renovacao, "dimensionar": dimensionar, "qualidade": qualidade,
-           "comparar": comparar, "esqueletizar": esqueletizar}
+           "comparar": comparar, "esqueletizar": esqueletizar,
+           "calibrar_darwin": lambda gpkg, **k: __import__("darwin").calibrar(gpkg, **k)}
 
 
 def rodar(nome, gpkg, parametros):
@@ -766,3 +970,5 @@ def rodar(nome, gpkg, parametros):
         return FUNCOES[nome](gpkg, **parametros)
     except ErroModelo as e:
         return {"ok": False, "itens": e.itens, "erro": str(e)}
+    except ValueError as e:  # dados da análise incompletos: mensagem para o usuário
+        return {"ok": False, "erro": str(e), "itens": [{"nivel": "ERRO", "msg": str(e), "camada": None, "id": None}]}

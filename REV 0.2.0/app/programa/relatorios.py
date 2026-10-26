@@ -108,9 +108,12 @@ def secao_resultados(nucleo):
     if pres:
         pmin = min(pres, key=lambda x: x[1])
         pmax = max(pres, key=lambda x: x[2])
+        from .componentes import limites
+        lim = limites(nucleo)
+        lo, hi = lim["limite_pressao_min"], lim["limite_pressao_max"]
         h += (f"<p>Pressão mínima <b>{num(pmin[1], 1)} mca</b> ({pmin[0]}) · máxima <b>{num(pmax[2], 1)} mca</b> "
-              f"({pmax[0]}) · {sum(1 for p in pres if p[1] < 10)} nó(s) abaixo de 10 mca · "
-              f"{sum(1 for p in pres if p[2] > 50)} acima de 50 mca.</p>")
+              f"({pmax[0]}) · {sum(1 for p in pres if p[1] < lo)} nó(s) abaixo de {num(lo, 1)} mca · "
+              f"{sum(1 for p in pres if p[2] > hi)} acima de {num(hi, 1)} mca.</p>")
     if vel:
         vmax = max(vel, key=lambda x: x[1])
         h += f"<p>Velocidade máxima <b>{num(vmax[1], 2)} m/s</b> ({vmax[0]}).</p>"
@@ -232,7 +235,93 @@ def personalizado(nucleo):
         gerar(nucleo, {k for k, cb in caixas.items() if cb.isChecked()}, "Relatório")
 
 
-ACOES = {"relatorio_personalizado": personalizado,
+def detalhes_elemento(nucleo, alvo=None):
+    """Element Details do WaterGEMS: todos os dados do elemento selecionado, os resultados hora a hora, o gráfico e as
+    leituras de campo da calibração."""
+    from .tabelas import RESULTADOS
+    sel = [(lyr, fids) for lyr, fids in nucleo.janela.selecionados()] if alvo is None else alvo
+    itens = []
+    for lyr, fids in sel:
+        camada = next((c for c in ("trecho",) + PONTOS if _eh(nucleo, c, lyr)), None)
+        for f in lyr.getFeatures(fids):
+            itens.append((camada, f))
+    if not itens:
+        return nucleo.informar("Selecione no mapa o(s) elemento(s) do relatório.")
+    recursos, partes = {}, [ESTILO, secao_cabecalho(nucleo)]
+    res = nucleo.res
+    for k, (camada, f) in enumerate(itens[:30]):
+        eid = str(f["id"])
+        partes.append(f"<h2>{NOMES.get(camada, camada)} {eid}</h2>")
+        partes.append(_tabela(["Campo", "Valor"], [[c.name(), "" if f[c.name()] is None or str(f[c.name()]) == "NULL"
+                                                     else f[c.name()]] for c in f.fields() if c.name() != "fid"]))
+        if not res:
+            partes.append("<p class='sub'>Calcule a rede para ver os resultados.</p>")
+            continue
+        cols = [(nome, fn) for nome, fn in RESULTADOS.get(camada, []) if "dia" not in nome]
+        linhas = []
+        for i, hh in enumerate(res.horas):
+            lin = [f"{int(hh) % 24:02d}:{int(round(hh % 1 * 60)) % 60:02d}"]
+            for _, fn in cols:
+                try:
+                    v = fn(res.d, eid, i)
+                except (KeyError, IndexError, TypeError):
+                    v = None
+                lin.append(round(v, 3) if isinstance(v, float) else ("" if v is None else v))
+            linhas.append(lin)
+        if cols:
+            img = _grafico_elemento(nucleo, camada, eid, cols, res)
+            if img is not None:
+                recursos[f"el{k}.png"] = img
+                partes.append(f"<img src='el{k}.png' width='820'>")
+            partes.append("<p>Resultados hora a hora:</p>" + _tabela(["Hora"] + [c for c, _ in cols], linhas))
+        from .graficos import medicoes_de
+        med = [(gr, h_, v) for gr in ("pressao", "vazao", "nivel", "carga") for h_, v in medicoes_de(nucleo, eid, gr)]
+        if med:
+            partes.append("<p>Leituras de campo (Calibração):</p>" + _tabela(
+                ["Grandeza", "Hora", "Medido"], [[g, f"{h_:g} h", v] for g, h_, v in med]))
+    nucleo.janela.abrir_aba(Relatorio(nucleo, "".join(partes), recursos), "Detalhes do elemento", "relatorio")
+
+
+def _eh(nucleo, c, lyr):
+    try:
+        return nucleo.camada(c).id() == lyr.id()
+    except LookupError:
+        return False
+
+
+def _grafico_elemento(nucleo, camada, eid, cols, res):
+    """Imagem (QImage) do gráfico do dia da primeira variável do elemento, com as leituras de campo."""
+    import io
+    import matplotlib
+    matplotlib.use("Agg")
+    from matplotlib.figure import Figure
+    from qgis.PyQt.QtGui import QImage
+    from .graficos import GRANDEZA_VAR, medicoes_de
+    nome, fn = cols[0]
+    try:
+        ys = [fn(res.d, eid, i) for i in range(len(res.horas))]
+    except (KeyError, IndexError, TypeError):
+        return None
+    if any(y is None or isinstance(y, str) for y in ys):
+        return None
+    fig = Figure(figsize=(8.2, 2.6), dpi=100)
+    ax = fig.add_subplot(111)
+    ax.plot(res.horas, ys, color="#1c7ed6", linewidth=1.8, label="calculado")
+    gr = next((g for k, g in GRANDEZA_VAR.items() if nome.startswith(k)), None)
+    pts = medicoes_de(nucleo, eid, gr) if gr else []
+    if pts:
+        ax.scatter([h for h, _ in pts], [v for _, v in pts], color="#f59f00", s=26, zorder=5, label="medido")
+    ax.set_title(f"{eid} · {nome}", fontsize=9, loc="left")
+    ax.set_xlabel("hora", fontsize=8)
+    ax.grid(alpha=0.3)
+    ax.legend(fontsize=7, frameon=False)
+    fig.tight_layout()
+    buf = io.BytesIO()
+    fig.savefig(buf, format="png")
+    return QImage.fromData(buf.getvalue(), "PNG")
+
+
+ACOES = {"relatorio_personalizado": personalizado, "detalhes_elemento": detalhes_elemento,
          "resumo_cenario": lambda n: gerar(n, {"cab", "opcoes", "inventario", "resultados"}, "Resumo do cenário"),
          "inventario": lambda n: gerar(n, {"cab", "inventario"}, "Inventário do modelo"),
          "inventario_tubos": lambda n: gerar(n, {"cab", "tubos"}, "Inventário de tubulações")}

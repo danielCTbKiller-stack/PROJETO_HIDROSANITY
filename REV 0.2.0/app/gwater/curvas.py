@@ -7,6 +7,11 @@ do cadastro (id_curva, tipo='BOMBA', x, y). O EPANET entende três formas:
   - 3 pontos começando em vazão 0: ajusta H = A − B·Q^C;
   - 4 ou mais pontos: liga os pontos (curva por trechos).
 Duas curvas de 2 pontos não existem no EPANET.
+  - Potência constante (tipo='POTENCIA', y = kW entregues à água): a bomba fornece sempre essa potência.
+
+Cada definição pode ter a curva de rendimento (tipo='RENDIMENTO', x = vazão L/s, y = %), como a
+"Efficiency" do WaterGEMS: constante (1 ponto em vazão 0), ponto de melhor rendimento (BEP, 1 ponto) ou
+vários pontos. A análise de energia usa o rendimento de cada bomba (sem curva: 70%).
 
 Na camada de bombas, o campo `curva` vira uma lista com as curvas cadastradas.
 """
@@ -24,8 +29,38 @@ from qgis.PyQt.QtWidgets import (
 from . import estilo
 
 FORMAS = [("1", "Ponto de projeto (1 ponto)"), ("3", "Padrão (3 pontos: shutoff, projeto, máxima)"),
-          ("n", "Vários pontos (4 ou mais)")]
+          ("n", "Vários pontos (4 ou mais)"), ("p", "Potência constante")]
+RENDIMENTOS = [("", "Sem curva (a energia usa 70%)"), ("c", "Rendimento constante"),
+               ("b", "Ponto de melhor rendimento (BEP)"), ("m", "Vários pontos")]
 TIPO_BOMBA = "BOMBA"
+
+
+def forma_rendimento(pts):
+    if not pts:
+        return ""
+    return ("c" if pts[0][0] <= 0 else "b") if len(pts) == 1 else "m"
+
+
+def tracado_rendimento(pts):
+    """Rendimento (%) × vazão como o motor manda ao EPANET (mesma regra de cadastro_para_inp.curva_rendimento)."""
+    pts = sorted(pts)
+    if len(pts) == 1 and pts[0][0] <= 0:
+        return [(0.0, pts[0][1]), (1e9, pts[0][1])]
+    if len(pts) == 1:
+        qb, eb = pts[0]
+        return [(qb * k / 20, max(1.0, eb * (2 * k / 20 - (k / 20) ** 2))) for k in range(41)]
+    return pts
+
+
+def problemas_rendimento(pts):
+    if not pts:
+        return []
+    if any(not 0 < e <= 100 for _, e in pts):
+        return ["o rendimento tem que estar entre 0 e 100%"]
+    qs = sorted(q for q, _ in pts)
+    if any(b <= a for a, b in zip(qs, qs[1:])):
+        return ["as vazões do rendimento têm que crescer de um ponto para o outro"]
+    return []
 
 
 # ---------------------------------------------------------------- regras da curva (as mesmas do EPANET)
@@ -77,6 +112,24 @@ def tracado(pts, n=60):
 
 
 # ---------------------------------------------------------------- leitura e gravação no cadastro
+def ler_tudo(camada):
+    """(curvas {nome: [(q, h)]}, potência {nome: kW}, rendimento {nome: [(q, %)]}) das definições de bomba."""
+    curvas, pot, rend = ler(camada), {}, {}
+    for f in camada.getFeatures():
+        tipo = str(f["tipo"] or "").upper()
+        if tipo == "POTENCIA":
+            pot[str(f["id_curva"])] = float(f["y"])
+        elif tipo == "RENDIMENTO":
+            rend.setdefault(str(f["id_curva"]), []).append((float(f["x"]), float(f["y"])))
+    return curvas, pot, {k: sorted(v) for k, v in rend.items()}
+
+
+def nomes(camada):
+    """Nomes de todas as definições de bomba (curva ou potência constante)."""
+    c, p, _ = ler_tudo(camada)
+    return set(c) | set(p)
+
+
 def ler(camada):
     """{nome: [(q, h), ...]} só das curvas de bomba."""
     curvas = {}
@@ -88,20 +141,29 @@ def ler(camada):
     return {k: sorted(v) for k, v in curvas.items()}
 
 
-def gravar(camada, curvas, removidas=()):
-    """Substitui na tabela as curvas editadas e remove as excluídas; salva a tabela."""
+def gravar(camada, curvas, removidas=(), potencia=None, rendimento=None):
+    """Substitui na tabela as definições editadas (curva ou potência, e o rendimento) e remove as excluídas."""
+    potencia, rendimento = potencia or {}, rendimento or {}
     if not camada.isEditable():
         camada.startEditing()
-    tirar = set(curvas) | set(removidas)
+    tirar = set(curvas) | set(removidas) | set(potencia)
     apagar = [f.id() for f in camada.getFeatures() if str(f["id_curva"]) in tirar
-              and str(f["tipo"] or TIPO_BOMBA).upper() in (TIPO_BOMBA, "NULL", "PUMP")]
+              and str(f["tipo"] or TIPO_BOMBA).upper() in (TIPO_BOMBA, "NULL", "PUMP", "POTENCIA", "RENDIMENTO")]
     camada.deleteFeatures(apagar)
     novas = []
-    for nome, pts in curvas.items():
-        for q, h in sorted(pts):
-            f = QgsFeature(camada.fields())
-            f["id_curva"], f["tipo"], f["x"], f["y"] = nome, TIPO_BOMBA, float(q), float(h)
-            novas.append(f)
+
+    def linha(nome, tipo, x, y):
+        f = QgsFeature(camada.fields())
+        f["id_curva"], f["tipo"], f["x"], f["y"] = nome, tipo, float(x), float(y)
+        novas.append(f)
+    for nome in set(curvas) | set(potencia):
+        if nome in potencia:
+            linha(nome, "POTENCIA", 0, potencia[nome])
+        else:
+            for q, h in sorted(curvas[nome]):
+                linha(nome, TIPO_BOMBA, q, h)
+        for q, e in sorted(rendimento.get(nome, [])):
+            linha(nome, "RENDIMENTO", q, e)
     camada.addFeatures(novas)
     if not camada.commitChanges():
         raise RuntimeError("; ".join(camada.commitErrors()))
@@ -126,13 +188,27 @@ class Grafico(QWidget):
     def __init__(self):
         super().__init__()
         self.pts, self.curva, self.ok = [], [], True
+        self.ef, self.ef_pts = [], []
         self.setMinimumSize(320, 220)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
-    def mostrar(self, pts):
-        self.pts = sorted(pts)
-        self.ok = not problemas(self.pts)
-        self.curva = tracado(self.pts)
+    def mostrar(self, pts, rend=None, potencia=None, qref=None):
+        """pts: altura × vazão; rend: rendimento (%) × vazão; potencia (kW): curva H = P / (9,81·Q)."""
+        rend = sorted(rend or [])
+        if potencia:
+            q1 = max(qref or 0, 1.0)
+            self.pts = []
+            self.curva = [(q1 * k / 10, potencia * 1000 / (9.81 * q1 * k / 10)) for k in range(3, 31)]
+            self.ok = potencia > 0
+        else:
+            self.pts = sorted(pts)
+            self.ok = not problemas(self.pts)
+            self.curva = tracado(self.pts)
+        qmax = max([q for q, _ in self.curva + self.pts] + [1])
+        self.ef = [(q, e) for q, e in tracado_rendimento(rend) if q <= qmax * 1.08] if rend else []
+        if rend and len(self.ef) < 2:
+            self.ef = [(0, rend[0][1]), (qmax, rend[0][1])]
+        self.ef_pts = [] if forma_rendimento(rend) == "c" else rend
         self.update()
 
     def paintEvent(self, _):
@@ -140,7 +216,7 @@ class Grafico(QWidget):
         p = QPainter(self)
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
         p.fillRect(self.rect(), QColor(c["panel"]))
-        m = QRectF(46, 14, self.width() - 60, self.height() - 46)
+        m = QRectF(46, 14, self.width() - 90, self.height() - 46)
         todos = self.curva + self.pts
         qmax = max([q for q, _ in todos] + [1]) * 1.08
         hmax = max([h for _, h in todos] + [1]) * 1.12
@@ -172,6 +248,21 @@ class Grafico(QWidget):
         p.setBrush(QColor(c["warn"]))
         for q, h in self.pts:
             p.drawEllipse(xy(q, h), 4.5, 4.5)
+        if self.ef:  # rendimento: eixo da direita, 0 a 100%
+            ye = lambda q, e: QPointF(m.left() + q / qmax * m.width(), m.bottom() - e / 100 * m.height())  # noqa: E731
+            cam = QPainterPath(ye(*self.ef[0]))
+            for q, e in self.ef[1:]:
+                cam.lineTo(ye(q, e))
+            p.setPen(QPen(QColor(c["ok"]), 1.8, Qt.PenStyle.DashLine))
+            p.setBrush(Qt.BrushStyle.NoBrush)
+            p.drawPath(cam)
+            p.setPen(QColor(c["ok"]))
+            for i in range(6):
+                y = m.bottom() - m.height() * i / 5
+                p.drawText(QRectF(m.right() + 2, y - 7, 30, 14), Qt.AlignmentFlag.AlignLeft, f"{20 * i}%")
+            p.setBrush(QColor(c["ok"]))
+            for q, e in self.ef_pts:
+                p.drawEllipse(ye(q, e), 3.5, 3.5)
         p.end()
 
 
@@ -181,14 +272,16 @@ class JanelaCurvas(QDialog):
         super().__init__(pai)
         self.plugin = plugin
         self.tabela_cad, self.bombas = plugin.camada("curva"), plugin.camada("bomba")
-        self.curvas = ler(self.tabela_cad)
+        self.curvas, self.potencia, self.rend = ler_tudo(self.tabela_cad)
+        for nome in self.potencia:  # a lista mostra as duas espécies de definição
+            self.curvas.setdefault(nome, [])
         self.originais = set(self.curvas)
         self.removidas, self.renomes = set(), {}
         self.atual = None
-        self.setWindowTitle("GWATER · Curvas de bomba")
+        self.setWindowTitle("GWATER · Curvas de bomba (Pump Definitions)")
         self.setObjectName("gwater")
         self.setStyleSheet(estilo.qss())
-        self.resize(860, 560)
+        self.resize(980, 680)
 
         raiz = QVBoxLayout(self)
         exp = QLabel("Cadastre aqui as curvas das bombas (vazão × altura manométrica). Depois, no formulário de cada "
@@ -232,6 +325,22 @@ class JanelaCurvas(QDialog):
         self.forma.setToolTip("Como o EPANET monta a curva a partir dos pontos")
         self.forma.activated.connect(self._mudar_forma)
         form.addRow("Definição:", self.forma)
+        from qgis.PyQt.QtWidgets import QDoubleSpinBox
+        self.pot = QDoubleSpinBox()
+        self.pot.setRange(0, 100000)
+        self.pot.setDecimals(2)
+        self.pot.setSuffix(" kW")
+        self.pot.setToolTip("Potência entregue à água (a bomba fornece sempre essa potência; a altura cai com a vazão)")
+        self.pot.valueChanged.connect(self._mudou_potencia)
+        self.lin_pot = QLabel("Potência:")
+        form.addRow(self.lin_pot, self.pot)
+        self.forma_ef = QComboBox()
+        for k, t in RENDIMENTOS:
+            self.forma_ef.addItem(t, k)
+        self.forma_ef.setToolTip("Rendimento da bomba (Efficiency do WaterGEMS): a análise de energia usa para o "
+                                 "consumo elétrico")
+        self.forma_ef.activated.connect(self._mudar_rendimento)
+        form.addRow("Rendimento:", self.forma_ef)
         dir_.addLayout(form)
         meio = QHBoxLayout()
         tab = QVBoxLayout()
@@ -250,6 +359,21 @@ class JanelaCurvas(QDialog):
         bp.addWidget(self.mais)
         bp.addWidget(self.menos)
         tab.addLayout(bp)
+        self.tab_ef = QTableWidget(0, 2)
+        self.tab_ef.setHorizontalHeaderLabels(["Vazão (L/s)", "Rendimento (%)"])
+        self.tab_ef.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        self.tab_ef.verticalHeader().setVisible(False)
+        self.tab_ef.itemChanged.connect(self._editou_rendimento)
+        self.tab_ef.setFixedWidth(230)
+        self.tab_ef.setMaximumHeight(170)
+        tab.addWidget(self.tab_ef)
+        be = QHBoxLayout()
+        self.mais_ef, self.menos_ef = QPushButton("+ ponto"), QPushButton("− ponto")
+        self.mais_ef.clicked.connect(self._mais_ponto_ef)
+        self.menos_ef.clicked.connect(self._menos_ponto_ef)
+        be.addWidget(self.mais_ef)
+        be.addWidget(self.menos_ef)
+        tab.addLayout(be)
         meio.addLayout(tab)
         self.grafico = Grafico()
         meio.addWidget(self.grafico, 1)
@@ -307,6 +431,9 @@ class JanelaCurvas(QDialog):
         if self.atual:
             nome = self._nome_livre(self.atual + "_COPIA")
             self.curvas[nome] = list(self.curvas[self.atual])
+            for d in (self.potencia, self.rend):
+                if self.atual in d:
+                    d[nome] = d[self.atual] if not isinstance(d[self.atual], list) else list(d[self.atual])
             self._preencher_lista(nome)
 
     def _excluir(self):
@@ -321,6 +448,8 @@ class JanelaCurvas(QDialog):
         if self.atual in self.originais:
             self.removidas.add(self.atual)
         del self.curvas[self.atual]
+        self.potencia.pop(self.atual, None)
+        self.rend.pop(self.atual, None)
         self._preencher_lista()
 
     def _renomear(self):
@@ -333,6 +462,9 @@ class JanelaCurvas(QDialog):
             self.nome.setText(self.atual)
             return
         self.curvas[novo] = self.curvas.pop(self.atual)
+        for d in (self.potencia, self.rend):
+            if self.atual in d:
+                d[novo] = d.pop(self.atual)
         if self.atual in self.originais:
             self.removidas.add(self.atual)
         origem = next((k for k, v in self.renomes.items() if v == self.atual), self.atual)
@@ -343,8 +475,17 @@ class JanelaCurvas(QDialog):
     def _selecionar(self, nome):
         self.atual = nome or None
         tem = self.atual is not None
-        for w in (self.nome, self.forma, self.pontos, self.mais, self.menos):
+        for w in (self.nome, self.forma, self.pontos, self.mais, self.menos, self.forma_ef, self.tab_ef):
             w.setEnabled(tem)
+        pot = tem and self.atual in self.potencia
+        for w in (self.pontos, self.mais, self.menos):
+            w.setVisible(not pot)
+        self.pot.setVisible(pot)
+        self.lin_pot.setVisible(pot)
+        self.pot.blockSignals(True)
+        self.pot.setValue(self.potencia.get(self.atual, 0) if pot else 0)
+        self.pot.blockSignals(False)
+        self._mostrar_rendimento()
         self.nome.setText(self.atual or "")
         self.pontos.blockSignals(True)
         self.pontos.setRowCount(0)
@@ -355,7 +496,8 @@ class JanelaCurvas(QDialog):
             self.pontos.setItem(r, 1, QTableWidgetItem(f"{h:g}"))
         self.pontos.blockSignals(False)
         if tem:
-            self.forma.setCurrentIndex([k for k, _ in FORMAS].index(forma(self.curvas[self.atual])))
+            k = "p" if pot else forma(self.curvas[self.atual])
+            self.forma.setCurrentIndex([x for x, _ in FORMAS].index(k))
         self._conferir()
 
     def _ler_tabela(self):
@@ -382,6 +524,15 @@ class JanelaCurvas(QDialog):
         if not self.atual:
             return
         pts, k = sorted(self.curvas[self.atual]), self.forma.currentData()
+        if k == "p":  # potência constante: estima pela curva atual (ponto de projeto)
+            q, h = pts[len(pts) // 2] if pts else (10.0, 30.0)
+            self.potencia[self.atual] = round(9.81 * q * h / 1000, 2) if q > 0 else 5.0
+            self._selecionar(self.atual)
+            return
+        if self.atual in self.potencia:  # volta a ser curva: parte do ponto que dá a mesma potência
+            kw = self.potencia.pop(self.atual)
+            pts = [(10.0, round(kw * 1000 / (9.81 * 10), 2))]
+            self.curvas[self.atual] = pts
         proj = pts[len(pts) // 2] if pts else (10.0, 30.0)
         if k == "1":
             self._escrever([proj] if proj[0] > 0 else [(10.0, 30.0)])
@@ -406,21 +557,111 @@ class JanelaCurvas(QDialog):
             pts.pop(linha if 0 <= linha < len(pts) else -1)
             self._escrever(pts)
 
+    # ------------------------------------------------ potência e rendimento
+    def _mudou_potencia(self, v):
+        if self.atual and self.atual in self.potencia:
+            self.potencia[self.atual] = v
+            self._conferir()
+
+    def _mostrar_rendimento(self):
+        pts = self.rend.get(self.atual, []) if self.atual else []
+        self.forma_ef.setCurrentIndex([k for k, _ in RENDIMENTOS].index(forma_rendimento(pts)))
+        self.tab_ef.blockSignals(True)
+        self.tab_ef.setRowCount(0)
+        for q, e in pts:
+            r = self.tab_ef.rowCount()
+            self.tab_ef.insertRow(r)
+            it = QTableWidgetItem(f"{q:g}")
+            if forma_rendimento(pts) == "c":  # constante: vale para qualquer vazão
+                it.setText("(qualquer)")
+                it.setFlags(it.flags() & ~Qt.ItemFlag.ItemIsEditable)
+            self.tab_ef.setItem(r, 0, it)
+            self.tab_ef.setItem(r, 1, QTableWidgetItem(f"{e:g}"))
+        self.tab_ef.blockSignals(False)
+        k = forma_rendimento(pts)
+        self.tab_ef.setVisible(k != "")
+        self.mais_ef.setVisible(k == "m")
+        self.menos_ef.setVisible(k == "m")
+
+    def _q_projeto(self):
+        pts = sorted(self.curvas.get(self.atual) or [])
+        if pts:
+            return pts[len(pts) // 2][0] or 10.0
+        kw = self.potencia.get(self.atual)
+        return 10.0 if not kw else 10.0
+
+    def _mudar_rendimento(self):
+        if not self.atual:
+            return
+        k, qp = self.forma_ef.currentData(), self._q_projeto()
+        atual = self.rend.get(self.atual, [])
+        eta = max((e for _, e in atual), default=75.0)
+        if k == "":
+            self.rend.pop(self.atual, None)
+        elif k == "c":
+            self.rend[self.atual] = [(0.0, eta)]
+        elif k == "b":
+            self.rend[self.atual] = [(round(qp, 2), eta)]
+        else:
+            self.rend[self.atual] = [(round(qp * 0.5, 2), round(eta * 0.75, 1)), (round(qp, 2), eta),
+                                     (round(qp * 1.5, 2), round(eta * 0.75, 1))]
+        self._mostrar_rendimento()
+        self._conferir()
+
+    def _editou_rendimento(self, _item=None):
+        if not self.atual:
+            return
+        pts = []
+        constante = forma_rendimento(self.rend.get(self.atual, [])) == "c"
+        for r in range(self.tab_ef.rowCount()):
+            try:
+                q = 0.0 if constante else float(self.tab_ef.item(r, 0).text().replace(",", "."))
+                pts.append((q, float(self.tab_ef.item(r, 1).text().replace(",", "."))))
+            except (AttributeError, ValueError):
+                pass
+        self.rend[self.atual] = pts
+        self._conferir()
+
+    def _mais_ponto_ef(self):
+        if self.atual:
+            pts = sorted(self.rend.get(self.atual, [])) or [(0.0, 50.0)]
+            q, e = pts[-1]
+            self.rend[self.atual] = pts + [(round(q * 1.25 + 1, 2), round(e * 0.85, 1))]
+            self._mostrar_rendimento()
+            self._conferir()
+
+    def _menos_ponto_ef(self):
+        pts = sorted(self.rend.get(self.atual, []))
+        if len(pts) > 2:
+            r = self.tab_ef.currentRow()
+            pts.pop(r if 0 <= r < len(pts) else -1)
+            self.rend[self.atual] = pts
+            self._mostrar_rendimento()
+            self._conferir()
+
     def _conferir(self):
         if not self.atual:
             self.grafico.mostrar([])
             self.msg.setText("Nenhuma curva cadastrada. Clique em <b>Nova</b>.")
             return
         pts = sorted(self.curvas[self.atual])
-        self.grafico.mostrar(pts)
-        erros = problemas(pts)
+        rend = self.rend.get(self.atual, [])
+        if self.atual in self.potencia:
+            kw = self.potencia[self.atual]
+            self.grafico.mostrar([], rend, kw, qref=max([q for q, _ in rend] + [10.0]))
+            erros = [] if kw > 0 else ["a potência tem que ser maior que zero"]
+        else:
+            self.grafico.mostrar(pts, rend)
+            erros = problemas(pts)
+        erros += problemas_rendimento(rend)
         usam = usada_por(self.bombas, self.atual)
         uso = f" · usada por {', '.join(usam)}" if usam else " · nenhuma bomba usa esta curva ainda"
         if erros:
             self.msg.setText(f"<span style='color:{estilo.COR['crit']}'>✗ {'; '.join(erros)}</span>")
         else:
-            self.msg.setText(f"<span style='color:{estilo.COR['ok']}'>✓ curva válida para o EPANET</span>"
-                             f"<span style='color:{estilo.COR['muted']}'>{uso}</span>")
+            ef = "" if rend else " · sem curva de rendimento (energia com 70%)"
+            self.msg.setText(f"<span style='color:{estilo.COR['ok']}'>✓ definição válida para o EPANET</span>"
+                             f"<span style='color:{estilo.COR['muted']}'>{uso}{ef}</span>")
 
     # ------------------------------------------------ bombas
     def _atualizar_aplicar(self):
@@ -442,14 +683,17 @@ class JanelaCurvas(QDialog):
 
     # ------------------------------------------------ salvar
     def salvar(self):
-        ruins = {n: problemas(sorted(p)) for n, p in self.curvas.items() if problemas(sorted(p))}
+        ruins = {n: (problemas(sorted(p)) if n not in self.potencia else []) + problemas_rendimento(self.rend.get(n, []))
+                 for n, p in self.curvas.items()}
+        ruins = {n: e for n, e in ruins.items() if e}
         if ruins:
             self.msg.setText(f"<span style='color:{estilo.COR['crit']}'>Corrija antes de salvar: " +
                              " | ".join(f"{n}: {e[0]}" for n, e in ruins.items()) + "</span>")
             self.lista.setCurrentRow(sorted(self.curvas).index(next(iter(ruins))))
             return
         try:
-            gravar(self.tabela_cad, self.curvas, self.removidas)
+            gravar(self.tabela_cad, {n: p for n, p in self.curvas.items() if n not in self.potencia},
+                   self.removidas, self.potencia, {n: r for n, r in self.rend.items() if n in self.curvas})
         except RuntimeError as e:
             self.msg.setText(f"<span style='color:{estilo.COR['crit']}'>Não consegui salvar: {e}</span>")
             return

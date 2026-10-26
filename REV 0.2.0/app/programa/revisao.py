@@ -38,19 +38,28 @@ def comparar_cenarios(nucleo):
         b.setCurrentIndex(1)
     d.linha("Cenário A:", a)
     d.linha("Cenário B:", b)
+    quando = QComboBox()
+    quando.addItem("O dia todo (pressão mínima, velocidade e vazão máximas)", None)
+    for h in range(24):
+        quando.addItem(f"Às {h:02d}:00", float(h))
+    d.linha("Comparar:", quando, "Scenario Comparison do WaterGEMS: o dia todo ou um instante")
     d.botoes("Comparar")
     if not d.exec():
         return
     alt = lambda cid: alteracoes_completas(next(c for c in todos if c["id"] == cid)) if cid else None
     from .analise_ui import rodar
-    r = rodar(nucleo, "comparar", "Comparando os cenários…", cenario_a=alt(a.currentData()), cenario_b=alt(b.currentData()))
+    from .componentes import limites
+    lim = limites(nucleo)
+    r = rodar(nucleo, "comparar", "Comparando os cenários…", cenario_a=alt(a.currentData()), cenario_b=alt(b.currentData()),
+              limites=lim, hora=quando.currentData())
     if not r:
         return
     nomes = {"p_min": "Pressão mínima (mca)", "p_media": "Pressão média (mca)", "p_max": "Pressão máxima (mca)",
-             "nos_abaixo_10": "Nós abaixo de 10 mca", "nos_acima_50": "Nós acima de 50 mca",
+             "nos_abaixo_10": f"Nós abaixo de {num(lim['limite_pressao_min'], 1)} mca",
+             "nos_acima_50": f"Nós acima de {num(lim['limite_pressao_max'], 1)} mca",
              "v_max": "Velocidade máxima (m/s)", "perda_max_m_km": "Perda de carga máx (m/km)",
-             "tubos_v_alta": "Tubulações acima de 2,5 m/s", "atendimento_pct": "Atendimento da demanda (%)",
-             "volume_entregue_m3": "Volume entregue no dia (m³)"}
+             "tubos_v_alta": f"Tubulações acima de {num(lim['limite_velocidade'], 2)} m/s",
+             "atendimento_pct": "Atendimento da demanda (%)", "volume_entregue_m3": "Volume entregue no dia (m³)"}
     linhas = []
     for k, rot in nomes.items():
         va, vb = r["a"].get(k), r["b"].get(k)
@@ -65,13 +74,34 @@ def comparar_cenarios(nucleo):
                          f"<b>A</b> = {a.currentText()} · <b>B</b> = {b.currentText()}. A camada 'Comparação' pinta os "
                          "nós pela diferença de pressão mínima. As tabelas de nós e tubulações estão nas abas seguintes.",
                          ["Indicador", "A", "B", "B − A"], linhas, "comparacao_indicadores", ao_clicar=lambda _c: None)
-    janela_resultado(nucleo, "Comparação · nós", "Pressão mínima do dia em cada nó (maiores diferenças primeiro).",
-                     ["Nó", "Pressão mín A (mca)", "Pressão mín B (mca)", "B − A"],
+    qual = "mínima do dia" if quando.currentData() is None else f"às {int(quando.currentData()):02d}:00"
+    janela_resultado(nucleo, "Comparação · nós", f"Pressão {qual} em cada nó (maiores diferenças primeiro).",
+                     ["Nó", "Pressão A (mca)", "Pressão B (mca)", "B − A"],
                      [[x["id"], x["p_min_a"], x["p_min_b"], x["dif"]] for x in r["nos"]], "comparacao_nos")
-    janela_resultado(nucleo, "Comparação · tubulações", "Velocidade máxima do dia em cada tubulação.",
-                     ["Tubulação", "Vel. máx A (m/s)", "Vel. máx B (m/s)", "B − A"],
-                     [[x["id"], x["v_max_a"], x["v_max_b"], x["dif"]] for x in r["tubos"]], "comparacao_tubos")
+    janela_resultado(nucleo, "Comparação · tubulações",
+                     f"Velocidade e vazão {'máximas do dia' if quando.currentData() is None else qual} em cada tubulação.",
+                     ["Tubulação", "Velocidade A (m/s)", "Velocidade B (m/s)", "B − A", "Vazão A (L/s)", "Vazão B (L/s)",
+                      "B − A (L/s)"],
+                     [[x["id"], x["v_max_a"], x["v_max_b"], x["dif"], x.get("q_a"), x.get("q_b"), x.get("dif_q")]
+                      for x in r["tubos"]], "comparacao_tubos")
+    dados = diferencas_dados(alt(a.currentData()) or [], alt(b.currentData()) or [])
+    janela_resultado(nucleo, "Comparação · dados",
+                     f"O que muda nos dados de entrada entre A e B ({len(dados)} diferença(s)): os valores que cada cenário "
+                     "altera em relação à rede atual. Vazio = igual à rede atual.",
+                     ["Camada", "Elemento", "Campo", "Valor em A", "Valor em B"], dados, "comparacao_dados")
     nucleo.janela.centro.setCurrentWidget(w)
+
+
+def diferencas_dados(alts_a, alts_b):
+    """Linhas [camada, elemento, campo, valor A, valor B] onde os dois cenários diferem nos dados de entrada."""
+    def mapa(alts):
+        return {(x["camada"], str(x.get("id") or ""), x["campo"]): str(x["valor"]) for x in alts}
+    ma, mb = mapa(alts_a), mapa(alts_b)
+    out = []
+    for k in sorted(set(ma) | set(mb)):
+        if ma.get(k) != mb.get(k):
+            out.append([k[0], k[1] or "(rede toda)", k[2], ma.get(k, ""), mb.get(k, "")])
+    return out
 
 
 def _tem(nucleo, c):
@@ -172,20 +202,92 @@ def rastreio_ligar(nucleo):
                                                   else "desligado."))
 
 
+def ler_historico(nucleo, de="", ate="", usuario="", elemento="", campo=""):
+    """Registros do histórico com os filtros (datas AAAA-MM-DD; textos contidos), mais novos primeiro."""
+    con = _banco(nucleo)
+    sql, par = "SELECT * FROM historico WHERE 1=1", []
+    if de:
+        sql, par = sql + " AND quando >= ?", par + [de]
+    if ate:
+        sql, par = sql + " AND quando <= ?", par + [ate + " 99"]
+    for col, v in (("usuario", usuario), ("elemento", elemento), ("campo", campo)):
+        if v:
+            sql, par = sql + f" AND {col} LIKE ?", par + [f"%{v}%"]
+    linhas = [list(r) for r in con.execute(sql + " ORDER BY quando DESC LIMIT 20000", par)]
+    con.close()
+    return linhas
+
+
 def rastreio_ver(nucleo):
     if not nucleo.cadastro():
         return
     arq = _arquivo(nucleo)
     if not os.path.exists(arq):
         return nucleo.informar("Ainda não há alterações registradas (o registro acontece a cada Salvar edições).")
-    con = _banco(nucleo)
-    linhas = [list(r) for r in con.execute("SELECT * FROM historico ORDER BY quando DESC LIMIT 20000")]
-    con.close()
-    janela_resultado(nucleo, "Histórico de alterações",
-                     f"{len(linhas)} registro(s) em {os.path.basename(arq)} · registro "
-                     f"{'ligado' if ligado() else 'DESLIGADO'}. Clique duplo leva até o elemento.",
-                     ["Elemento", "Quando", "Usuário", "Camada", "Ação", "Campo", "Antes", "Depois"],
-                     [[r[3], *r[:3], *r[4:]] for r in linhas], "historico")
+    d = Dialogo(nucleo.janela, "Histórico de alterações",
+                "Filtre o que quer ver (deixe em branco para tudo). Na lista, selecione linhas 'alterado' e use "
+                "Desfazer as selecionadas para voltar ao valor de antes (fica na edição).")
+    de, ate, usu, el, cp = (QLineEdit() for _ in range(5))
+    de.setPlaceholderText("AAAA-MM-DD")
+    ate.setPlaceholderText("AAAA-MM-DD")
+    for rot, w in (("De:", de), ("Até:", ate), ("Usuário:", usu), ("Elemento:", el), ("Campo:", cp)):
+        d.linha(rot, w)
+    d.botoes("Ver")
+    if not d.exec():
+        return
+    linhas = ler_historico(nucleo, de.text().strip(), ate.text().strip(), usu.text().strip(), el.text().strip(),
+                           cp.text().strip())
+    w = janela_resultado(nucleo, "Histórico de alterações",
+                         f"{len(linhas)} registro(s) em {os.path.basename(arq)} · registro "
+                         f"{'ligado' if ligado() else 'DESLIGADO'}. Clique duplo leva até o elemento.",
+                         ["Elemento", "Quando", "Usuário", "Camada", "Ação", "Campo", "Antes", "Depois"],
+                         [[r[3], *r[:3], *r[4:]] for r in linhas], "historico",
+                         extras=[("Desfazer as selecionadas", lambda: desfazer_registros(nucleo, _linhas_sel(w)))])
+
+
+def _linhas_sel(w):
+    t = w.tabela
+    rows = sorted({i.row() for i in t.selectedIndexes()})
+    return [[t.item(r, c).text() if t.item(r, c) else "" for c in range(t.columnCount())] for r in rows]
+
+
+def desfazer_registros(nucleo, linhas):
+    """Volta ao valor de antes as alterações de campo do histórico (linhas no formato da tabela do histórico)."""
+    feitos, pulados = 0, 0
+    por_camada = {}
+    for el, _q, _u, camada, acao, campo, antes, _dep in linhas:
+        if acao != "alterado" or not campo:
+            pulados += 1
+            continue
+        por_camada.setdefault(camada, []).append((el, campo, antes))
+    for lyr in nucleo.camadas_rede():
+        regs = por_camada.get(lyr.name())
+        if not regs:
+            continue
+        fid = {str(f["id"]): f.id() for f in lyr.getFeatures()}
+        if not lyr.isEditable():
+            lyr.startEditing()
+        lyr.beginEditCommand("Desfazer pelo histórico")
+        for el, campo, antes in regs:
+            i = lyr.fields().indexOf(campo)
+            if el not in fid or i < 0:
+                pulados += 1
+                continue
+            fld = lyr.fields()[i]
+            v = None if antes == "" else antes
+            if v is not None and fld.isNumeric():
+                try:
+                    v = float(v.replace(",", "."))
+                    v = int(v) if fld.type() in (2, 4) else v
+                except ValueError:
+                    pass
+            lyr.changeAttributeValue(fid[el], i, v)
+            feitos += 1
+        lyr.endEditCommand()
+    nucleo.janela.canvas.refresh()
+    nucleo.informar(f"{feitos} alteração(ões) desfeita(s) (fica na edição: Salvar edições grava)"
+                    + (f"; {pulados} linha(s) ignorada(s) (só 'alterado' volta)." if pulados else "."))
+    return feitos
 
 
 def rastreio(nucleo):

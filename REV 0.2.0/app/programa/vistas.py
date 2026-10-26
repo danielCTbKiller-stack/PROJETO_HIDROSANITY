@@ -254,6 +254,51 @@ def rotulos(nucleo):
     nucleo.informar("Rótulos " + ("ligados." if ligar else "desligados."))
 
 
+ROTULOS_NOS = [("", "Nenhum"), ("p", "Pressão (mca)")]
+ROTULOS_TUBOS = [("", "Nenhum"), ("q", "Vazão (L/s)"), ("v", "Velocidade (m/s)"), ("perda_m_km", "Perda de carga (m/km)"),
+                 ("dn", "Diâmetro (mm)")]
+
+
+def rotulos_resultados(nucleo, no=None, tubo=None, casas=None):
+    """Valores do cálculo escritos no mapa, na hora da linha do tempo (Annotation do WaterGEMS)."""
+    res = nucleo.res
+    if not res:
+        return nucleo.aviso("Calcule a rede primeiro (F5).")
+    if no is None:
+        from qgis.PyQt.QtWidgets import QComboBox, QSpinBox
+        from .util import Dialogo
+        d = Dialogo(nucleo.janela, "Rótulos de resultados",
+                    "Escreve no mapa o valor calculado de cada elemento na hora escolhida na linha do tempo, como as "
+                    "anotações do WaterGEMS. Os rótulos acompanham a hora quando ela muda.")
+        cn, ct = QComboBox(), QComboBox()
+        for k, t in ROTULOS_NOS:
+            cn.addItem(t, k)
+        for k, t in ROTULOS_TUBOS:
+            ct.addItem(t, k)
+        cn.setCurrentIndex(1)
+        cd = QSpinBox()
+        cd.setRange(0, 4)
+        cd.setValue(1)
+        d.linha("Nós:", cn)
+        d.linha("Tubulações:", ct)
+        d.linha("Casas decimais:", cd)
+        d.botoes("Aplicar")
+        if not d.exec():
+            return
+        no, tubo, casas = cn.currentData(), ct.currentData(), cd.value()
+    from gwater.resultados import _rotulo
+    casas = 1 if casas is None else casas
+    for lyr, campo in ((res.nos, no), (res.tr, tubo)):
+        if campo:
+            un = {"p": "", "q": "", "v": "", "perda_m_km": "", "dn": ""}[campo]
+            _rotulo(lyr, f'format_number({"abs(" if campo == "q" else ""}"{campo}"{")" if campo == "q" else ""}, '
+                         f'{casas}){un}')
+        else:
+            lyr.setLabelsEnabled(False)
+        lyr.triggerRepaint()
+    nucleo.informar("Rótulos de resultados aplicados.")
+
+
 # ---------------------------------------------------------------- menu do painel de camadas
 class MenuArvore(QgsLayerTreeViewMenuProvider):
     def __init__(self, arvore, janela):
@@ -291,7 +336,7 @@ def _tabela(janela, lyr):
     abrir_tabela(janela.nucleo, lyr)
 
 
-ACOES = {"zoom_total": zoom_total, "zoom_anterior": zoom_anterior, "zoom_proximo": zoom_proximo,
+ACOES = {"rotulos_resultados": rotulos_resultados, "zoom_total": zoom_total, "zoom_anterior": zoom_anterior, "zoom_proximo": zoom_proximo,
          "zoom_selecao": zoom_selecao, "atualizar": atualizar, "vistas_nomeadas": vistas_nomeadas,
          "vista_aerea": vista_aerea, "simbologia": simbologia, "fundos": fundos, "rotulos": rotulos,
          "painel_simbologia": lambda n: n.janela.alternar_painel("simbologia"),

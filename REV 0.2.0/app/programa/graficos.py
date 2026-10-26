@@ -130,11 +130,52 @@ class Grafico(QWidget):
         ax.set_xlim(horas[0], horas[-1])
         ax.set_xticks(range(0, int(math.ceil(horas[-1])) + 1, 3))
         if "Pressão" in var and "sucção" not in var:
-            ax.axhline(10, color=COR["crit"], linewidth=0.8, linestyle=":")
-            ax.axhline(50, color=COR["warn"], linewidth=0.8, linestyle=":")
+            from .componentes import limites
+            lim = limites(self.nucleo)
+            ax.axhline(lim["limite_pressao_min"], color=COR["crit"], linewidth=0.8, linestyle=":")
+            ax.axhline(lim["limite_pressao_max"], color=COR["warn"], linewidth=0.8, linestyle=":")
+        n += self._medicoes(ax, var)
         if n:
             legenda(ax)
         self.w.canvas.draw_idle()
+
+
+GRANDEZA_VAR = {"Pressão": "pressao", "Vazão": "vazao", "Nível": "nivel", "Carga": "carga"}
+
+
+def medicoes_de(nucleo, eid, grandeza):
+    """[(hora, valor)] das leituras de campo do estudo de calibração para o elemento."""
+    out = []
+    for mo in nucleo.janela._ler_json("calibracao", {}).get("momentos", []):
+        for o in mo.get("observacoes", []):
+            if str(o.get("elemento")) == str(eid) and o.get("grandeza") == grandeza:
+                try:
+                    out.append((float(mo.get("hora") or 0), float(o["valor"])))
+                except (TypeError, ValueError):
+                    pass
+    return sorted(out)
+
+
+def _medicoes(self, ax, var):
+    """Leituras de campo (Calibração) do mesmo elemento e grandeza, como pontos sobre a curva calculada."""
+    gr = next((g for k, g in GRANDEZA_VAR.items() if var.startswith(k)), None)
+    if not gr:
+        return 0
+    n = 0
+    for i in range(self.lista.count()):
+        it = self.lista.item(i)
+        if not it.isSelected():
+            continue
+        _, eid = it.data(Qt.ItemDataRole.UserRole)
+        pts = medicoes_de(self.nucleo, eid, gr)
+        if pts:
+            ax.scatter([h for h, _ in pts], [v for _, v in pts], color=COR["warn"], edgecolor=COR["bg"], s=34,
+                       zorder=5, label=f"medido em campo · {eid}")
+            n += 1
+    return n
+
+
+Grafico._medicoes = _medicoes
 
 
 def graficos(nucleo):
@@ -242,10 +283,12 @@ class Perfil(QWidget):
                         hx.append(d)
                         hy.append(no["h"][k])
             if hx:
+                from .componentes import limites
+                pmin = limites(self.nucleo)["limite_pressao_min"]
                 ax.plot(hx, hy, color=COR["cyan"], linewidth=2, label="linha piezométrica")
                 ax.plot([x for x, n in zip(self.dist, self.caminho) if self.cotas.get(n) not in (None, "NULL")],
-                        [float(self.cotas[n]) + 10 for n in self.caminho if self.cotas.get(n) not in (None, "NULL")],
-                        color=COR["crit"], linewidth=0.8, linestyle=":", label="terreno + 10 mca")
+                        [float(self.cotas[n]) + pmin for n in self.caminho if self.cotas.get(n) not in (None, "NULL")],
+                        color=COR["crit"], linewidth=0.8, linestyle=":", label=f"terreno + {pmin:g} mca")
             from gwater.resultados import _hora
             ax.set_title(f"Perfil hidráulico · {_hora(res.horas[k])}", color=COR["text"], fontsize=10, loc="left")
         for d, n in zip(self.dist, self.caminho):

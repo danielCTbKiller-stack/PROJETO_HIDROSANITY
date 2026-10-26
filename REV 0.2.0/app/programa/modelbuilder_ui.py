@@ -436,6 +436,15 @@ class ModelBuilderApp(QDialog):
         for c in (self.criar_nos, self.dividir_t, self.dividir_tubos, self.substituir):
             c.setChecked(True)
             v.addWidget(c)
+        self.existentes = QComboBox()
+        self.existentes.addItem("Atualizar os dados deles (sincronizar)", "atualizar")
+        self.existentes.addItem("Atualizar os dados e a posição", "mover")
+        self.existentes.addItem("Criar de novo, com outro código", "criar")
+        self.existentes.setToolTip("Synchronize do WaterGEMS: o elemento do arquivo com o mesmo código (campo ligado "
+                                   "ao id) de um que já está no cadastro é atualizado, não duplicado")
+        form2 = QFormLayout()
+        form2.addRow("Elementos que já existem (mesmo código):", self.existentes)
+        v.addLayout(form2)
         self.resumo = QTableWidget(0, 3)
         self.resumo.setHorizontalHeaderLabels(["Arquivo", "Importar como", "Campos ligados"])
         self.resumo.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
@@ -486,10 +495,16 @@ class ModelBuilderApp(QDialog):
         prog.setMinimumWidth(460)
         prog.show()
         try:
+            atualizados = {}
+            if self.existentes.currentData() != "criar":
+                from .importador import sincronizar
+                prog.setLabelText("Atualizando os elementos que já existem…")
+                atualizados = sincronizar(self.nucleo, trabalhos, mover=self.existentes.currentData() == "mover")
             self.resultado = importar_lote(self.nucleo, trabalhos, {
                 "tolerancia": self.tol.value(), "situacao": self.situacao.currentText(),
                 "criar_nos": self.criar_nos.isChecked(), "dividir_t": self.dividir_t.isChecked(),
                 "dividir_tubos": self.dividir_tubos.isChecked(), "substituir_nos": self.substituir.isChecked()}, prog)
+            self.resultado["atualizados"] = atualizados
         except Cancelado:
             prog.close()
             return self._erro("Importação cancelada (nada foi gravado no cadastro).")
@@ -514,6 +529,8 @@ def abrir(nucleo):
     partes = ", ".join(f"{n}: {q}" for n, q in r["por_tipo"].items())
     msg = (f"ModelBuilder: {r['importados']} elemento(s) importado(s) ({partes}); {r['nos_criados']} nó(s) criado(s), "
            f"{r['ligados_existentes']} ponta(s) ligada(s) a elementos, {r['divididas']} divisão(ões).")
+    if r.get("atualizados"):
+        msg += " Atualizados (já existiam): " + ", ".join(f"{c}: {q}" for c, q in r["atualizados"].items()) + "."
     nucleo.dock.status.setText(msg + " Confira no mapa e clique em <b>Salvar edições</b> (Ctrl+Z desfaz).")
     nucleo.informar(msg)
     nucleo.janela.dock_arvore.recontar()

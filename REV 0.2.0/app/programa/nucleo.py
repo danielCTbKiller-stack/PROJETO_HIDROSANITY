@@ -311,9 +311,9 @@ del _k
 
 def instalar_acoes():
     """Liga as ações dos módulos ao Núcleo (cada módulo tem um dicionário ACOES {chave: função(nucleo)})."""
-    from . import (analise_ui, ajuda, cenarios_ui, componentes, consultas, ferramentas_modelo, graficos,
-                   modelbuilder_ui, relatorios, revisao, selecao, tabelas, vistas)
-    for mod in (analise_ui, ajuda, cenarios_ui, componentes, consultas, ferramentas_modelo, graficos, modelbuilder_ui,
-                relatorios, revisao, selecao, tabelas, vistas):
+    from . import (analise_ui, ajuda, calibracao_ui, cenarios_ui, componentes, componentes_extra, desenho_extra, consultas, ferramentas_modelo, graficos,
+                   modelbuilder_ui, regras, relatorios, revisao, selecao, tabelas, vistas)
+    for mod in (analise_ui, ajuda, calibracao_ui, cenarios_ui, componentes, componentes_extra, desenho_extra, consultas, ferramentas_modelo, graficos, modelbuilder_ui,
+                regras, relatorios, revisao, selecao, tabelas, vistas):
         for chave, func in getattr(mod, "ACOES", {}).items():
             setattr(Nucleo, f"acao_{chave}", (lambda f: lambda self: f(self))(func))

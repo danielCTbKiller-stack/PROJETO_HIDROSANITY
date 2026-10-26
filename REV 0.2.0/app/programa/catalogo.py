@@ -22,13 +22,13 @@ MEDIR = [
 CALCULO = ("Cálculo", [
     ("cenarios", "Cenários", "cenarios", "G", "Cria, abre e roda cenários: a rede atual ou uma proposta (alterações de DN, status, demanda...). O cenário ativo é o que o Calcular usa."),
     ("alternativas", "Alternativas", "alternativas", "P", "Edita as alterações do cenário ativo, elemento por elemento (o que muda em relação à rede atual)."),
-    ("opcoes", "Opções", "opcoes", "P", "Opções de cálculo: duração, passos de tempo, fórmula de perda de carga, demanda dependente da pressão, pressões mínima e requerida."),
+    ("opcoes", "Opções", "opcoes", "P", "Opções de cálculo (Calculation Options): período estendido ou regime permanente, hora de início, passos, multiplicador de demanda, convergência, PDD e limites dos alertas."),
     ("simular", "Calcular", "calcular", "G", "Valida e roda a simulação de 24 h no EPANET. O mapa se colore com pressão e velocidade, e a linha do tempo fica em Tempos."),
     ("validar", "Validar", "validar", "P", "Confere a rede sem calcular: ligações, códigos, diâmetros, curvas, cotas. Os problemas aparecem em Notificações."),
     ("tempos", "Tempos", "tempos", "P", "Linha do tempo da simulação: escolha a hora, reproduza as 24 h ou vá ao pior momento."),
     ("resumo", "Resumo", "resumo", "P", "Resumo do cálculo: balanço de vazões, pressões extremas, bombas, válvulas e reservatórios."),
     ("notificacoes", "Notificações", "notificacoes", "P", "Lista de erros e avisos da validação e do EPANET. Clique duplo leva até o elemento."),
-    ("alertas", "Alertas", "alertas", "P", "Elementos fora dos limites: pressão abaixo de 10 ou acima de 50 mca, velocidade e perda de carga altas, reservatório vazio ou cheio."),
+    ("alertas", "Alertas", "alertas", "P", "Elementos fora dos limites (Opções > Limites; padrão NBR 12218: 10 a 50 mca): pressão, velocidade e perda de carga, reservatório vazio ou cheio."),
 ])
 
 FAIXA = [
@@ -55,7 +55,10 @@ FAIXA = [
             ("central_demanda", "Central de demanda", "demanda", "G", "Tabela de todos os nós com demanda e padrão: edite, multiplique, distribua e confira o total."),
             ("padroes", "Padrões", "padroes", "P", "Padrões de consumo (multiplicadores ao longo do dia), com gráfico."),
             ("curvas", "Curvas de bomba", "curvas", "P", "Curvas das bombas (vazão × altura), como as Pump Definitions do WaterGEMS."),
-            ("controles", "Controles", "controles", "P", "Regras de operação: liga/desliga bomba ou abre/fecha válvula por nível, pressão ou hora."),
+            ("controles", "Controles", "controles", "P", "Controles simples e lógicos: liga/desliga bomba, abre/fecha válvula ou muda o ajuste por nível, pressão ou hora.", [
+                ("controles", "Controles simples", "controles", "Uma condição e uma ação: nível, pressão ou hora."),
+                ("controles_logicos", "Controles lógicos", "controles", "SE / E / OU … ENTÃO … SENÃO, com prioridade (Logical Controls)."),
+            ]),
         ]),
         ("Vistas", [
             ("graficos", "Gráficos", "graficos", "G", "Gráfico ao longo do dia dos elementos selecionados (pressão, vazão, velocidade, nível...)."),
@@ -75,10 +78,13 @@ FAIXA = [
             ("excluir", "Excluir", "excluir", "P", "Apaga os elementos selecionados."),
             ("localizar", "Localizar", "localizar", "P", "Procura um elemento pelo código."),
             ("mover", "Mover", "mover", "P", "Arrasta um elemento ou vértice; as tubulações ligadas acompanham."),
+            ("converter", "Converter em…", "propriedades", "P", "Troca o tipo dos elementos selecionados no mesmo lugar (nó → hidrante, nó → PRV…), como o Morph do WaterGEMS."),
         ]),
         ("Ligação", [
             ("tubulacao", "Tubulação", "tubulacao", "G", "Desenha uma tubulação: clique os vértices e clique direito para terminar. As pontas viram nós ou ligam nos elementos sob o cursor."),
             ("dividir", "Dividir", "dividir", "P", "Corrige ligações com uma tolerância: encaixa pontas soltas e divide tubulações onde outra encosta."),
+            ("inverter_sentido", "Inverter sentido", "tubulacao", "P", "A tubulação selecionada passa a ir do nó final para o inicial (Reverse)."),
+            ("unir_nos", "Unir nós próximos", "no", "P", "Nós a menos da tolerância viram um só, com as demandas somadas (Merge Nodes in Close Proximity)."),
         ]),
         ("Nó", [
             ("no", "Nó", "no", "G", "Coloca um nó (junção ou ponto de consumo). Sobre uma tubulação, ela é dividida."),
@@ -126,14 +132,16 @@ FAIXA = [
             ("renovacao", "Renovação de redes", "renovacao", "G", "Ordena as tubulações por prioridade de troca: idade, material, desempenho e criticidade."),
             ("darwin", "Otimização", "darwin", "G", "Dimensionamento automático de diâmetros (Designer) e calibração automática (Calibrator).", [
                 ("dimensionar", "Dimensionar diâmetros", "dimensionar", "Menor custo para as tubulações selecionadas atenderem pressão e velocidade."),
-                ("calibracao", "Calibrar (C e demanda)", "calibracao", "Calibração automática com medições de campo (abre no Centro de Operações)."),
+                ("calibracao_darwin", "Calibrar (Darwin Calibrator)", "calibracao", "Calibração com os momentos medidos em campo: rugosidade por grupo, demanda e status, pelo método genético ou gradiente."),
             ]),
+            ("calibracao_darwin", "Calibração", "calibracao", "G", "Darwin Calibrator: momentos medidos em campo, grupos de rugosidade e demanda, status desconhecido; as melhores soluções viram cenário ou vão ao cadastro."),
             ("energia", "Custo de energia", "energia", "G", "Energia e custo das bombas com tarifa por hora (ponta e fora de ponta)."),
             ("zonas_pressao", "Zonas de pressão", "zonas_pressao", "P", "Divide a rede em zonas separadas por bombas, válvulas reguladoras e registros fechados."),
             ("criticidade", "Criticidade", "criticidade", "P", "O que deixa de ser entregue quando cada tubulação sai de operação."),
             ("mais_analises", "Mais", "mais", "P", "Outras análises.", [
                 ("idade_agua", "Idade da água", "qualidade", "Tempo que a água leva da fonte até cada ponto (horas)."),
                 ("cloro", "Cloro residual", "cloro", "Decaimento do cloro na rede (mg/L)."),
+                ("rastreamento", "Rastrear a origem da água", "qualidade", "Que parte da água de cada nó vem de cada captação ou reservatório (Trace)."),
                 ("dados", "Balanço hídrico (dados recebidos)", "dados", "Dados de campo e balanço hídrico do sistema."),
             ]),
         ]),
@@ -154,9 +162,13 @@ FAIXA = [
     ("componentes", "Componentes", [
         ("Comuns", [
             ("central_demanda", "Central de demanda", "demanda", "G", "Demandas e padrões de todos os nós."),
+            ("demandas_unitarias", "Demandas unitárias", "demanda", "P", "Consumo por unidade (habitante, m², leito…) aplicado aos nós selecionados (Unit Demands)."),
             ("padroes", "Padrões", "padroes", "P", "Padrões de consumo."),
             ("curvas", "Curvas de bomba", "curvas", "P", "Curvas das bombas."),
-            ("controles", "Controles", "controles", "P", "Regras de operação."),
+            ("controles", "Controles", "controles", "P", "Regras de operação.", [
+                ("controles", "Controles simples", "controles", "Uma condição e uma ação."),
+                ("controles_logicos", "Controles lógicos", "controles", "SE / E / OU … ENTÃO … SENÃO, com prioridade."),
+            ]),
         ]),
         ("Zonas", [
             ("zonas", "Zonas", "zonas", "G", "Setores da rede (campo setor): crie, renomeie e atribua aos elementos selecionados."),
@@ -166,13 +178,15 @@ FAIXA = [
             ("prototipos", "Protótipos", "prototipos", "G", "Valores padrão dos elementos desenhados."),
         ]),
         ("Outros", [
-            ("qualidade_opcoes", "Qualidade da água", "qualidade", "P", "Idade da água e cloro residual."),
+            ("qualidade_opcoes", "Qualidade da água", "qualidade", "P", "Idade da água, cloro residual e origem da água (Trace)."),
+            ("curvas_valvula", "Curvas de válvula (GPV)", "gpv", "P", "Perda de carga × vazão de cada válvula GPV (Valve Characteristics)."),
+            ("tarifas", "Tarifas de energia", "energia", "P", "Preço da energia por hora do dia, usado no Custo de energia (Energy Pricing)."),
             ("perdas", "Perdas localizadas", "perdas", "P", "Biblioteca de coeficientes K (curvas, registros, tês) para as tubulações selecionadas."),
             ("extensoes", "Extensões de dados", "extensoes", "P", "Cria campos novos nos elementos (dados do usuário)."),
         ]),
         ("Dados de campo", [
             ("dados", "Séries de campo", "dados", "G", "Dados recebidos (SABESP, SCADA, loggers): 24 h digitadas ou planilha, e balanço hídrico."),
-            ("calibracao", "Medições", "calibracao", "P", "Medições de campo para a calibração."),
+            ("calibracao_darwin", "Calibração", "calibracao", "P", "Dados de campo e calibração (Darwin Calibrator)."),
         ]),
     ]),
     ("revisao", "Revisão", [
@@ -203,6 +217,7 @@ FAIXA = [
             ("simbologia", "Simbologia", "simbologia", "P", "Cores e símbolos da camada escolhida no painel Simbologia dos elementos."),
             ("fundos", "Mapa de fundo", "fundos", "P", "OpenStreetMap, imagem de satélite ou um arquivo (raster, shapefile) como fundo."),
             ("rotulos", "Rótulos", "rotulos", "P", "Mostra ou esconde os códigos dos elementos no mapa."),
+            ("rotulos_resultados", "Rótulos de resultados", "rotulos", "P", "Escreve no mapa a pressão, vazão ou velocidade de cada elemento na hora escolhida (Annotation)."),
             ("atualizar", "Atualizar", "atualizar", "P", "Redesenha o mapa."),
         ]),
         ("Elemento", [
@@ -272,6 +287,7 @@ FAIXA = [
             ("tabelas", "Tabelas", "tabelas", "G", "Todas as tabelas."),
         ]),
         ("Relatórios", [
+            ("detalhes_elemento", "Detalhes do elemento", "propriedades", "P", "Relatório dos elementos selecionados: todos os dados, resultados hora a hora, gráfico e leituras de campo (Element Details)."),
             ("resumo_cenario", "Resumo do cenário", "resumo", "P", "Opções, totais e resultados do cenário calculado."),
             ("inventario", "Inventário do modelo", "inventario", "P", "Quantidade de cada elemento e comprimento total da rede."),
             ("inventario_tubos", "Inventário de tubulações", "inventario_tubos", "P", "Comprimento por diâmetro e por material."),

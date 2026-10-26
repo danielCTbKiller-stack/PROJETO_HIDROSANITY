@@ -65,16 +65,23 @@ CAMADAS = {
                               ("perda_localizada", D), ("status", S), ("ano_instalacao", I)] + COMUNS),
     # tabelas sem geometria
     "padrao_consumo": ("None", [("id_padrao", S), ("passo", I), ("multiplicador", D)]),
+    # definição do padrão (WaterGEMS): formato DEGRAUS/CONTINUO e pontos (hora desde o início, multiplicador)
+    "padrao_def": ("None", [("id_padrao", S), ("formato", S), ("hora", D), ("multiplicador", D)]),
     "curva": ("None", [("id_curva", S), ("tipo", S), ("x", D), ("y", D)]),
     "controle": ("None", [("elemento", S), ("acao", S), ("condicao", S), ("no_ref", S), ("valor", D)]),
+    # várias demandas por nó (a demanda_base do nó é o total)
+    "demanda": ("None", [("no_id", S), ("demanda", D), ("padrao", S), ("categoria", S)]),
+    # controles lógicos: uma linha por condição (SE) ou ação (ENTAO / SENAO) de cada regra
+    "regra": ("None", [("id_regra", S), ("prioridade", D), ("ordem", I), ("secao", S), ("conector", S),
+                       ("elemento", S), ("atributo", S), ("operador", S), ("valor", S)]),
     "opcoes_simulacao": ("None", [("chave", S), ("valor", S)]),
     "dominio_material": ("None", [("material", S), ("rugosidade_hw", D)]),
 }
 PONTOS = ["captacao", "reservatorio", "bomba", "valvula", "no_juncao"]
 # nomes exibidos no QGIS (as expressões do formulário referenciam estes nomes)
 APELIDOS = {"captacao": "Captação", "reservatorio": "Reservatórios", "bomba": "Bombas", "valvula": "Válvulas",
-            "no_juncao": "Nós / junções", "trecho": "Trechos (tubulações)", "padrao_consumo": "Padrões de consumo",
-            "curva": "Curvas", "controle": "Controles", "opcoes_simulacao": "Opções de simulação",
+            "no_juncao": "Nós / junções", "trecho": "Trechos (tubulações)", "padrao_consumo": "Padrões de consumo", "padrao_def": "Padrões (definição)",
+            "curva": "Curvas", "controle": "Controles", "demanda": "Demandas por nó", "regra": "Controles lógicos", "opcoes_simulacao": "Opções de simulação",
             "dominio_material": "Domínio · material"}
 
 # ---------------------------------------------------------------- rede de exemplo
