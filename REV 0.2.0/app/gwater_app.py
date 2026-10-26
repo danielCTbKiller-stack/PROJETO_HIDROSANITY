@@ -49,14 +49,30 @@ def registro(arq):
     sys.excepthook = gancho
 
 
+def dados_portateis():
+    """Versão portátil (GWATER_DADOS, posto pelo GWATER.exe): configurações em arquivos .ini na pasta dados, em vez
+    do registro do Windows, para irem junto no pen drive. Devolve a pasta, ou None na versão instalada."""
+    dados = os.environ.get("GWATER_DADOS")
+    if not dados:
+        return None
+    from qgis.PyQt.QtCore import QSettings
+    os.makedirs(dados, exist_ok=True)
+    QSettings.setDefaultFormat(QSettings.Format.IniFormat)
+    QSettings.setPath(QSettings.Format.IniFormat, QSettings.Scope.UserScope, os.path.join(dados, "config"))
+    return dados
+
+
 def criar_aplicativo():
     """QgsApplication só com o nome do programa: os outros argumentos são do GWATER (arquivo a abrir).
-    O navegador embutido (Chromium) precisa do nome; no QGIS 4 ele vai em bytes, no 3 em texto."""
+    O navegador embutido (Chromium) precisa do nome; no QGIS 4 ele vai em bytes, no 3 em texto.
+    Na versão portátil, o perfil do QGIS (cache dos mapas de fundo, configurações dele) fica na pasta dados."""
     nome = sys.argv[0] if sys.argv and sys.argv[0] else "GWATER"
+    dados = os.environ.get("GWATER_DADOS")
+    extra = [os.path.join(dados, "qgis")] if dados else []
     try:
-        return QgsApplication([nome.encode()], True)
+        return QgsApplication([nome.encode()], True, *extra)
     except TypeError:
-        return QgsApplication([nome], True)
+        return QgsApplication([nome], True, *extra)
 
 
 def abertura(app, duracao=2600):
@@ -87,6 +103,7 @@ def abertura(app, duracao=2600):
 
 
 def main(argv):
+    dados_portateis()  # antes de qualquer configuração ser lida
     from programa import desempenho  # núcleos e cache: o GDAL só lê estas variáveis ao iniciar
     desempenho.ambiente_antes_do_qgis()
     prefixo = os.environ.get("QGIS_PREFIX_PATH")

@@ -20,7 +20,9 @@ def config():
     if os.path.exists(arq):
         with open(arq, encoding="utf-8") as f:
             return json.load(f)
-    return {"python": os.path.join(RAIZ, ".venv", "Scripts", "python.exe"), "motor": os.path.join(RAIZ, "motor")}
+    portatil = os.path.join(RAIZ, "runtime", "python", "python.exe")  # versão portátil (pen drive)
+    py = portatil if os.path.exists(portatil) else os.path.join(RAIZ, ".venv", "Scripts", "python.exe")
+    return {"python": py, "motor": os.path.join(RAIZ, "motor")}
 
 
 def _ambiente():

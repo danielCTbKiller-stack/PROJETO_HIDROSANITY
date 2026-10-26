@@ -13,6 +13,14 @@ from qgis.PyQt.QtCore import QSettings
 CHAVE = ("GWATER", "GWATER")
 
 
+def configuracoes():
+    """As configurações do GWATER: no registro do Windows (instalado) ou na pasta dados/config (versão portátil, vão junto
+    no pen drive). Todo o programa lê e grava por aqui (o QSettings com o nome do programa ignora o formato padrão)."""
+    if os.environ.get("GWATER_DADOS"):
+        return QSettings(QSettings.Format.IniFormat, QSettings.Scope.UserScope, *CHAVE)
+    return QSettings(*CHAVE)
+
+
 def nucleos_maquina():
     return os.cpu_count() or 1
 
@@ -43,7 +51,7 @@ def padrao_cache_mb():
 
 
 def ler():
-    s = QSettings(*CHAVE)
+    s = configuracoes()
     n = int(s.value("desempenho/nucleos", 0) or 0)
     return {"nucleos": max(1, min(n or nucleos_maquina(), nucleos_maquina())),
             "cache_mb": int(s.value("desempenho/cache_mb", 0) or 0) or padrao_cache_mb(),
@@ -53,7 +61,7 @@ def ler():
 
 
 def gravar(nucleos, cache_mb, mapa_paralelo, auto_min=None, fluxo_fps=None):
-    s = QSettings(*CHAVE)
+    s = configuracoes()
     if fluxo_fps is not None:
         s.setValue("fluxo/fps", int(fluxo_fps))
     if auto_min is not None:

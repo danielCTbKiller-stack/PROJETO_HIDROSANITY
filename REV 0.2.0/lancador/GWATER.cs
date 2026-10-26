@@ -1,7 +1,8 @@
 // GWATER.exe - lançador do programa GWATER (REV 0.2.0).
 //
 // O programa é Python (app\gwater_app.py) e usa as bibliotecas do QGIS. Este lançador:
-//   1. acha o QGIS instalado (4.x de preferência, senão 3.x; GWATER.ini pode apontar outro);
+//   1. acha o QGIS: o da própria pasta (runtime\qgis, versão portátil para pen drive) ou o instalado
+//      (4.x de preferência, senão 3.x; GWATER.ini pode apontar outro);
 //   2. confere o Python do motor (.venv) e oferece criar se faltar (preparar_ambiente.bat);
 //   3. abre o programa pelo python-qgis do QGIS, sem janela de console.
 // O arquivo a abrir (duplo clique num .qgz/.gpkg ou arrastar sobre o .exe) vai na variável GWATER_ABRIR:
@@ -20,6 +21,9 @@ class GWATER
 {
     static string AcharQgis(string raiz)
     {
+        // versão portátil: o QGIS vai junto, na pasta runtime\qgis (roda de qualquer pasta ou pen drive)
+        string portatil = Bat(Path.Combine(raiz, "runtime", "qgis"));
+        if (portatil != null) return portatil;
         // GWATER.ini: linha "qgis=C:\caminho\do\QGIS" força uma instalação
         string ini = Path.Combine(raiz, "GWATER.ini");
         if (File.Exists(ini))
@@ -90,8 +94,10 @@ class GWATER
             return 2;
         }
         string venv = Path.Combine(raiz, ".venv", "Scripts", "python.exe");
+        string pyPortatil = Path.Combine(raiz, "runtime", "python", "python.exe");
         string preparar = Path.Combine(raiz, "preparar_ambiente.bat");
-        if (!File.Exists(venv) && File.Exists(preparar))
+        bool ehPortatil = File.Exists(pyPortatil) && Directory.Exists(Path.Combine(raiz, "runtime", "qgis"));
+        if (!File.Exists(venv) && !File.Exists(pyPortatil) && File.Exists(preparar))
         {
             var r = MessageBox.Show("Falta preparar o motor de cálculo (Python com o EPANET), o que é feito uma vez só e "
                                     + "precisa de internet.\n\nPreparar agora?", "GWATER", MessageBoxButtons.YesNo,
@@ -107,6 +113,12 @@ class GWATER
         psi.UseShellExecute = false;
         psi.CreateNoWindow = true;
         psi.EnvironmentVariables["GWATER_RAIZ"] = raiz;
+        if (ehPortatil)  // configurações, perfil do QGIS e logins ficam na pasta (vão junto no pen drive)
+        {
+            string dados = Path.Combine(raiz, "dados");
+            Directory.CreateDirectory(dados);
+            psi.EnvironmentVariables["GWATER_DADOS"] = dados;
+        }
         if (args.Length > 0) psi.EnvironmentVariables["GWATER_ABRIR"] = Path.GetFullPath(args[0]);
         try
         {

@@ -37,7 +37,9 @@ from .tema import icone
 
 RAIZ = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # REV 0.2.0
 CHAVE = "GWATER"
-CONFIG = QSettings("GWATER", "GWATER")
+from .desempenho import configuracoes  # noqa: E402
+
+CONFIG = configuracoes()
 # ferramentas de mapa da janela (não são ações do núcleo, mas respondem ao clique na faixa)
 FERRAMENTAS_MAPA = {"selecionar", "pan", "zoom_mais", "zoom_menos", "mover", "sel_poligono", "medir_comprimento",
                     "medir_area"}
@@ -214,7 +216,7 @@ class Janela(QMainWindow):
         self.bt_fluxo.setCheckable(True)
         self.bt_fluxo.setToolTip("Animação do fluxo da água: setas correndo nas tubulações no sentido da vazão, mais "
                                  "rápidas onde a água corre mais (segue a hora mostrada)")
-        self.bt_fluxo.setChecked(str(QSettings("GWATER", "GWATER").value("fluxo/ligado", "true")).lower()
+        self.bt_fluxo.setChecked(str(configuracoes().value("fluxo/ligado", "true")).lower()
                                  in ("true", "1"))
         self.bt_fluxo.setEnabled(False)
         self.bt_fluxo.toggled.connect(self._fluxo)
@@ -711,7 +713,7 @@ class Janela(QMainWindow):
 
     def _fluxo(self, ligar, gravar=True):
         if gravar:
-            QSettings("GWATER", "GWATER").setValue("fluxo/ligado", bool(ligar))
+            configuracoes().setValue("fluxo/ligado", bool(ligar))
         res = self.nucleo.res
         if res is None:
             return

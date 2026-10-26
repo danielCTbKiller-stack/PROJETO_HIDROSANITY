@@ -37,3 +37,8 @@ REV 0.2.0/cadastro/teste_importado.gpkg
 REV 0.2.0/cadastro/GWATER_teste_importado.qgz
 REV 0.2.0/gwater_erros.log
 *_historico.sqlite
+
+# versão portátil gerada (gerar_portatil.py) e dados do usuário dela
+GWATER_portatil/
+REV 0.2.0/runtime/
+REV 0.2.0/dados/

@@ -25,6 +25,8 @@ from qgis.PyQt.QtWidgets import (QCheckBox, QComboBox, QHBoxLayout, QInputDialog
 
 from gwater.estilo import COR
 
+from .desempenho import configuracoes
+
 CHAVE = ("GWATER", "GWATER")
 FORNECEDORES = {
     "claude": {"nome": "Claude (Anthropic)", "site": "https://claude.ai/new",
@@ -63,7 +65,7 @@ def _dpapi(dados, proteger):
 
 
 def gravar_chave(fornecedor, chave):
-    s = QSettings(*CHAVE)
+    s = configuracoes()
     if not chave:
         s.remove(f"ia/chave_{fornecedor}")
         return
@@ -71,7 +73,7 @@ def gravar_chave(fornecedor, chave):
 
 
 def ler_chave(fornecedor):
-    v = QSettings(*CHAVE).value(f"ia/chave_{fornecedor}", "")
+    v = configuracoes().value(f"ia/chave_{fornecedor}", "")
     if not v:
         return ""
     try:
@@ -211,7 +213,7 @@ class Assistente(QWidget):
         self.historico = []  # [{"papel": "voce"|"ia", "texto"}]
         self.nam = None
         self.webs = {}
-        s = QSettings(*CHAVE)
+        s = configuracoes()
         v = QVBoxLayout(self)
         topo = QHBoxLayout()
         self.forn = QComboBox()
@@ -266,8 +268,8 @@ class Assistente(QWidget):
         self.pilha.addWidget(self.site)
         self.forn.currentIndexChanged.connect(lambda _: self._trocar())
         self.modo.currentIndexChanged.connect(lambda _: self._trocar())
-        self.modelo.currentTextChanged.connect(lambda t: QSettings(*CHAVE).setValue(f"ia/modelo_{self.f()}", t))
-        self.ctx.toggled.connect(lambda v_: QSettings(*CHAVE).setValue("ia/contexto", v_))
+        self.modelo.currentTextChanged.connect(lambda t: configuracoes().setValue(f"ia/modelo_{self.f()}", t))
+        self.ctx.toggled.connect(lambda v_: configuracoes().setValue("ia/contexto", v_))
         self.b_modelos.clicked.connect(self.atualizar_modelos)
         self.b_chave.clicked.connect(self.pedir_chave)
         self.b_externo.clicked.connect(lambda: QDesktopServices.openUrl(QUrl(FORNECEDORES[self.f()]["site"])))
@@ -282,7 +284,7 @@ class Assistente(QWidget):
 
     # ------------------------------------------------ troca de fornecedor e modo
     def _trocar(self):
-        s = QSettings(*CHAVE)
+        s = configuracoes()
         s.setValue("ia/fornecedor", self.f())
         s.setValue("ia/modo", self.modo.currentData())
         api = self.modo.currentData() == "api"
@@ -322,7 +324,9 @@ class Assistente(QWidget):
                 self.site.addWidget(lb)
                 self.site.setCurrentWidget(lb)
                 return
-            pasta = os.path.join(os.environ.get("LOCALAPPDATA", os.path.expanduser("~")), "GWATER", "ia", k)
+            base = os.environ.get("GWATER_DADOS") or os.path.join(os.environ.get("LOCALAPPDATA",
+                                                                              os.path.expanduser("~")), "GWATER")
+            pasta = os.path.join(base, "ia", k)  # versão portátil: o login vai junto no pen drive
             os.makedirs(pasta, exist_ok=True)
             perfil = QWebEngineProfile(f"gwater_ia_{k}", self)  # login guardado entre as sessões
             perfil.setPersistentStoragePath(pasta)
@@ -396,7 +400,7 @@ class Assistente(QWidget):
             lista = modelos_da_resposta(k, dados)
             if not lista:
                 return self._linha("erro", "O fornecedor não devolveu nenhum modelo de conversa.")
-            QSettings(*CHAVE).setValue(f"ia/modelos_{k}", "|".join(lista))
+            configuracoes().setValue(f"ia/modelos_{k}", "|".join(lista))
             if k == self.f():
                 atual = self.modelo.currentText()
                 self.modelo.blockSignals(True)
@@ -404,7 +408,7 @@ class Assistente(QWidget):
                 self.modelo.addItems(lista)
                 self.modelo.setCurrentText(atual if atual in lista else lista[0])
                 self.modelo.blockSignals(False)
-                QSettings(*CHAVE).setValue(f"ia/modelo_{k}", self.modelo.currentText())
+                configuracoes().setValue(f"ia/modelo_{k}", self.modelo.currentText())
             self._linha("sistema", f"{len(lista)} modelo(s) disponíveis no {FORNECEDORES[k]['nome']}.")
         self._rede(url, cab, None, pronto)
 

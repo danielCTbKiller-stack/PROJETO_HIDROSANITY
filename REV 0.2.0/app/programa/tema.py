@@ -51,18 +51,20 @@ TEMAS = {
 
 
 def tema_atual():
+    from .desempenho import configuracoes
     from qgis.PyQt.QtCore import QSettings
-    nome = QSettings("GWATER", "GWATER").value("tema", "Grafite Ciano")
+    nome = configuracoes().value("tema", "Grafite Ciano")
     return nome if nome in TEMAS else "Original"
 
 
 def aplicar_tema(nome=None, app=None):
     """Troca as cores (COR é compartilhado por todo o programa) e reaplica paleta e folha de estilo."""
     from qgis.PyQt.QtCore import QSettings
+    from .desempenho import configuracoes
     nome = nome or tema_atual()
     COR.update(TEMAS.get(nome, TEMAS["Original"]))
     if nome:
-        QSettings("GWATER", "GWATER").setValue("tema", nome)
+        configuracoes().setValue("tema", nome)
     if app is not None:
         app.setPalette(paleta())
         app.setStyleSheet(qss())
