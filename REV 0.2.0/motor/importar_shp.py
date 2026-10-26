@@ -149,7 +149,11 @@ def importar(cfg):
     dn = _num(_campo(lin, cfg, "diametro"))
     mat_shp = _campo(lin, cfg, "material")
     mapa_mat = cfg.get("materiais", {})
-    ano = pd.to_numeric(_campo(lin, cfg, "ano"), errors="coerce")
+    ano = _campo(lin, cfg, "ano")  # aceita 1998, 15/03/1998, 1998-03-15 ou campo de data
+    if not pd.api.types.is_numeric_dtype(ano):
+        datas = pd.to_datetime(ano, errors="coerce", dayfirst=True, format="mixed")
+        ano = datas.dt.year.where(datas.notna(), pd.to_numeric(ano, errors="coerce"))
+    ano = pd.to_numeric(ano, errors="coerce")
     dom = pyogrio.read_dataframe(MODELO_GPKG, layer="dominio_material")
     rug = dict(zip(dom["material"], dom["rugosidade_hw"]))
 

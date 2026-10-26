@@ -310,6 +310,12 @@ class TabelaFlex(QWidget):
             return None
         if not fld.isNumeric():
             return txt
+        if fld.name().startswith("ano") and any(c in txt for c in "/-"):  # data dd/mm/aaaa: vale o ano
+            from gwater.modelbuilder import ano
+            v = ano(txt)
+            if v is None:
+                raise ValueError(txt)
+            return v
         v = float(txt.replace(".", "").replace(",", ".") if txt.count(",") == 1 and "." in txt else txt.replace(",", "."))
         return int(round(v)) if fld.type() in (2, 4) else v
 

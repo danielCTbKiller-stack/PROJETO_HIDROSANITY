@@ -1190,7 +1190,7 @@ CAMPOS_PROTOTIPO = {
     "reservatorio": [("cota_fundo", float), ("nivel_ini", float), ("nivel_min", float), ("nivel_max", float),
                      ("diametro", float)],
     "captacao": [("carga_hidraulica", float)],
-    "trecho": [("status", ["ABERTO", "FECHADO", "CV"]), ("ano_instalacao", float), ("setor", str)],
+    "trecho": [("status", ["ABERTO", "FECHADO", "CV"]), ("ano_instalacao", "ano"), ("setor", str)],
 }
 
 
@@ -1263,7 +1263,11 @@ def prototipos(nucleo):
         txt = ed.currentText() if isinstance(ed, QComboBox) else ed.text().strip()
         if txt == "":
             continue
-        if tipo is float:
+        if tipo == "ano":  # aceita 1998 ou 15/03/1998
+            from gwater.modelbuilder import ano
+            if ano(txt) is not None:
+                novos.setdefault(c, {})[nome] = float(ano(txt))
+        elif tipo is float:
             try:
                 novos.setdefault(c, {})[nome] = float(txt.replace(",", "."))
             except ValueError:

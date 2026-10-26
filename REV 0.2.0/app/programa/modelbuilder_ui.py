@@ -33,6 +33,11 @@ _P = ["no", "ponto_consumo", "hidrante", "ponta", "reservatorio", "captacao", "b
       "valvula_pbv", "valvula_fcv", "valvula_tcv", "valvula_gpv", "registro"]
 OPCOES_PONTO = [(k, POR_CHAVE[k][1], POR_CHAVE[k][2], POR_CHAVE[k][4], POR_CHAVE[k][5]) for k in _P] + \
     [("valvula_coluna", "Válvulas (o tipo vem de uma coluna)", "valvula", {}, "elem_valvula")]
+# polígonos: estação de bomba (pump station do WaterGEMS); a bomba entra no nó/tubo dentro do polígono
+OPCOES_POLIGONO = [("estacao_bomba", "Estação de bomba", "bomba", POR_CHAVE["bomba"][4], POR_CHAVE["bomba"][5]),
+                   ("estacao_reservatorio", "Reservatório (área)", "reservatorio", POR_CHAVE["reservatorio"][4],
+                    POR_CHAVE["reservatorio"][5])]
+GEOS = ("linha", "ponto", "poligono")
 # palavras do nome do arquivo -> tipo sugerido
 PISTAS = [("registro", "registro"), ("reg", "registro"), ("vrp", "valvula_prv"), ("prv", "valvula_prv"),
           ("redutora", "valvula_prv"), ("psv", "valvula_psv"), ("sustent", "valvula_psv"), ("pbv", "valvula_pbv"),
@@ -49,12 +54,17 @@ def geometria(lyr):
         return "linha"
     if t == QgsWkbTypes.GeometryType.PointGeometry:
         return "ponto"
+    if t == QgsWkbTypes.GeometryType.PolygonGeometry:
+        return "poligono"
     return "outra"
 
 
 def sugerir_tipo(nome, geo):
     if geo == "linha":
         return "tubulacao"
+    if geo == "poligono":
+        n = norm(os.path.basename(nome))
+        return "estacao_reservatorio" if any(k in n for k in ("reserv", "rap", "rel")) else "estacao_bomba"
     n = norm(os.path.splitext(os.path.basename(nome))[0])
     partes = n.split("_")
     for pista, tipo in PISTAS:
@@ -119,9 +129,9 @@ class ModelBuilderApp(QDialog):
     def _proximo(self):
         i = self.pilha.currentIndex()
         if i == 0:
-            validos = [f for f in self.fontes if f["geo"] in ("linha", "ponto")]
+            validos = [f for f in self.fontes if f["geo"] in GEOS]
             if not validos:
-                return self._erro("Adicione pelo menos um arquivo de linhas ou de pontos.")
+                return self._erro("Adicione pelo menos um arquivo de linhas, pontos ou polígonos.")
         if i < len(PASSOS) - 1:
             self._ir(i + 1)
         else:
@@ -184,10 +194,10 @@ class ModelBuilderApp(QDialog):
         m = QMenu(self)
         for lyr in QgsProject.instance().mapLayers().values():
             if isinstance(lyr, QgsVectorLayer) and lyr.isSpatial() and lyr.id() not in cadastro \
-                    and geometria(lyr) in ("linha", "ponto"):
+                    and geometria(lyr) in GEOS:
                 m.addAction(lyr.name()).triggered.connect(lambda _=False, l=lyr: self._por(l, l.name()))
         if m.isEmpty():
-            m.addAction("(nenhuma camada de linhas ou pontos fora do cadastro)").setEnabled(False)
+            m.addAction("(nenhuma camada de linhas, pontos ou polígonos fora do cadastro)").setEnabled(False)
         m.exec(self.cursor().pos())
 
     def _por(self, lyr, nome):
@@ -200,7 +210,7 @@ class ModelBuilderApp(QDialog):
         it.setToolTip(lyr.source())
         it.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable)
         self.tab_arq.setItem(i, 0, it)
-        g = QTableWidgetItem({"linha": "linhas", "ponto": "pontos"}.get(geo, "não suportada"))
+        g = QTableWidgetItem({"linha": "linhas", "ponto": "pontos", "poligono": "polígonos"}.get(geo, "não suportada"))
         g.setFlags(Qt.ItemFlag.ItemIsEnabled)
         if geo == "outra":
             g.setForeground(Qt.GlobalColor.red)
@@ -211,11 +221,12 @@ class ModelBuilderApp(QDialog):
         self.tab_arq.setItem(i, 2, n)
         cmb = QComboBox()
         cmb.setIconSize(QSize(18, 18))
-        for chave, rot, _camada, _fixos, ic in (OPCOES_LINHA if geo == "linha" else OPCOES_PONTO if geo == "ponto" else []):
+        for chave, rot, _camada, _fixos, ic in {"linha": OPCOES_LINHA, "ponto": OPCOES_PONTO,
+                                                "poligono": OPCOES_POLIGONO}.get(geo, []):
             cmb.addItem(icone(ic), rot, chave)
         if geo != "outra":
             cmb.setCurrentIndex(max(0, cmb.findData(sugerir_tipo(nome, geo))))
-        cmb.setEnabled(geo == "ponto")
+        cmb.setEnabled(geo in ("ponto", "poligono"))
         cmb.currentIndexChanged.connect(lambda _=0, k=i: self._mudou_tipo(k))
         self.tab_arq.setCellWidget(i, 3, cmb)
         so = QCheckBox()
@@ -235,7 +246,7 @@ class ModelBuilderApp(QDialog):
 
     def tipo_de(self, fonte):
         chave = fonte["combo"].currentData()
-        for op in OPCOES_LINHA + OPCOES_PONTO:
+        for op in OPCOES_LINHA + OPCOES_PONTO + OPCOES_POLIGONO:
             if op[0] == chave:
                 return op
         return None
@@ -262,7 +273,7 @@ class ModelBuilderApp(QDialog):
         return w
 
     def _listas_arquivos(self, passo):
-        validas = [f for f in self.fontes if f["geo"] in ("linha", "ponto")]
+        validas = [f for f in self.fontes if f["geo"] in GEOS]
         for lista in (self.lista_dp, self.lista_val):
             lista.blockSignals(True)
             lista.clear()
@@ -457,7 +468,7 @@ class ModelBuilderApp(QDialog):
         return w
 
     def _resumo(self):
-        validas = [f for f in self.fontes if f["geo"] in ("linha", "ponto")]
+        validas = [f for f in self.fontes if f["geo"] in GEOS]
         self.resumo.setRowCount(len(validas))
         for i, f in enumerate(validas):
             self._garantir_estado(f)
@@ -473,7 +484,7 @@ class ModelBuilderApp(QDialog):
     def trabalhos(self):
         out = []
         for f in self.fontes:
-            if f["geo"] not in ("linha", "ponto"):
+            if f["geo"] not in GEOS:
                 continue
             self._garantir_estado(f)
             op = self.tipo_de(f)

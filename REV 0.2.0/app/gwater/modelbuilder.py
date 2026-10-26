@@ -57,7 +57,8 @@ SINONIMOS = {  # nomes comuns de coluna em cadastros de saneamento (comparação
     "diametro": ["dn", "diam", "diametro_nominal", "diameter", "bitola"],
     "material": ["mat", "material_tubo", "tipo_material"],
     "rugosidade_hw": ["c", "hw", "rug", "rugosidade", "roughness", "coef_c"],
-    "ano_instalacao": ["ano", "year", "ano_inst", "dt_inst", "data_inst"],
+    "ano_instalacao": ["ano", "year", "ano_inst", "dt_inst", "data_inst", "data", "date", "dt_instal",
+                       "data_instalacao", "install_date", "installation_date", "dt"],
     "status": ["estado", "situacao_operacional"], "situacao": ["sit", "condicao"],
     "setor": ["sector", "zona", "dma", "zmc", "setor_abast"], "observacao": ["obs", "observacoes", "comentario"],
     "cota": ["z", "elev", "elevacao", "elevation", "cota_terreno", "ct", "altitude"],
@@ -94,6 +95,33 @@ def numero(v):
         return float(v)
     m = re.search(r"-?\d+(?:[.,]\d+)?", str(v))
     return float(m.group(0).replace(",", ".")) if m else None
+
+
+def ano(v):
+    """Ano de instalação a partir de 1998, '1998', '15/03/1998', '03/1998', '1998-03-15', '15-03-98' ou campo de data
+    (Date/DateTime do shapefile). Devolve o ano (int) ou None."""
+    if _vazio(v):
+        return None
+    if hasattr(v, "year") and callable(v.year):  # QDate / QDateTime
+        v = v.date() if hasattr(v, "date") and callable(v.date) else v
+        return v.year() if v.isValid() else None
+    if hasattr(v, "year"):  # datetime.date
+        return int(v.year)
+    if isinstance(v, (int, float)):
+        return int(round(v))
+    t = str(v).strip()
+    m = re.fullmatch(r"(\d{4})[-/.](\d{1,2})(?:[-/.]\d{1,2})?(?:[ T].*)?", t)  # aaaa-mm-dd
+    if m:
+        return int(m.group(1))
+    m = re.fullmatch(r"(?:\d{1,2}[-/.])?\d{1,2}[-/.](\d{2}|\d{4})(?: .*)?", t)  # dd/mm/aaaa, mm/aaaa, dd/mm/aa
+    if m:
+        a = int(m.group(1))
+        return a if a >= 100 else (2000 + a if a <= 30 else 1900 + a)
+    m = re.search(r"\d{4}", t)
+    if m:
+        return int(m.group(0))
+    n = numero(t)
+    return int(round(n)) if n is not None else None
 
 
 def campos_do(lyr):
@@ -186,6 +214,8 @@ def importar(plugin, camada, origem, mapa, fixos, traducoes, opcoes, so_selecion
                         if not _vazio(bruto):
                             if campo in traducoes:
                                 valor = traducoes[campo].get(str(bruto))
+                            elif campo == "ano_instalacao":
+                                valor = ano(bruto)
                             elif campo in numericos:
                                 valor = numero(bruto)
                             else:

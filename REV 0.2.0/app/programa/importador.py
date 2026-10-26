@@ -19,12 +19,12 @@ from collections import defaultdict
 
 from qgis.core import (
     QgsCoordinateTransform, QgsFeature, QgsFeatureRequest, QgsGeometry, QgsPointXY, QgsProject, QgsRectangle,
-    QgsSpatialIndex,
+    QgsSpatialIndex, QgsWkbTypes,
 )
 from qgis.PyQt.QtWidgets import QApplication
 
 from gwater.desenho import PONTOS, PREFIXO, TOL, _vazio
-from gwater.modelbuilder import campos_do, numero
+from gwater.modelbuilder import ano, campos_do, numero
 
 PADROES = {"no_juncao": {"tipo": "JUNCAO", "demanda_base": 0.0},
            "valvula": {"status": "ATIVA", "perda_localizada": 0.0},
@@ -105,12 +105,15 @@ def _atributos(campos, numericos, inteiros, fo, mapa, fixos, traducoes, fixos_ti
             if not _vazio(bruto):
                 if campo in traducoes:
                     valor = traducoes[campo].get(str(bruto))
+                elif campo == "ano_instalacao":  # aceita 1998, 15/03/1998, 1998-03-15 ou campo de data
+                    valor = ano(bruto)
                 elif campo in numericos:
                     valor = numero(bruto)
                 else:
                     valor = str(bruto).strip()
         if valor is None and str(fixos.get(campo, "")).strip():
-            valor = numero(fixos[campo]) if campo in numericos else str(fixos[campo]).strip()
+            valor = ano(fixos[campo]) if campo == "ano_instalacao" else \
+                numero(fixos[campo]) if campo in numericos else str(fixos[campo]).strip()
         if valor is not None and campo in inteiros:
             valor = int(round(valor))
         if valor is not None:
@@ -119,6 +122,23 @@ def _atributos(campos, numericos, inteiros, fo, mapa, fixos, traducoes, fixos_ti
         if campo == "tipo" or campo not in vals:
             vals[campo] = valor
     return vals
+
+
+def _ponto_estacao(g, nos, tubos):
+    """Polígono (estação de bomba, como a pump station do WaterGEMS) -> o ponto onde a bomba entra na rede:
+    o nó do cadastro dentro do polígono mais perto do centro; senão o ponto da tubulação que cruza o polígono mais
+    perto do centro; senão um ponto dentro do polígono."""
+    centro = g.pointOnSurface().asPoint()
+    dentro = [p for p in nos(g.boundingBox()) if g.contains(QgsGeometry.fromPointXY(p))]
+    if dentro:
+        return min(dentro, key=lambda p: p.distance(centro))
+    perto = None
+    for tg in tubos(g.boundingBox()):
+        if tg.intersects(g):
+            p = tg.intersection(g).nearestPoint(QgsGeometry.fromPointXY(centro)).asPoint()
+            if perto is None or p.distance(centro) < perto.distance(centro):
+                perto = QgsPointXY(p)
+    return perto or QgsPointXY(centro)
 
 
 def _partes(g, linha):
@@ -193,7 +213,8 @@ def sincronizar(nucleo, trabalhos, mover=False):
             for c, v in vals.items():
                 if v != alvo[c]:
                     dest.changeAttributeValue(alvo.id(), dest.fields().indexOf(c), v)
-            if mover and job["camada"] != "trecho" and fo.hasGeometry():
+            if mover and job["camada"] != "trecho" and fo.hasGeometry() and \
+                    fo.geometry().type() == QgsWkbTypes.GeometryType.PointGeometry:
                 g = QgsGeometry(fo.geometry())
                 g.transform(ct)
                 if g.asPoint().distance(alvo.geometry().asPoint()) > 1e-6:
@@ -257,6 +278,25 @@ def importar_lote(nucleo, trabalhos, opcoes, progresso=None):
             idx_exist.addFeature(f.id(), f.geometry().boundingBox())
             geo_exist[f.id()] = f.geometry()
     codigos = Codigos(usados_pontos, usados_tubos)
+
+    def nos_em(ret):  # nós do cadastro numa área (para as estações de bomba em polígono)
+        return [p for p, _n, _f in pos_existente.values() if ret.contains(p)]
+
+    idx_vindo, geo_vindo = QgsSpatialIndex(), {}  # tubulações deste mesmo lote (entram depois dos pontos)
+    if any(j["camada"] != "trecho" and j["origem"].geometryType() == QgsWkbTypes.GeometryType.PolygonGeometry
+           for j in trabalhos):
+        for j in [j for j in trabalhos if j["camada"] == "trecho"]:
+            ct = QgsCoordinateTransform(j["origem"].crs(), tr.crs(), QgsProject.instance())
+            for fo in (j["origem"].getSelectedFeatures() if j.get("so_sel") else j["origem"].getFeatures()):
+                if fo.hasGeometry():
+                    g = QgsGeometry(fo.geometry())
+                    g.transform(ct)
+                    k = len(geo_vindo)
+                    geo_vindo[k] = g
+                    idx_vindo.addFeature(k, g.boundingBox())
+
+    def tubos_em(ret):
+        return [geo_exist[i] for i in idx_exist.intersects(ret)] + [geo_vindo[i] for i in idx_vindo.intersects(ret)]
     rug = {}
     try:
         for f in nucleo.camada("dominio_material").getFeatures():
@@ -307,7 +347,11 @@ def importar_lote(nucleo, trabalhos, opcoes, progresso=None):
             g.transform(ct)
             vals = _atributos(campos, numericos, inteiros, fo, job["mapa"], job["fixos"], job["traducoes"],
                               job.get("fixos_tipo", {}))
-            for p in _partes(g, False):
+            if g.type() == QgsWkbTypes.GeometryType.PolygonGeometry:
+                partes = [_ponto_estacao(g, nos_em, tubos_em)]
+            else:
+                partes = _partes(g, False)
+            for p in partes:
                 f = QgsFeature(dest.fields())
                 f.setGeometry(QgsGeometry.fromPointXY(p))
                 for campo, valor in {**PADROES.get(job["camada"], {}), **vals}.items():
