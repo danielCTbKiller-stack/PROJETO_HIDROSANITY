@@ -16,6 +16,9 @@ NOMES_TIPO = {"no": "Nó (junção)", "ponto_consumo": "Ponto de consumo", "hidr
               "valvula_psv": "PSV", "valvula_pbv": "PBV", "valvula_fcv": "FCV", "valvula_tcv": "TCV",
               "valvula_gpv": "GPV", "registro": "Registro"}
 COMUNS = ("nome", "cota", "setor", "situacao", "observacao", "diametro")
+# camada e valores de cada destino (os que se desenham com tipo; os outros têm camada própria)
+DESTINOS = {**DESENHO_TIPO, "no": ("no_juncao", {"tipo": "JUNCAO"}), "reservatorio": ("reservatorio", {}),
+            "captacao": ("captacao", {}), "bomba": ("bomba", {"status_inicial": "ABERTA", "rotacao_relativa": 1.0})}
 
 
 def _topo(nucleo):
@@ -87,8 +90,9 @@ def converter(nucleo, alvo=None, ids=None):
         if not d.exec():
             return
         alvo = cb.currentData()
-    camada_alvo, fixos = DESENHO_TIPO.get(alvo, ("no_juncao", {"tipo": "JUNCAO"})) if alvo != "no" else \
-        ("no_juncao", {"tipo": "JUNCAO"})
+    if alvo not in DESTINOS:
+        return nucleo.aviso(f"Tipo desconhecido: {alvo}.")
+    camada_alvo, fixos = DESTINOS[alvo]
     topo = _topo(nucleo)
     dest = nucleo.camada(camada_alvo)
     tr = nucleo.camada("trecho")

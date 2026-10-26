@@ -65,8 +65,8 @@ class Janela(QMainWindow):
         self.canvas = QgsMapCanvas()
         self.canvas.setCanvasColor(QColor("#f4f7fb"))
         self.canvas.enableAntiAliasing(True)
-        self.canvas.setParallelRenderingEnabled(True)
-        self.canvas.setCachingEnabled(True)
+        from . import desempenho
+        desempenho.aplicar(self)  # núcleos, cache de memória e desenho do mapa em paralelo (Configurações)
         prj = QgsProject.instance()
         self.ponte = QgsLayerTreeMapCanvasBridge(prj.layerTreeRoot(), self.canvas)
         self.encaixe = QgsMapCanvasSnappingUtils(self.canvas)
@@ -468,6 +468,8 @@ class Janela(QMainWindow):
         self.guardar_recente(prj.fileName())
         self.prototipos_tipo = self._ler_json("prototipos_tipo", {})
         self.dock_arvore.projeto_aberto()
+        from . import desempenho
+        desempenho.camadas(self.nucleo)
         from .vistas import FUNDOS
         fundo = prj.readEntry(CHAVE, "fundo", "")[0]
         self.cmb_fundo.setCurrentIndex(max(0, self.cmb_fundo.findData(fundo)) if fundo else 0)

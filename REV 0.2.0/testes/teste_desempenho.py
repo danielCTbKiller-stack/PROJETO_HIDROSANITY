@@ -119,7 +119,41 @@ for f in nos.getFeatures():
     nos.changeAttributeValue(f.id(), i_dem, 0.02)
 nos.endEditCommand()
 nos.commitChanges()
+trl = n.camada("trecho")
+trl.startEditing()
+i_rug = trl.fields().indexOf("rugosidade_hw")
+trl.beginEditCommand("rugosidade")
+for f in trl.getFeatures():
+    trl.changeAttributeValue(f.id(), i_rug, 130.0)
+trl.endEditCommand()
+trl.commitChanges()
+from programa import desenho_extra  # noqa: E402
+canto = min(nos.getFeatures(), key=lambda f: f.geometry().asPoint().distance(P(0, 0)))  # vira a fonte da rede
+desenho_extra.converter(n, "captacao", [str(canto["id"])])
+cap = n.camada("captacao")
+cap.startEditing()
+for f in cap.getFeatures():
+    cap.changeAttributeValue(f.id(), cap.fields().indexOf("carga_hidraulica"), 960.0)
+for lyr in n.camadas_rede():
+    if lyr.isEditable() and not lyr.commitChanges():
+        print("     não salvou", lyr.name(), lyr.commitErrors()[:3], flush=True)
+print("     captações:", cap.featureCount(), flush=True)
 medir("calcular (24 h)", 90, lambda: j.acionar("simular"))
+# análises com milhares de cálculos independentes: 1 núcleo × todos os núcleos
+alvo_nos = [str(f["id"]) for f in n.camada("no_juncao").getFeatures()][:int(os.environ.get("GWATER_N_INCENDIO", "400"))]
+tempos = {}
+for nn in ("1", ""):
+    os.environ["GWATER_NUCLEOS"] = nn
+    t0 = time.perf_counter()
+    r = motor.analise("incendio", n.cadastro(), False, nos=alvo_nos, vazao=10)
+    tempos[nn or "todos"] = time.perf_counter() - t0
+    print(f"     incêndio em {len(alvo_nos)} nós com {nn or os.cpu_count()} núcleo(s): {tempos[nn or 'todos']:.1f} s "
+          f"(ok={r.get('ok')} {r.get('erro') or ''} {[i['msg'] for i in r.get('itens', [])][:3]})", flush=True)
+os.environ.pop("GWATER_NUCLEOS", None)
+ganho = tempos["1"] / max(tempos["todos"], 1e-9)
+print(f"  {'OK   ' if ganho > 1.5 or (os.cpu_count() or 1) < 4 else 'LENTO'} paralelo: {ganho:.1f}× mais rápido", flush=True)
+if (os.cpu_count() or 1) >= 4 and ganho <= 1.5:
+    falhas.append("paralelo")
 medir("zoom total + redesenho", 15, lambda: (j.acionar("zoom_total"), j.canvas.refresh()))
 
 j.fechar_projeto(False)

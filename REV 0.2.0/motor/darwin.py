@@ -18,6 +18,7 @@ condições de contorno informadas por cima) e resolvido direto na biblioteca do
 avaliações em segundos.
 """
 import math
+import os
 
 import numpy as np
 from wntr.epanet.util import EN
@@ -31,19 +32,26 @@ OBJETIVOS = ("quadrados", "absoluto", "maximo")
 class Estudo:
     """Momentos prontos para avaliar: um Rapido por momento, com os valores de base guardados."""
 
-    def __init__(self, m, momentos, grupos_c, grupos_d, status):
+    def __init__(self, m, momentos, grupos_c, grupos_d, status, nomes=None):
+        """m: o Modelo (no processo principal); nos processos de cálculo em paralelo vem None, com os momentos já
+        congelados (mo["arq"]) e `nomes` = (tubos, nós de consumo)."""
         self.m = m
         self.momentos, self.grupos_c, self.grupos_d, self.status = momentos, grupos_c, grupos_d, status
-        tubos = set(m.wn.pipe_name_list)
-        juncs = set(m.consumo)
+        tubos, juncs = (set(nomes[0]), set(nomes[1])) if nomes else (set(m.wn.pipe_name_list), set(m.consumo))
+        self.nomes = (sorted(tubos), sorted(juncs))
+        if m is not None and len(momentos) > 1:
+            m.res  # vários momentos: o dia inteiro uma vez só, em vez de uma simulação até cada hora
         for g in grupos_c:
             g["ids"] = [i for i in g["ids"] if i in tubos]
         for g in grupos_d:
             g["ids"] = [i for i in g["ids"] if i in juncs]
         self.R, self.base_c, self.base_d, self.obs = [], {}, [], []
         for k, mo in enumerate(momentos):
-            arq, t = m.instante(float(mo["hora"]) * 3600 if mo.get("hora") not in (None, "") else None, dda=False)
-            mo["t"] = t
+            if mo.get("arq"):
+                arq, t = mo["arq"], mo["t"]
+            else:
+                arq, t = m.instante(float(mo["hora"]) * 3600 if mo.get("hora") not in (None, "") else None, dda=False)
+                mo["arq"], mo["t"] = arq, t
             R = Rapido(arq)
             self.R.append(R)
             fd = float(mo.get("fator_demanda") or 1)
@@ -153,6 +161,26 @@ class Estudo:
             R.fechar()
 
 
+class Avaliador:
+    """Aptidão de uma solução, para os processos de cálculo em paralelo: cada processo monta o seu Estudo (o EPANET
+    aberto em cada momento) na primeira chamada e reaproveita nas seguintes."""
+
+    def __init__(self, momentos, grupos_c, grupos_d, status, nomes, mca, lps, objetivo):
+        self.args = (momentos, grupos_c, grupos_d, status, nomes)
+        self.mca, self.lps, self.objetivo = mca, lps, objetivo
+        self.e = None
+
+    def __getstate__(self):
+        return {**self.__dict__, "e": None}
+
+    def __call__(self, x):
+        if self.e is None:
+            mo, gc, gd, st, nomes = self.args
+            self.e = Estudo(None, [dict(m) for m in mo], [dict(g) for g in gc], [dict(g) for g in gd],
+                            [dict(s) for s in st], nomes)
+        return aptidao(self.e.residuos(np.asarray(x, float), self.mca, self.lps), self.objetivo)
+
+
 def aptidao(r, objetivo):
     if objetivo == "absoluto":
         return float(np.sum(np.abs(r)))
@@ -195,13 +223,31 @@ def calibrar(gpkg, momentos, grupos_c=(), grupos_d=(), status=(), objetivo="quad
                 n = len(x0)
                 pop = 15
                 geracoes = max(5, int(max_avaliacoes) // (pop * n) - 1)
-                differential_evolution(f, list(zip(lo, hi)), x0=x0, popsize=pop, maxiter=geracoes, seed=semente,
-                                       tol=1e-7, polish=False, init="sobol", updating="immediate")
-                usado = "genetico"
+                from analises import nucleos
+                nuc = nucleos()
+                pesado = len(e.nomes[0]) * len(e.momentos) > int(os.environ.get("GWATER_PESADO", "3000"))  # rede grande
+                if nuc > 1 and pesado:
+                    av = Avaliador(e.momentos, e.grupos_c, e.grupos_d, e.status, e.nomes, mca_por_ponto,
+                                   lps_por_ponto, objetivo)
+                    sol = differential_evolution(av, list(zip(lo, hi)), x0=x0, popsize=pop, maxiter=geracoes,
+                                                 seed=semente, tol=1e-7, polish=False, init="sobol",
+                                                 updating="deferred", workers=nuc)
+                    visto += [(float(a), np.array(x, float)) for a, x in zip(sol.population_energies, sol.population)]
+                    visto.append((float(sol.fun), np.array(sol.x, float)))
+                    visto.append((f(x0), np.array(x0, float)))
+                    for _ in range(int(sol.nfev)):  # conta as avaliações feitas nos outros processos
+                        visto.append((math.inf, x0))
+                    usado = f"genetico ({nuc} núcleos)"
+                else:
+                    differential_evolution(f, list(zip(lo, hi)), x0=x0, popsize=pop, maxiter=geracoes, seed=semente,
+                                           tol=1e-7, polish=False, init="sobol", updating="immediate")
+                    usado = "genetico"
             visto.sort(key=lambda t: t[0])
             melhores = []
             escala = np.maximum(hi - lo, 1e-9)
             for a, x in visto:  # soluções diferentes entre si (> 2% da faixa em algum parâmetro)
+                if not math.isfinite(a):
+                    continue
                 if all(np.max(np.abs(x - y) / escala) > 0.02 for _, y in melhores):
                     melhores.append((a, x))
                 if len(melhores) >= max(1, int(solucoes)):

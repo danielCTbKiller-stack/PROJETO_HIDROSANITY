@@ -231,11 +231,12 @@ def qss():
 
 
 def configurar(janela):
-    """Configurações do programa: tema (claro ou escuro, com as cores de cada um)."""
-    from qgis.PyQt.QtWidgets import QApplication, QComboBox, QFormLayout
+    """Configurações do programa: tema (claro ou escuro) e desempenho (núcleos do processador e memória RAM)."""
+    from qgis.PyQt.QtWidgets import QApplication, QCheckBox, QComboBox, QFormLayout, QGroupBox, QLabel, QSpinBox
+    from . import desempenho
     from .util import Dialogo
-    d = Dialogo(janela, "Configurações", "Aparência do GWATER. O mapa não muda; alguns painéis só mudam ao reabri-los.",
-                largura=420)
+    d = Dialogo(janela, "Configurações", "Aparência e desempenho do GWATER. O mapa não muda de cor com o tema; alguns "
+                "painéis só mudam ao reabri-los.", largura=520)
     f = QFormLayout()
     cmb = QComboBox()
     for n, c in TEMAS.items():
@@ -243,8 +244,38 @@ def configurar(janela):
     cmb.setCurrentIndex(max(0, cmb.findData(tema_atual())))
     f.addRow("Tema:", cmb)
     d.lay.addLayout(f)
+    cfg = desempenho.ler()
+    total_n, total_mb = desempenho.nucleos_maquina(), desempenho.memoria_total_mb()
+    caixa = QGroupBox("Desempenho")
+    fd = QFormLayout(caixa)
+    nuc = QSpinBox()
+    nuc.setRange(1, total_n)
+    nuc.setValue(cfg["nucleos"])
+    nuc.setSuffix(f" de {total_n}")
+    nuc.setToolTip("Threads do processador para o desenho do mapa e para as análises com muitos cálculos (incêndio, "
+                   "descarga, criticidade, calibração). Todos = o máximo de velocidade.")
+    mem = QSpinBox()
+    mem.setRange(256, max(512, int(total_mb * 0.75)))
+    mem.setSingleStep(256)
+    mem.setValue(min(cfg["cache_mb"], mem.maximum()))
+    mem.setSuffix(f" MB de {total_mb:,} MB".replace(",", "."))
+    mem.setToolTip("Memória RAM para cache: leitura de rasters e do cadastro (GDAL e SQLite) e imagens dos mapas de "
+                   "fundo. Mais memória = menos leitura de disco e de rede. Deixe sobrar RAM para o Windows e outros "
+                   "programas.")
+    par = QCheckBox("Desenhar as camadas do mapa em paralelo")
+    par.setChecked(cfg["mapa_paralelo"])
+    fd.addRow("Núcleos (threads):", nuc)
+    fd.addRow("Memória para cache:", mem)
+    fd.addRow(par)
+    dica = QLabel("A memória do cache do GDAL e do SQLite vale por completo ao reabrir o GWATER.")
+    dica.setWordWrap(True)
+    dica.setObjectName("sub")
+    fd.addRow(dica)
+    d.lay.addWidget(caixa)
     d.botoes("Aplicar")
     if d.exec():
         aplicar_tema(cmb.currentData(), QApplication.instance())
+        desempenho.gravar(nuc.value(), mem.value(), par.isChecked())
+        desempenho.aplicar(janela)
         return True
     return False

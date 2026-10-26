@@ -87,6 +87,8 @@ def abertura(app, duracao=2600):
 
 
 def main(argv):
+    from programa import desempenho  # núcleos e cache: o GDAL só lê estas variáveis ao iniciar
+    desempenho.ambiente_antes_do_qgis()
     prefixo = os.environ.get("QGIS_PREFIX_PATH")
     if prefixo:
         QgsApplication.setPrefixPath(prefixo, True)
