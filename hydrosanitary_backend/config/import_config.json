@@ -1,0 +1,9 @@
+{
+  "pipe_layer_prefix": "AF_TUBO",
+  "fixture_layer": "AF_APARELHO",
+  "source_layer": "AF_FONTE",
+  "default_unit": "m",
+  "default_diameter_mm": 20.0,
+  "snap_tolerance_m": 0.05,
+  "fixture_aliases": {"CHUVEIRO": "chuveiro_eletrico", "VASO": "bacia_sanitaria_cx_acoplada"}
+}

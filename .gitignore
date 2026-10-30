@@ -1,0 +1,13 @@
+# ambiente Python (recriado pelo instalar.bat em cada máquina)
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# saídas do PyInstaller
+hydrosanitary_backend/build/
+hydrosanitary_backend/dist/
+
+# logs e atalhos locais
+*.log
+*.lnk
