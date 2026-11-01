@@ -367,3 +367,26 @@ def test_calibration_validates_study_and_roundtrips_factor():
     next(iter(project.pipes.values())).roughness_factor = 1.3
     again = project_io.from_dict(project_io.to_dict(project))[0]
     assert max(p.roughness_factor for p in again.pipes.values()) == 1.3
+
+
+def test_new_floor_replicating_the_one_below():
+    win = MainWindow()
+    win.load_sample_building()
+    p = win.project
+    n_floors, n_walls, n_nodes = len(p.floors), len(p.walls), len(p.nodes)
+    top = p.floors[-1]
+    below_walls = sum(abs(w.z_base_m - top.elevation_m) < 0.05 for w in p.walls)
+    below_nodes = sum(p.floor_index(n.elevation_m) == len(p.floors) - 1 for n in p.nodes.values()) - (
+        1 if p.floor_index(p.nodes[win.canvas.source_id].elevation_m) == len(p.floors) - 1 else 0)
+    win.add_floor(replicate="arq")
+    assert len(p.floors) == n_floors + 1 and len(p.nodes) == n_nodes
+    assert len(p.walls) == n_walls + below_walls
+    new = p.floors[-1]
+    assert abs(new.elevation_m - (top.elevation_m + top.height_m)) < 1e-6
+    win.add_floor(replicate="tudo")
+    assert len(p.floors) == n_floors + 2
+    win.undo()
+    p = win.project  # desfazer troca o objeto do projeto
+    assert len(p.floors) == n_floors + 1
+    win.add_floor()
+    assert len(p.floors) == n_floors + 2 and len(p.walls) == n_walls + below_walls  # vazio: sem paredes novas

@@ -8,7 +8,7 @@ from PySide6.QtCore import QPointF, Qt
 from PySide6.QtGui import QAction, QColor, QIcon, QKeySequence, QPainter, QPen, QPixmap, QPainterPath
 from PySide6.QtWidgets import (QButtonGroup, QCheckBox, QComboBox, QDialog, QDialogButtonBox, QDockWidget,
                                QDoubleSpinBox, QFileDialog, QFormLayout, QFrame, QHBoxLayout, QInputDialog, QLabel,
-                               QLineEdit, QListWidget, QListWidgetItem, QMainWindow, QMessageBox, QPushButton,
+                               QLineEdit, QListWidget, QListWidgetItem, QMainWindow, QMenu, QMessageBox, QPushButton,
                                QSlider, QStackedWidget, QTableWidget, QTableWidgetItem, QTabWidget, QToolButton,
                                QVBoxLayout, QWidget)
 
@@ -173,7 +173,14 @@ class MainWindow(QMainWindow):
         row = QHBoxLayout()
         for text, slot in (("+ Novo", self.add_floor), ("Editar", self.edit_floor), ("Remover", self.remove_floor)):
             b = QPushButton(text)
-            b.clicked.connect(slot)
+            if slot == self.add_floor:  # novo pavimento: vazio ou replicando o de baixo
+                menu = QMenu(b)
+                menu.addAction("Pavimento vazio", lambda: self.add_floor())
+                menu.addAction("Replicar o de baixo (paredes e cômodos)", lambda: self.add_floor(replicate="arq"))
+                menu.addAction("Replicar o de baixo (paredes, cômodos e rede)", lambda: self.add_floor(replicate="tudo"))
+                b.setMenu(menu)
+            else:
+                b.clicked.connect(slot)
             row.addWidget(b)
         fl.addLayout(row)
         self.show_above = QCheckBox("Mostrar pavimentos acima do ativo")
@@ -582,6 +589,7 @@ class MainWindow(QMainWindow):
         project, source, _ = project_io.from_dict(data)
         c = self.canvas
         c.project, c.source_id, c._chain = project, source, []
+        c.active_floor = max(0, min(c.active_floor, len(project.floors) - 1))  # o pavimento ativo pode ter sumido
         c.selection = sel
         if c.selected_object() is None:
             c.selection = None
@@ -624,8 +632,12 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage(f"Mostrando o instante {when} da simulação em período estendido. F5 volta ao pico.")
 
     # ================================================================ pavimentos
-    def add_floor(self):
+    def add_floor(self, replicate=None):
+        """Novo pavimento no topo. `replicate`: "arq" copia paredes e cômodos do de baixo; "tudo", também a rede."""
         fl = self.project.floors
+        if replicate and fl:
+            self.copy_floor_up(network=replicate == "tudo", source=len(fl) - 1)
+            return
         top = fl[-1] if fl else Floor("", -2.88, 2.88)
         self._snapshot()
         fl.append(Floor(f"{len(fl)}º pavimento" if fl else "Térreo", round(top.elevation_m + top.height_m, 2), top.height_m))
@@ -673,14 +685,14 @@ class MainWindow(QMainWindow):
         self._fill_floors(max(0, self.canvas.active_floor - 1))
         self._after_change()
 
-    def copy_floor_up(self, network=False, copies=1, ask=False):
-        """Empilha o pavimento ativo: copia paredes e cômodos (e, se `network`, a rede do pavimento)."""
+    def copy_floor_up(self, network=False, copies=1, ask=False, source=None):
+        """Empilha o pavimento ativo (ou o `source`): copia paredes e cômodos (e, se `network`, a rede do pavimento)."""
         if ask:
             copies, ok = QInputDialog.getInt(self, "Replicar pavimento", "Quantos pavimentos acima?", 1, 1, 60)
             if not ok:
                 return
         p = self.project
-        i0 = self.canvas.active_floor
+        i0 = self.canvas.active_floor if source is None else source
         src = p.floors[i0]
         self._snapshot()
         for k in range(1, copies + 1):
@@ -701,7 +713,7 @@ class MainWindow(QMainWindow):
                 p.rooms[name] = Room(name, list(r.polygon), round(r.z_floor_m + dz, 3))
             if network:
                 self._copy_network(i0, dz, dst.name)
-        self._fill_floors(i0)
+        self._fill_floors(i0 if source is None else i0 + copies)  # pelo "+ Novo": vai ao pavimento criado
         self._after_change()
         self.statusBar().showMessage(f"{src.name} copiado para {copies} pavimento(s) acima.")
 
