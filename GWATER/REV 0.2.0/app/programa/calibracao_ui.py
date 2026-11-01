@@ -797,6 +797,13 @@ def calibrador_watergems(nucleo):
     if not nucleo.janela.abrir_web(url, "Calibrador WaterGEMS"):
         import webbrowser
         webbrowser.open(url)  # sem o navegador embutido: abre no navegador do Windows
+        return
+    # a página é local (file://) mas carrega Chart.js, a leitura de planilhas e as fontes da internet: o navegador
+    # embutido bloqueia isso por padrão
+    from qgis.PyQt.QtWebEngineCore import QWebEngineSettings
+    v = nucleo.janela.web["Calibrador WaterGEMS"]
+    v.settings().setAttribute(QWebEngineSettings.WebAttribute.LocalContentCanAccessRemoteUrls, True)
+    v.reload()
 
 
 ACOES = {"calibracao_darwin": calibracao, "calibrador_watergems": calibrador_watergems}
