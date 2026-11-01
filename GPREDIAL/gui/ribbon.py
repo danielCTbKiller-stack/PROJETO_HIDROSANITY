@@ -1,6 +1,6 @@
 """Faixa de menus no estilo do GWATER: abas em cima e, em cada aba, grupos de botões grandes."""
 from PySide6.QtCore import QSize, Qt
-from PySide6.QtWidgets import (QButtonGroup, QFrame, QGridLayout, QHBoxLayout, QLabel, QStackedWidget,
+from PySide6.QtWidgets import (QButtonGroup, QFrame, QGridLayout, QHBoxLayout, QLabel, QSizePolicy, QStackedWidget,
                                QToolButton, QVBoxLayout, QWidget)
 
 from gui.symbols import icon
@@ -71,7 +71,9 @@ class Ribbon(QFrame):
         col.addLayout(self.tabs)
         self.stack = QStackedWidget()
         self.stack.setObjectName("corpoFaixa")
-        self.stack.setFixedHeight(84)
+        # a altura acompanha o conteúdo (fontes e cantos mudam com o tema): rótulos de duas linhas e as colunas de
+        # três campos não podem ser cortados
+        self.stack.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
         col.addWidget(self.stack)
         self._tab_group = QButtonGroup(self)
         self._tab_group.setExclusive(True)
