@@ -97,11 +97,10 @@ ar = [a for a in s4["arestas"] if a["para"] == "setor:S2" or a["de"] == "setor:S
 outro = {a["de"] if a["para"] == "setor:S2" else a["para"] for a in ar}
 checar(any(a["tubos"] == [["T_S2_A", 1]] for a in ar) and not outro & {"VRP3"},
        f"o setor S2 liga direto em quem vinha antes da VSE, pelo tubo de entrada: {[(a['de'], a['para'], a['tubos']) for a in ar]}")
-checar(not any(a.get("fechada") for a in s4["arestas"]), "com a VSE aberta nenhuma ligação fica fechada")
 v.loc[v["id"] == "VRP3", "status"] = "FECHADA"
 s5 = sinotico.montar(GPKG_PADRAO)
-fech = [(a["de"], a["para"]) for a in s5["arestas"] if a.get("fechada")]
-checar(fech == [("rede:1", "setor:S2")], f"VSE fechada: a ligação dela fica marcada sem água (bypass): {fech}")
+lig5 = [(a["de"], a["para"]) for a in s5["arestas"]]
+checar(("rede:1", "setor:S2") not in lig5, f"VSE fechada: a ligação dela não aparece: {lig5}")
 sinotico.ler_cadastro = orig
 
 print("\nRESULTADO:", "TUDO OK" if not falhas else f"{len(falhas)} falha(s)")

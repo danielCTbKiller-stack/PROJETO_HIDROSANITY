@@ -196,10 +196,10 @@ def montar(gpkg=GPKG_PADRAO, com_projetados=False):
             cont[b["rotulo"]] += 1
             b["rotulo"] = f"{b['rotulo']} {cont[b['rotulo']]}"
 
-    # ligação só por válvula oculta fechada (ex.: bypass de VRP com a VSE fechada): a tela mostra sem água
+    # ligação só por válvula oculta fechada (ex.: bypass de VRP com a VSE fechada): não passa água, não aparece
+    # (e não conta para a posição dos blocos: o setor fica ao lado da VRP, não embaixo)
     fechados = {str(t["id"]) for t in tubos if t.get("_fechada")}
-    for a in arestas:
-        a["fechada"] = all(t in fechados for t, _ in a["tubos"])
+    arestas[:] = [a for a in arestas if not all(t in fechados for t, _ in a["tubos"])]
     _posicionar(blocos, arestas)
     return {"blocos": list(blocos.values()), "arestas": arestas,
             "colunas": 1 + max((b["col"] for b in blocos.values()), default=0),
