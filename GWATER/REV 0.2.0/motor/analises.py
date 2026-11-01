@@ -453,7 +453,7 @@ def segmentos(m):
     """Segmentos da rede (Segmentation do WaterGEMS): trechos que ficam ligados sem passar por um registro.
     Fechar um segmento = fechar os registros em volta dele. Devolve [{"id", "tubos", "nos", "registros"}]."""
     tipos = dict(zip(m.c["valvula"]["id"], m.c["valvula"]["tipo"])) if len(m.c["valvula"]) else {}
-    registros = {v for v, tp in tipos.items() if str(tp).upper() in ("REGISTRO", "TCV")}
+    registros = {v for v, tp in tipos.items() if str(tp).upper() in ("REGISTRO", "TCV", "VRE", "VSE")}
     g = nx.MultiGraph()
     reg_nos = defaultdict(set)  # registro → nós em que ele encosta
     for nome, l in m.wn.links():

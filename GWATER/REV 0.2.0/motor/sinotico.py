@@ -8,7 +8,9 @@ Em vez de um desenho fixo, o sinótico sai da topologia da rede, como num SCADA:
   - com o campo setor preenchido, o setor manda: todos os nós do mesmo setor viram um bloco só
     (mesmo em pedaços separados da rede), uma rede com dois setores vira dois blocos, e as tubulações
     entre setores viram a ligação entre os blocos. Nó sem setor fica com o setor do vizinho mais perto;
-  - as colunas seguem o caminho da água, a partir das captações (ou dos reservatórios).
+  - as colunas seguem o caminho da água, a partir das captações (ou dos reservatórios);
+  - a válvula de setor (VSE) não aparece: o sinótico passa direto por ela, como se o tubo fosse contínuo.
+    A de reservatório (VRE) e as outras viram blocos.
 Cada bloco diz quais resultados do EPANET são dele (nós, ligações e sentido dos tubos), e a
 tela (painel/sinotico.html) só precisa ler a simulação de /api/simular-rede.
 
@@ -19,6 +21,7 @@ from collections import defaultdict, deque
 from cadastro_para_inp import GPKG_PADRAO, ler_cadastro
 
 EQUIP = ["captacao", "bomba", "reservatorio", "valvula"]
+OCULTAS = {"VSE"}  # válvulas que o sinótico atravessa
 CONSUMO = {"CONSUMO", "HIDRANTE", "PONTA"}
 
 
@@ -41,13 +44,18 @@ def montar(gpkg=GPKG_PADRAO, com_projetados=False):
                 elem[str(r["id"])] = (camada, r)
     tubos = [r for r in c["trecho"].to_dict("records")
              if ativo(r) and str(r.get("no_inicial")) in elem and str(r.get("no_final")) in elem]
+    tubos = _atravessar(tubos, {k for k, (cam, r) in elem.items()
+                                if cam == "valvula" and str(r.get("tipo") or "").upper() in OCULTAS})
+    for k in [k for k, (cam, r) in elem.items() if cam == "valvula" and str(r.get("tipo") or "").upper() in OCULTAS]:
+        del elem[k]
 
     # ---- redes: componentes de nós comuns ligados por tubos (equipamentos cortam a rede)
     eh_eq = lambda nid: elem[nid][0] in EQUIP
     viz = defaultdict(list)
     for t in tubos:
         a, b = str(t["no_inicial"]), str(t["no_final"])
-        if not eh_eq(a) and not eh_eq(b):
+        # o tubo que atravessa uma válvula oculta continua separando a rede (vira a ligação entre os blocos)
+        if not eh_eq(a) and not eh_eq(b) and not t.get("_oculta"):
             viz[a].append(b)
             viz[b].append(a)
     zona_de, zonas = {}, []
@@ -129,12 +137,27 @@ def montar(gpkg=GPKG_PADRAO, com_projetados=False):
             b.update(carga=_num(r.get("carga_hidraulica")))
         blocos[nid] = b
 
+    # demanda dos consumidores (casas): vai para o nó ligado, ou metade para cada ponta da tubulação ligada
+    extra = defaultdict(float)
+    if "consumidor" in c:
+        pontas = {str(t["id"]): (str(t["no_inicial"]), str(t["no_final"])) for t in tubos if not t.get("_oculta")}
+        for r in c["consumidor"].to_dict("records"):
+            q, alvo = _num(r.get("demanda_base")), str(r.get("ligado_a") or "")
+            if not ativo(r) or q <= 0:
+                continue
+            if alvo in elem and elem[alvo][0] == "no_juncao":
+                extra[alvo] += q
+            elif alvo in pontas:
+                nos_ = [n for n in pontas[alvo] if n in elem and elem[n][0] == "no_juncao"]
+                for n in nos_:
+                    extra[n] += q / len(nos_)
     zid_de = {g: (f"setor:{g[1]}" if g[0] == "s" else f"rede:{g[1]}") for g in grupos}
     for g, membros in sorted(grupos.items(), key=lambda kv: (kv[0][0], str(kv[0][1]))):
         eqs = sorted(adj_grupo[g])
         recs = [elem[m][1] for m in membros]
-        dem = sum(_num(r.get("demanda_base")) for r in recs)
-        consumo = [m for m, r in zip(membros, recs) if _num(r.get("demanda_base")) > 0 or r.get("tipo") in CONSUMO]
+        dem = sum(_num(r.get("demanda_base")) + extra[m] for m, r in zip(membros, recs))
+        consumo = [m for m, r in zip(membros, recs)
+                   if _num(r.get("demanda_base")) + extra[m] > 0 or r.get("tipo") in CONSUMO]
         if g[0] == "c" and dem <= 0 and not consumo and len(eqs) == 2 and g not in com_vizinho:
             # ligação sem consumo entre dois equipamentos: vira linha direta
             a, b = eqs
@@ -177,6 +200,25 @@ def montar(gpkg=GPKG_PADRAO, com_projetados=False):
     return {"blocos": list(blocos.values()), "arestas": arestas,
             "colunas": 1 + max((b["col"] for b in blocos.values()), default=0),
             "linhas": 1 + max((b["lin"] for b in blocos.values()), default=0)}
+
+
+def _atravessar(tubos, ocultas):
+    """Tira do caminho cada válvula oculta: os dois tubos dela viram um só, com o id e o sentido do primeiro (a
+    vazão é a mesma). Uma de cada vez, para valerem também válvulas ocultas seguidas. Válvula oculta com outro
+    número de tubos some com eles."""
+    tubos = list(tubos)
+    for v in ocultas:
+        dela = [t for t in tubos if v in (str(t["no_inicial"]), str(t["no_final"]))]
+        tubos = [t for t in tubos if v not in (str(t["no_inicial"]), str(t["no_final"]))]
+        if len(dela) != 2:
+            continue
+        t1, t2 = dela
+        o1 = str(t1["no_final"]) if str(t1["no_inicial"]) == v else str(t1["no_inicial"])
+        o2 = str(t2["no_final"]) if str(t2["no_inicial"]) == v else str(t2["no_inicial"])
+        a, b = (o1, o2) if str(t1["no_final"]) == v else (o2, o1)  # o sentido de t1 vale para o caminho todo
+        tubos.append(dict(t1, no_inicial=a, no_final=b, _oculta=True, diametro_nominal=max(
+            _num(t1.get("diametro_nominal")), _num(t2.get("diametro_nominal")))))
+    return tubos
 
 
 def _posicionar(blocos, arestas):

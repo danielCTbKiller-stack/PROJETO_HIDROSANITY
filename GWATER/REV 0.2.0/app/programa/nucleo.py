@@ -30,7 +30,8 @@ DESENHO_TIPO = {
     "no": ("no_juncao", {"tipo": "JUNCAO"}),
     "valvula": ("valvula", {"tipo": "PRV"}), "valvula_prv": ("valvula", {"tipo": "PRV"}),
     "valvula_psv": ("valvula", {"tipo": "PSV"}), "valvula_pbv": ("valvula", {"tipo": "PBV"}),
-    "valvula_fcv": ("valvula", {"tipo": "FCV"}), "valvula_tcv": ("valvula", {"tipo": "TCV", "status": "ABERTA"}),
+    "valvula_fcv": ("valvula", {"tipo": "FCV"}), "valvula_vre": ("valvula", {"tipo": "VRE", "status": "ABERTA"}),
+    "valvula_vse": ("valvula", {"tipo": "VSE", "status": "ABERTA"}),
     "valvula_gpv": ("valvula", {"tipo": "GPV"}), "registro": ("valvula", {"tipo": "REGISTRO", "status": "ABERTA"}),
 }
 

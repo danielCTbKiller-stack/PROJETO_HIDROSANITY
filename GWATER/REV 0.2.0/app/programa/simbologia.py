@@ -20,7 +20,7 @@ from gwater.estilo import COR
 from .tema import ICONES, icone
 
 OUTROS_NO = "('CONSUMO', 'HIDRANTE', 'PONTA')"
-VALVULAS = ("PRV", "PSV", "PBV", "FCV", "TCV", "GPV", "REGISTRO")
+VALVULAS = ("PRV", "PSV", "PBV", "FCV", "TCV", "GPV", "REGISTRO", "VRE", "VSE")
 # chave, nome, camada, filtro (expressão; None = todos), valores do elemento novo, ícone, geometria, tamanho (mm)
 TIPOS = [
     ("tubulacao", "Tubulação", "trecho", "coalesce(\"status\", 'ABERTO') NOT IN ('FECHADO', 'CV')", {},
@@ -42,7 +42,11 @@ TIPOS = [
     ("valvula_psv", "PSV · sustentadora de pressão", "valvula", "\"tipo\" = 'PSV'", {"tipo": "PSV"}, "elem_psv", "ponto", 5),
     ("valvula_pbv", "PBV · quebra-pressão", "valvula", "\"tipo\" = 'PBV'", {"tipo": "PBV"}, "elem_pbv", "ponto", 5),
     ("valvula_fcv", "FCV · controladora de vazão", "valvula", "\"tipo\" = 'FCV'", {"tipo": "FCV"}, "elem_fcv", "ponto", 5),
-    ("valvula_tcv", "TCV · estrangulamento", "valvula", "\"tipo\" = 'TCV'", {"tipo": "TCV", "status": "ABERTA"}, "elem_tcv", "ponto", 5),
+    ("valvula_vre", "VRE · válvula do reservatório", "valvula", "\"tipo\" = 'VRE'", {"tipo": "VRE", "status": "ABERTA"},
+     "elem_vre", "ponto", 5),
+    ("valvula_vse", "VSE · válvula de setor", "valvula", "\"tipo\" = 'VSE'", {"tipo": "VSE", "status": "ABERTA"},
+     "elem_vse", "ponto", 5),
+    ("valvula_tcv", "TCV (antiga: troque por VRE ou VSE)", "valvula", "\"tipo\" = 'TCV'", {"tipo": "TCV", "status": "ABERTA"}, "elem_tcv", "ponto", 5),
     ("valvula_gpv", "GPV · perda genérica", "valvula", "\"tipo\" = 'GPV'", {"tipo": "GPV"}, "elem_gpv", "ponto", 5),
     ("registro", "Registro (manobra)", "valvula", "\"tipo\" = 'REGISTRO'", {"tipo": "REGISTRO", "status": "ABERTA"},
      "elem_registro", "ponto", 4.6),
@@ -167,7 +171,7 @@ def aplicar_simbologia(nucleo):
 
 
 def _dominio_registro(nucleo):
-    """O tipo REGISTRO na lista do formulário da válvula (cadastros criados antes dele)."""
+    """Os tipos REGISTRO, VRE e VSE na lista do formulário da válvula (cadastros criados antes deles)."""
     from qgis.core import QgsEditorWidgetSetup
     try:
         lyr = nucleo.camada("valvula")
@@ -182,9 +186,13 @@ def _dominio_registro(nucleo):
     mapa = cfg.config().get("map", [])
     if isinstance(mapa, dict):
         mapa = [{k: v} for k, v in mapa.items()]
-    if any("REGISTRO" in d.values() for d in mapa):
+    novos = [("REGISTRO - registro de manobra", "REGISTRO"),
+             ("VRE - válvula do reservatório (aberta/fechada, aparece no sinótico)", "VRE"),
+             ("VSE - válvula de setor (aberta/fechada, não aparece no sinótico)", "VSE")]
+    faltam = [{k: v} for k, v in novos if not any(v in d.values() for d in mapa)]
+    if not faltam:
         return
-    mapa = list(mapa) + [{"REGISTRO - registro de manobra": "REGISTRO"}]
+    mapa = list(mapa) + faltam
     lyr.setEditorWidgetSetup(i, QgsEditorWidgetSetup("ValueMap", {"map": mapa}))
 
 

@@ -582,7 +582,9 @@ def converter(gpkg=GPKG_PADRAO, com_projetados=False, alteracoes=None, camadas=N
                 if r["status_inicial"] == "FECHADA":
                     status.append(f"{nid:<10} Closed")
             else:
-                if r["tipo"] == "REGISTRO":  # registro de manobra: TCV sem perda (aberto) ou fechado pelo status
+                # registro de manobra e as válvulas de reservatório (VRE) e de setor (VSE): 100% abertas ou
+                # fechadas pelo status; no EPANET, TCV sem perda
+                if r["tipo"] in ("REGISTRO", "VRE", "VSE"):
                     dns = [p["D"] for p in pipes if p["a"] == f"{nid}__J" or p["b"] == f"{nid}__M"]
                     r = r.copy()
                     r["tipo"] = "TCV"

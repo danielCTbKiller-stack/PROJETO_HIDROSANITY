@@ -42,7 +42,9 @@ MATERIAIS = {  # material: C de Hazen-Williams sugerido para tubo novo
 STATUS_TRECHO = ["ABERTO", "FECHADO", "CV"]
 TIPO_VALVULA = {"PRV": "PRV - redutora de pressão", "PSV": "PSV - sustentadora de pressão",
                 "PBV": "PBV - quebra-pressão", "FCV": "FCV - controladora de vazão",
-                "TCV": "TCV - registro/estrangulamento", "GPV": "GPV - perda genérica"}
+                "VRE": "VRE - válvula do reservatório (aberta/fechada, aparece no sinótico)",
+                "VSE": "VSE - válvula de setor (aberta/fechada, não aparece no sinótico)",
+                "GPV": "GPV - perda genérica"}
 STATUS_VALVULA = ["ATIVA", "INATIVA", "ABERTA", "FECHADA"]
 TIPO_NO = ["JUNCAO", "CONSUMO", "HIDRANTE", "PONTA"]
 

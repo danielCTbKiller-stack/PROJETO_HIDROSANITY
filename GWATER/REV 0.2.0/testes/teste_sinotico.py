@@ -83,6 +83,20 @@ rot = sorted(b["rotulo"] for b in s3["blocos"] if b["tipo"] == "zona")
 lig = {(a["de"], a["para"]) for a in s3["arestas"]}
 checar(rot == ["Setor S1", "Setor S2"] and (("setor:S1", "setor:S2") in lig or ("setor:S2", "setor:S1") in lig),
        f"rede com dois setores = dois blocos ligados entre si: {rot}")
+
+print("\n== válvulas de reservatório (VRE) e de setor (VSE)")
+c["trecho"] = c["trecho"][c["trecho"]["id"] != "T_S1_S2"]
+v = c["valvula"]
+v.loc[v["id"] == "VRP3", "tipo"] = "VSE"
+v.loc[v["id"] == "VRP1", "tipo"] = "VRE"
+s4 = sinotico.montar(GPKG_PADRAO)
+ids = {b["id"]: b for b in s4["blocos"]}
+checar("VRP3" not in ids, "a VSE não vira bloco no sinótico")
+checar(ids.get("VRP1", {}).get("tipo_valvula") == "VRE", "a VRE vira bloco de válvula")
+ar = [a for a in s4["arestas"] if a["para"] == "setor:S2" or a["de"] == "setor:S2"]
+outro = {a["de"] if a["para"] == "setor:S2" else a["para"] for a in ar}
+checar(any(a["tubos"] == [["T_S2_A", 1]] for a in ar) and not outro & {"VRP3"},
+       f"o setor S2 liga direto em quem vinha antes da VSE, pelo tubo de entrada: {[(a['de'], a['para'], a['tubos']) for a in ar]}")
 sinotico.ler_cadastro = orig
 
 print("\nRESULTADO:", "TUDO OK" if not falhas else f"{len(falhas)} falha(s)")

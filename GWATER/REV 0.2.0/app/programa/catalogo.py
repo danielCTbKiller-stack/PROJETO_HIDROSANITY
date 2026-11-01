@@ -107,7 +107,8 @@ FAIXA = [
             ("valvula_psv", "PSV", "psv", "P", "Válvula sustentadora de pressão: mantém a pressão de entrada."),
             ("valvula_pbv", "PBV", "pbv", "P", "Válvula quebra-pressão: reduz a pressão num valor fixo."),
             ("valvula_fcv", "FCV", "fcv", "P", "Válvula controladora de vazão: limita a vazão."),
-            ("valvula_tcv", "TCV", "tcv", "P", "Válvula de estrangulamento (perda de carga ajustável)."),
+            ("valvula_vre", "VRE", "vre", "P", "Válvula do reservatório: 100% aberta ou fechada (status). Aparece no sinótico."),
+            ("valvula_vse", "VSE", "vse", "P", "Válvula de setor: 100% aberta ou fechada (status). Não aparece no sinótico."),
             ("valvula_gpv", "GPV", "gpv", "P", "Válvula de perda genérica (curva perda × vazão)."),
         ]),
         ("Outros", [

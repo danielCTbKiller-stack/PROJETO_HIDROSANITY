@@ -30,7 +30,7 @@ PASSOS = ["Arquivos", "De → para", "Valores", "Opções"]
 # o que cada geometria pode ser: (chave, nome, camada, valores fixos, ícone)
 OPCOES_LINHA = [("tubulacao", "Tubulações", "trecho", {}, "elem_tubulacao")]
 _P = ["no", "ponto_consumo", "hidrante", "ponta", "reservatorio", "captacao", "bomba", "valvula_prv", "valvula_psv",
-      "valvula_pbv", "valvula_fcv", "valvula_tcv", "valvula_gpv", "registro"]
+      "valvula_pbv", "valvula_fcv", "valvula_vre", "valvula_vse", "valvula_tcv", "valvula_gpv", "registro"]
 OPCOES_PONTO = [(k, POR_CHAVE[k][1], POR_CHAVE[k][2], POR_CHAVE[k][4], POR_CHAVE[k][5]) for k in _P] + \
     [("valvula_coluna", "Válvulas (o tipo vem de uma coluna)", "valvula", {}, "elem_valvula"),
      ("consumidor", "Consumidores (casa, ligados ao nó ou tubulação mais perto)", "consumidor", {}, "elem_consumidor")]
