@@ -30,7 +30,9 @@ Git; numa máquina nova, uma destas:
 - instale o QGIS (o GWATER.exe acha o instalado), ou
 - gere a versão portátil com `GWATER\REV 0.2.0\gerar_portatil.bat`, ou
 - ligue a pasta `runtime` de uma versão portátil:
-  `mklink /J "GWATER\REV 0.2.0untime" "<pasta portátil>untime"`.
+  `mklink /J "GWATER\REV 0.2.0\runtime" "<pasta portátil>\runtime"`.
+untime" "<pasta portátil>
+untime"`.
 untime" "<pasta portátil>
 untime"`.
 
