@@ -276,8 +276,9 @@ class Janela(QMainWindow):
         rec = QVBoxLayout()
         rec.addWidget(QLabel("<b>Abertos recentemente</b>"))
         self.lista_recentes = QListWidget()
-        self.lista_recentes.itemActivated.connect(lambda it: self._abrir_recente(it.data(Qt.ItemDataRole.UserRole)))
-        self.lista_recentes.itemDoubleClicked.connect(lambda it: self._abrir_recente(it.data(Qt.ItemDataRole.UserRole)))
+        # só itemActivated: o duplo clique também o dispara, e abrir o projeto refaz a lista (o item some)
+        self.lista_recentes.itemActivated.connect(
+            lambda it: it is not None and self._abrir_recente(it.data(Qt.ItemDataRole.UserRole)))
         rec.addWidget(self.lista_recentes, 1)
         corpo.addLayout(rec, 2)
         lay.addLayout(corpo, 1)
