@@ -466,6 +466,12 @@ class Janela(QMainWindow):
         prj = QgsProject.instance()
         self.nucleo._projeto_aberto()
         if self.nucleo.cadastro():
+            from . import consumidores
+            try:
+                consumidores.garantir(self.nucleo)
+            except Exception as e:  # noqa: BLE001 - um erro aqui não pode impedir de abrir o projeto
+                self.nucleo.aviso(f"Consumidores: {e}")
+        if self.nucleo.cadastro():
             self.nucleo.dock.status.setText(
                 f"Cadastro: <b>{os.path.basename(self.nucleo.cadastro())}</b>. Desenhe na aba Desenho, ou Calcular (F5).")
         if not self.nucleo.cadastro():

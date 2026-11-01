@@ -92,7 +92,7 @@ print("== abrir o exemplo")
 j.abrir_projeto(os.path.join(TMP, "GWATER_cadastro.qgz"))
 esperar()
 checar(n.cadastro() and n.cadastro().endswith("gwater_cadastro.gpkg"), f"cadastro aberto: {n.cadastro()}")
-checar(len(n.camadas_rede()) == 6, f"6 camadas da rede: {[l.name() for l in n.camadas_rede()]}")
+checar(len(n.camadas_rede()) == 7, f"7 camadas da rede (com os consumidores): {[l.name() for l in n.camadas_rede()]}")
 checar(j.centro.tabText(0).startswith("Mapa"), "aba do mapa no lugar da tela Início")
 
 print("\n== calcular")
@@ -123,6 +123,39 @@ for _ in range(10):
     j.desfazer()
 esperar()
 checar(tr.featureCount() == n0_tr, f"desfazer tira a tubulação ({tr.featureCount()})")
+
+print("\n== consumidor (casa ligada ao nó, sem tubulação)")
+cons = n.camada("consumidor")
+n.executar("ponto_consumo")
+ferr = j.canvas.mapTool()
+f = QgsFeature()
+f.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(p.x() + 15, p.y() + 10)))
+ferr._concluido(f)
+esperar(40)
+c = list(cons.getFeatures())
+checar(len(c) == 1, f"consumidor desenhado ({len(c)})")
+checar(c and str(c[0]["ligado_a"]) == "S2" and c[0]["tipo_ligacao"] == "NO",
+       f"ligou sozinho no nó mais perto: {c[0]['ligado_a'] if c else '?'} / {c[0]['tipo_ligacao'] if c else '?'}")
+checar(tr.featureCount() == n0_tr, "nenhuma tubulação criada para o consumidor")
+if os.environ.get("GWATER_FOTO"):
+    from qgis.core import QgsRectangle  # noqa: E402
+    j.canvas.setExtent(QgsRectangle(p.x() - 120, p.y() - 80, p.x() + 120, p.y() + 80))
+    j.canvas.refreshAllLayers()
+    esperar(60)
+    import time as _t  # noqa: E402
+    _t.sleep(2)
+    esperar(60)
+    j.canvas.grab().save(os.environ["GWATER_FOTO"])
+cons.changeAttributeValue(c[0].id(), cons.fields().indexOf("demanda_base"), 3.0)
+j.salvar_camadas()
+esperar()
+c = list(cons.getFeatures())
+checar(len(c) == 1 and str(c[0]["ligado_a"]) == "S2" and c[0]["demanda_base"] == 3.0, "consumidor gravado")
+q0 = n.res.d["nos"]["S2"]["d"][0]
+j.acionar("simular")
+esperar()
+q1 = n.res.d["nos"]["S2"]["d"][0]
+checar(q1 > q0 + 1.0, f"a demanda do consumidor entra no nó S2 no cálculo ({q0:g} → {q1:g} L/s)")
 
 print("\n== todos os botões da faixa")
 PULAR = {"sair", "novo", "abrir", "importar", "abrir_qgis", "abrir_epanet", "externas", "salvar_como", "recentes",

@@ -60,6 +60,10 @@ CAMADAS = {
                           ("ajuste", D), ("status", S), ("perda_localizada", D)] + COMUNS),
     "no_juncao": ("Point", [("id", S), ("nome", S), ("tipo", S), ("cota", D), ("demanda_base", D),
                             ("padrao", S)] + COMUNS),
+    # consumidor (Customer Meter do WaterGEMS): sem tubulação própria; a demanda vai para o nó ou para as pontas
+    # da tubulação em "ligado_a" (tipo_ligacao NO ou TRECHO)
+    "consumidor": ("Point", [("id", S), ("nome", S), ("demanda_base", D), ("padrao", S), ("ligado_a", S),
+                             ("tipo_ligacao", S), ("categoria", S)] + COMUNS),
     "trecho": ("LineString", [("id", S), ("no_inicial", S), ("no_final", S), ("comprimento", D),
                               ("diametro_nominal", D), ("material", S), ("rugosidade_hw", D),
                               ("perda_localizada", D), ("status", S), ("ano_instalacao", I)] + COMUNS),
@@ -80,7 +84,7 @@ CAMADAS = {
 PONTOS = ["captacao", "reservatorio", "bomba", "valvula", "no_juncao"]
 # nomes exibidos no QGIS (as expressões do formulário referenciam estes nomes)
 APELIDOS = {"captacao": "Captação", "reservatorio": "Reservatórios", "bomba": "Bombas", "valvula": "Válvulas",
-            "no_juncao": "Nós / junções", "trecho": "Trechos (tubulações)", "padrao_consumo": "Padrões de consumo", "padrao_def": "Padrões (definição)",
+            "no_juncao": "Nós / junções", "consumidor": "Consumidores", "trecho": "Trechos (tubulações)", "padrao_consumo": "Padrões de consumo", "padrao_def": "Padrões (definição)",
             "curva": "Curvas", "controle": "Controles", "demanda": "Demandas por nó", "regra": "Controles lógicos", "opcoes_simulacao": "Opções de simulação",
             "dominio_material": "Domínio · material"}
 

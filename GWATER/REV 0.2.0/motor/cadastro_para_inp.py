@@ -212,6 +212,9 @@ def aplicar_alteracoes(c, alteracoes, rel):
         if camada == "global" and campo == "fator_demanda":
             f = float(valor)
             c["no_juncao"]["demanda_base"] = c["no_juncao"]["demanda_base"].map(lambda d: None if d is None else d * f)
+            if "consumidor" in c:
+                c["consumidor"]["demanda_base"] = c["consumidor"]["demanda_base"].map(
+                    lambda d: None if d is None else d * f)
             continue
         if camada == "global" and campo == "modelo_demanda":  # PDA (padrão) ou DDA
             o = c["opcoes_simulacao"]
@@ -246,6 +249,65 @@ def aplicar_alteracoes(c, alteracoes, rel):
                     c["regra"] = rg[~rg["id_regra"].isin(alvo)]
                     rel.aviso(f"proposta: controles lógicos que mexem em {eid} desconsiderados (forçado fechado)",
                               ref=(camada, eid))
+
+
+def consumidores(c, ativos, nos, ligados, pipes, trechos, rel):
+    """Consumidores (Customer Meter do WaterGEMS): cada um é ligado a um nó ou a uma tubulação, sem trecho próprio.
+    Ligado a nó, a demanda vai para o nó; ligado a tubulação, metade para cada ponta (só pontas que são nós de
+    junção; se uma ponta é bomba, válvula ou reservatório, a outra fica com tudo). Sem ligação válida, vai para o
+    nó ou o meio de tubulação mais perto. Devolve {nó: [(demanda, padrão, categoria)]}."""
+    out = defaultdict(list)
+    df = c.get("consumidor")
+    if df is None or not len(df):
+        return out
+    juncoes = {nid: xy for nid, (cam, _, xy) in nos.items() if cam == "no_juncao" and nid in ligados}
+    validos = {p["id"]: (p["a"], p["b"]) for p in pipes}
+    meios = {}
+    for _, t in trechos.iterrows():
+        if t["id"] in validos and t.geometry is not None:
+            m = t.geometry.interpolate(0.5, normalized=True)
+            meios[t["id"]] = (m.x, m.y)
+    for _, r in ativos(df).iterrows():
+        cid = r["id"] or "(sem id)"
+        q = r["demanda_base"]
+        if _vazio(q) or q == 0:
+            continue
+        alvo, tipo = r.get("ligado_a"), (r.get("tipo_ligacao") or "").upper()
+        if _vazio(alvo) or (alvo not in juncoes and alvo not in validos):
+            if r.geometry is None:
+                rel.erro(f"consumidor {cid}: sem posição e sem ligação", ref=("consumidor", cid))
+                continue
+            xy = (r.geometry.x, r.geometry.y)
+            cand = [(math.dist(xy, p), k, "NO") for k, p in juncoes.items()] +                    [(math.dist(xy, p), k, "TRECHO") for k, p in meios.items()]
+            if not cand:
+                rel.erro(f"consumidor {cid}: não há nó nem tubulação para ligar", ref=("consumidor", cid))
+                continue
+            _, alvo, tipo = min(cand)
+            if not _vazio(r.get("ligado_a")):
+                rel.aviso(f"consumidor {cid}: '{r['ligado_a']}' não existe mais, ligado a {alvo} (o mais perto)",
+                          ref=("consumidor", cid))
+        elif alvo in validos and (tipo == "TRECHO" or alvo not in juncoes):
+            tipo = "TRECHO"
+        else:
+            tipo = "NO"
+        cat = f"consumidor {cid}"
+        pad = r.get("padrao") or ""
+        if tipo == "NO":
+            out[alvo].append((float(q), pad, cat))
+            continue
+        pontas = [n for n in validos[alvo] if n in juncoes]
+        if not pontas:  # tubulação entre válvulas, bombas ou reservatórios: o nó de junção mais perto
+            if not juncoes or r.geometry is None:
+                rel.erro(f"consumidor {cid}: a tubulação {alvo} não tem nó de junção nas pontas",
+                         ref=("consumidor", cid))
+                continue
+            xy = (r.geometry.x, r.geometry.y)
+            pontas = [min(juncoes, key=lambda k: math.dist(xy, juncoes[k]))]
+            rel.aviso(f"consumidor {cid}: a tubulação {alvo} não tem nó de junção nas pontas, demanda no nó "
+                      f"{pontas[0]} (o mais perto)", ref=("consumidor", cid))
+        for n in pontas:
+            out[n].append((float(q) / len(pontas), pad, cat))
+    return out
 
 
 def converter(gpkg=GPKG_PADRAO, com_projetados=False, alteracoes=None, camadas=None):
@@ -433,6 +495,7 @@ def converter(gpkg=GPKG_PADRAO, com_projetados=False, alteracoes=None, camadas=N
             if not _vazio(r["no_id"]) and not _vazio(r["demanda"]):
                 colecao[str(r["no_id"])].append((float(r["demanda"]), r["padrao"] or "", r.get("categoria") or ""))
     demandas = []
+    extras = consumidores(c, ativos, nos, ligados, pipes, trechos, rel)
 
     juncs, reserv, tanques, bombas, valvulas, status, coords = [], [], [], [], [], [], []
     usados = set()
@@ -448,13 +511,18 @@ def converter(gpkg=GPKG_PADRAO, com_projetados=False, alteracoes=None, camadas=N
             usados.add(pad)
             partes = colecao.get(nid)
             soma = sum(q for q, _, _ in partes) if partes else 0
-            if partes and soma > 0:
-                k = (r["demanda_base"] if not _vazio(r["demanda_base"]) else soma) / soma
-                for q, p, cat in partes:
+            dos_consumidores = [(q, p or pad, cat) for q, p, cat in extras.get(nid, [])]
+            if (partes and soma > 0) or dos_consumidores:
+                if partes and soma > 0:
+                    k = (r["demanda_base"] if not _vazio(r["demanda_base"]) else soma) / soma
+                    proprias = [(q * k, p, cat) for q, p, cat in partes]
+                else:
+                    proprias = [(r["demanda_base"], pad, "")] if (r["demanda_base"] or 0) > 0 else []
+                for q, p, cat in proprias + dos_consumidores:
                     if p and p not in padroes:
                         rel.erro(f"nó {nid}: padrão '{p}' da demanda {cat or ''} não existe", ref=("no_juncao", nid))
                     usados.add(p)
-                    demandas.append(f"{nid:<14} {q * k:<10g} {p:<12} ;{cat}")
+                    demandas.append(f"{nid:<14} {q:<10g} {p:<12} ;{cat}")
                 juncs.append(f"{nid:<14} {r['cota'] or 0:<9g} 0")
             else:
                 juncs.append(f"{nid:<14} {r['cota'] or 0:<9g} {r['demanda_base'] or 0:<10g} {pad}")

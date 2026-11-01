@@ -26,7 +26,7 @@ NOMES_WEB = {"mapa": "Mapa e propostas", "calibracao": "Calibração", "aovivo":
              "sinotico": "Sinótico"}
 # botões de desenho que são uma camada com um valor já escolhido (como os tipos do WaterGEMS)
 DESENHO_TIPO = {
-    "hidrante": ("no_juncao", {"tipo": "HIDRANTE"}), "ponto_consumo": ("no_juncao", {"tipo": "CONSUMO"}),
+    "hidrante": ("no_juncao", {"tipo": "HIDRANTE"}), "ponto_consumo": ("consumidor", {}),
     "no": ("no_juncao", {"tipo": "JUNCAO"}),
     "valvula": ("valvula", {"tipo": "PRV"}), "valvula_prv": ("valvula", {"tipo": "PRV"}),
     "valvula_psv": ("valvula", {"tipo": "PSV"}), "valvula_pbv": ("valvula", {"tipo": "PBV"}),
@@ -166,7 +166,7 @@ class Nucleo(GwaterPlugin):
 
     def camadas_rede(self):
         out = []
-        for n in ("captacao", "reservatorio", "bomba", "valvula", "no_juncao", "trecho"):
+        for n in ("captacao", "reservatorio", "bomba", "valvula", "no_juncao", "trecho", "consumidor"):
             try:
                 out.append(self.camada(n))
             except LookupError:
@@ -212,6 +212,8 @@ class Nucleo(GwaterPlugin):
 
     def prototipo_mudou(self, *a, salvar=True):
         GwaterPlugin.prototipo_mudou(self, *a, salvar=salvar)
+        from .consumidores import formulario
+        formulario(self)
 
     # ------------------------------------------------ cálculo com o cenário ativo
     def _motor(self, acao, alvo, extras, texto):
@@ -323,9 +325,9 @@ del _k
 
 def instalar_acoes():
     """Liga as ações dos módulos ao Núcleo (cada módulo tem um dicionário ACOES {chave: função(nucleo)})."""
-    from . import (analise_ui, ajuda, assistente, calibracao_ui, cenarios_ui, componentes, componentes_extra, desenho_extra, consultas, ferramentas_modelo, graficos,
+    from . import (analise_ui, ajuda, assistente, calibracao_ui, cenarios_ui, componentes, consumidores, componentes_extra, desenho_extra, consultas, ferramentas_modelo, graficos,
                    modelbuilder_ui, regras, relatorios, revisao, selecao, tabelas, vistas)
-    for mod in (analise_ui, ajuda, assistente, calibracao_ui, cenarios_ui, componentes, componentes_extra, desenho_extra, consultas, ferramentas_modelo, graficos, modelbuilder_ui,
+    for mod in (analise_ui, ajuda, assistente, calibracao_ui, cenarios_ui, componentes, consumidores, componentes_extra, desenho_extra, consultas, ferramentas_modelo, graficos, modelbuilder_ui,
                 regras, relatorios, revisao, selecao, tabelas, vistas):
         for chave, func in getattr(mod, "ACOES", {}).items():
             setattr(Nucleo, f"acao_{chave}", (lambda f: lambda self: f(self))(func))

@@ -32,7 +32,8 @@ OPCOES_LINHA = [("tubulacao", "Tubulações", "trecho", {}, "elem_tubulacao")]
 _P = ["no", "ponto_consumo", "hidrante", "ponta", "reservatorio", "captacao", "bomba", "valvula_prv", "valvula_psv",
       "valvula_pbv", "valvula_fcv", "valvula_tcv", "valvula_gpv", "registro"]
 OPCOES_PONTO = [(k, POR_CHAVE[k][1], POR_CHAVE[k][2], POR_CHAVE[k][4], POR_CHAVE[k][5]) for k in _P] + \
-    [("valvula_coluna", "Válvulas (o tipo vem de uma coluna)", "valvula", {}, "elem_valvula")]
+    [("valvula_coluna", "Válvulas (o tipo vem de uma coluna)", "valvula", {}, "elem_valvula"),
+     ("consumidor", "Consumidores (casa, ligados ao nó ou tubulação mais perto)", "consumidor", {}, "elem_consumidor")]
 # polígonos: estação de bomba (pump station do WaterGEMS); a bomba entra no nó/tubo dentro do polígono
 OPCOES_POLIGONO = [("estacao_bomba", "Estação de bomba", "bomba", POR_CHAVE["bomba"][4], POR_CHAVE["bomba"][5]),
                    ("estacao_reservatorio", "Reservatório (área)", "reservatorio", POR_CHAVE["reservatorio"][4],
@@ -44,8 +45,8 @@ PISTAS = [("registro", "registro"), ("reg", "registro"), ("vrp", "valvula_prv"),
           ("fcv", "valvula_fcv"), ("tcv", "valvula_tcv"), ("gpv", "valvula_gpv"), ("valv", "valvula_coluna"),
           ("hidrant", "hidrante"), ("hid", "hidrante"), ("reserv", "reservatorio"), ("rap", "reservatorio"),
           ("rel", "reservatorio"), ("capta", "captacao"), ("manancial", "captacao"), ("bomba", "bomba"),
-          ("eea", "bomba"), ("eeat", "bomba"), ("elevat", "bomba"), ("booster", "bomba"), ("consumo", "ponto_consumo"),
-          ("ligac", "ponto_consumo"), ("hidrom", "ponto_consumo"), ("no", "no"), ("node", "no"), ("junc", "no")]
+          ("eea", "bomba"), ("eeat", "bomba"), ("elevat", "bomba"), ("booster", "bomba"), ("consumo", "consumidor"),
+          ("ligac", "consumidor"), ("hidrom", "consumidor"), ("no", "no"), ("node", "no"), ("junc", "no")]
 
 
 def geometria(lyr):

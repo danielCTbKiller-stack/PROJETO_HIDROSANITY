@@ -11,13 +11,13 @@ from qgis.PyQt.QtWidgets import QComboBox, QDoubleSpinBox
 from .nucleo import DESENHO_TIPO
 from .util import Dialogo, ids_selecionados, num
 
-NOMES_TIPO = {"no": "Nó (junção)", "ponto_consumo": "Ponto de consumo", "hidrante": "Hidrante",
+NOMES_TIPO = {"no": "Nó (junção)", "ponto_consumo": "Nó de consumo", "hidrante": "Hidrante",
               "reservatorio": "Reservatório", "captacao": "Captação", "bomba": "Bomba", "valvula_prv": "PRV",
               "valvula_psv": "PSV", "valvula_pbv": "PBV", "valvula_fcv": "FCV", "valvula_tcv": "TCV",
               "valvula_gpv": "GPV", "registro": "Registro"}
 COMUNS = ("nome", "cota", "setor", "situacao", "observacao", "diametro")
 # camada e valores de cada destino (os que se desenham com tipo; os outros têm camada própria)
-DESTINOS = {**DESENHO_TIPO, "no": ("no_juncao", {"tipo": "JUNCAO"}), "reservatorio": ("reservatorio", {}),
+DESTINOS = {**DESENHO_TIPO, "no": ("no_juncao", {"tipo": "JUNCAO"}), "ponto_consumo": ("no_juncao", {"tipo": "CONSUMO"}), "reservatorio": ("reservatorio", {}),
             "captacao": ("captacao", {}), "bomba": ("bomba", {"status_inicial": "ABERTA", "rotacao_relativa": 1.0})}
 
 

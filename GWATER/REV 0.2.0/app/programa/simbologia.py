@@ -31,7 +31,7 @@ TIPOS = [
      "elem_tubulacao_cv", "linha", 0),
     ("no", "Nó / junção", "no_juncao", f"\"tipo\" IS NULL OR \"tipo\" NOT IN {OUTROS_NO}", {"tipo": "JUNCAO"},
      "elem_no", "ponto", 2.2),
-    ("ponto_consumo", "Ponto de consumo", "no_juncao", "\"tipo\" = 'CONSUMO'", {"tipo": "CONSUMO"},
+    ("ponto_consumo", "Nó de consumo", "no_juncao", "\"tipo\" = 'CONSUMO'", {"tipo": "CONSUMO"},
      "elem_consumo", "ponto", 3.2),
     ("hidrante", "Hidrante", "no_juncao", "\"tipo\" = 'HIDRANTE'", {"tipo": "HIDRANTE"}, "elem_hidrante", "ponto", 4.2),
     ("ponta", "Ponta de rede", "no_juncao", "\"tipo\" = 'PONTA'", {"tipo": "PONTA"}, "elem_ponta", "ponto", 2.6),

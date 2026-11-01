@@ -94,7 +94,8 @@ FAIXA = [
             ("reservatorio", "Reservatório", "reservatorio", "P", "Reservatório de nível variável (tank)."),
             ("captacao", "Captação", "captacao", "P", "Captação ou manancial: nível fixo (reservoir)."),
             ("hidrante", "Hidrante", "hidrante", "P", "Nó do tipo hidrante (usado na análise de incêndio)."),
-            ("ponto_consumo", "Ponto de consumo", "ponto_consumo", "P", "Nó do tipo consumo (avaliado pela NBR 12218)."),
+            ("ponto_consumo", "Consumidor", "ponto_consumo", "P", "Consumidor (casa) sem tubulação própria: liga sozinho no nó ou no meio da tubulação mais perto, e a demanda vai para lá (Customer Meter)."),
+            ("ligar_consumidores", "Religar consumidores", "ponto_consumo", "P", "Liga os consumidores selecionados (ou todos) ao nó ou ao meio de tubulação mais perto."),
         ]),
         ("Bomba", [
             ("bomba", "Bomba", "bomba", "G", "Coloca uma bomba. Escolha a curva no formulário (Curvas de bomba)."),
