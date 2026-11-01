@@ -33,6 +33,7 @@ class Pipe:
     diameter_mm: float
     material: str = "PVC Soldável"
     equivalent_length_m: float = 0.0  # Comprimento equivalente de conexões
+    roughness_factor: float = 1.0  # multiplicador da perda de carga (resultado da calibração; 1 = tubo novo)
 
 
 @dataclass

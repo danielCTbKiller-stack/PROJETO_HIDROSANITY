@@ -139,7 +139,12 @@ class PropertiesPanel(QWidget):
         leq = _spin(p.equivalent_length_m, 0, 1000, 0.1, 2, " m")
         leq.valueChanged.connect(lambda v: self._apply(lambda: setattr(p, "equivalent_length_m", v)))
         self._row("Leq adicional", leq)
-        geo = QPushButton("Comprimento pela geometria")
+        rf = _spin(p.roughness_factor, 0.1, 10, 0.05, 3, "")
+        rf.setPrefix("× ")
+        rf.setToolTip("Multiplicador da perda de carga (1 = tubo novo); a calibração grava aqui")
+        rf.valueChanged.connect(lambda v: self._apply(lambda: setattr(p, "roughness_factor", v)))
+        self._row("Fator de rugosidade", rf)
+        geo =QPushButton("Comprimento pela geometria")
         nodes = self.canvas.project.nodes
 
         def from_geometry():

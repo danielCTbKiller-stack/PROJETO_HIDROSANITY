@@ -4,8 +4,24 @@ Software de modelagem hidráulica predial (NBR 5626) em Python + PySide6, com a 
 desenho em planta/isométrica 2.5D, vista 2D da parede de trabalho, aparelhos e peças (VRP, registros, tês,
 curvas…), paredes externas/internas por pavimento, sinótico animado do prédio e simulação em período estendido.
 
-O código fica em [`hydrosanitary_backend/`](hydrosanitary_backend/); a documentação detalhada está no
-[README de lá](hydrosanitary_backend/README.md).
+O repositório junta dois programas:
+
+| Pasta | Programa |
+|---|---|
+| [`hydrosanitary_backend/`](hydrosanitary_backend/) | **Hidrossanitário** (este README e o [README de lá](hydrosanitary_backend/README.md)) |
+| [`GWATER/`](GWATER/) | **GWATER**, redes de distribuição de água (EPANET/WNTR + QGIS), com o histórico do Git dele; veja o [README do GWATER](GWATER/README.md) |
+
+**Calibração (Darwin Calibrator do WaterGEMS):** o GWATER calibra redes de distribuição
+(`GWATER/REV 0.2.0/motor/darwin.py`); o Hidrossanitário ganhou o mesmo calibrador para a rede predial, na aba
+**CALIBRAÇÃO** (Análise → Calibrar). Você informa momentos de medição (fator de demanda e pressão na saída do
+reservatório), as leituras de campo (pressão em nós, vazão em trechos), grupos de rugosidade (por material ou
+pavimento) e de demanda (por pavimento), a aptidão (soma dos quadrados, dos absolutos ou maior diferença) e o
+método (genético ou gradiente). As melhores soluções aparecem com a comparação observado × simulado, e a
+escolhida é gravada no projeto (fator de rugosidade de cada trecho e pesos dos aparelhos; Ctrl+Z desfaz).
+
+O botão **Análise → Abrir GWATER** abre o GWATER.exe. O ambiente portátil dele (QGIS + Python, ~2,5 GB) fica
+fora do Git: gere com `GWATER\REV 0.2.0\gerar_portatil.bat` ou copie a pasta `PORTATIL\GWATER` para
+`GWATER\PORTATIL\GWATER`.
 
 ## Rodar numa máquina nova (Windows)
 

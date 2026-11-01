@@ -239,6 +239,17 @@ def _icon_glyph(p: QPainter, name: str, s: float):
         p.setPen(_pen(c, s / 14)); p.setBrush(QColor(COR["panel2"]))
         p.drawEllipse(QPointF(0, 0), s * .38, s * .38)
         p.drawLine(QPointF(0, 0), QPointF(0, -s * .26)); p.drawLine(QPointF(0, 0), QPointF(s * .18, s * .1))
+    elif name == "calibracao":  # alvo com seta: ajustar o modelo às medições
+        p.setPen(_pen(c, s / 14)); p.setBrush(Qt.NoBrush)
+        p.drawEllipse(QPointF(0, 0), s * .36, s * .36); p.drawEllipse(QPointF(0, 0), s * .18, s * .18)
+        p.setPen(_pen(COR["water"], s / 10)); p.drawLine(QPointF(s * .42, -s * .42), QPointF(0, 0))
+    elif name == "gwater":  # gota
+        p.setPen(_pen(c, s / 14)); p.setBrush(QColor(COR["water"]))
+        path = QPainterPath(QPointF(0, -s * .42))
+        path.cubicTo(QPointF(s * .1, -s * .2), QPointF(s * .34, 0), QPointF(s * .34, s * .14))
+        path.arcTo(QRectF(-s * .34, -s * .2, s * .68, s * .68), 0, -180)
+        path.cubicTo(QPointF(-s * .34, 0), QPointF(-s * .1, -s * .2), QPointF(0, -s * .42))
+        p.drawPath(path)
     elif name == "orto":
         p.setPen(_pen(c, s / 12))
         p.drawLine(QPointF(-s * .35, s * .35), QPointF(-s * .35, -s * .35)); p.drawLine(QPointF(-s * .35, s * .35), QPointF(s * .35, s * .35))

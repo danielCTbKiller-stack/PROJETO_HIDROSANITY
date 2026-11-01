@@ -1,6 +1,7 @@
 import os
 import tempfile
 import unittest
+import pytest
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
@@ -326,3 +327,43 @@ class TestIsoDrawingAllRotations(unittest.TestCase):
         c._click(c._view_pt(3.0, 1.0, c._plane_z()), Qt.NoModifier)
         n = c.project.nodes[c.selection[1]]
         self.assertEqual((round(n.x_m, 2), round(n.y_m, 2), round(n.elevation_m, 2)), (3.0, 1.0, 0.6))
+
+
+# ----------------------------------------------------------------------------- calibração (Darwin)
+def _calib_study(k=1.6, metodo="genetico"):
+    from examples.make_sample_building import build_building
+    from services.calibration import Estudo, Leitura, Momento, grupos_por_material
+    project, src = build_building()
+    for p in project.pipes.values():
+        p.roughness_factor = k
+    res = NetworkAnalyzer(project).analyze(src, 0.0, auto_fittings=True)
+    for p in project.pipes.values():
+        p.roughness_factor = 1.0
+    pts = [n for n in project.nodes if project.nodes[n].fixtures][::7][:6]
+    lei = [Leitura(n, "pressao", res["nodes"][n]["pressure_mca"]) for n in pts]
+    return project, src, Estudo([Momento("pico", leituras=lei)], grupos_c=grupos_por_material(project),
+                                metodo=metodo, geracoes=15)
+
+
+def test_calibration_recovers_roughness():
+    from services.calibration import Calibrador
+    for metodo in ("genetico", "gradiente"):
+        project, src, est = _calib_study(1.6, metodo)
+        cal = Calibrador(project, src, 0.0, est)
+        run = cal.rodar()
+        best = run["solucoes"][0]
+        assert abs(best["x"][0] - 1.6) < 0.02
+        assert best["aptidao"] < run["inicial"]
+        assert all(p.roughness_factor == 1.0 for p in project.pipes.values())  # avaliar não altera o projeto
+        cal.aplicar(best["x"])
+        assert all(abs(p.roughness_factor - 1.6) < 0.02 for p in project.pipes.values())
+
+
+def test_calibration_validates_study_and_roundtrips_factor():
+    from services.calibration import Calibrador, Estudo, Leitura, Momento
+    project, src, est = _calib_study()
+    with pytest.raises(ValueError):
+        Calibrador(project, src, 0.0, Estudo([Momento("m", leituras=[Leitura("XX", "pressao", 1)])], est.grupos_c))
+    next(iter(project.pipes.values())).roughness_factor = 1.3
+    again = project_io.from_dict(project_io.to_dict(project))[0]
+    assert max(p.roughness_factor for p in again.pipes.values()) == 1.3

@@ -1,5 +1,7 @@
 import copy
 import os
+import subprocess
+from pathlib import Path
 from typing import Optional
 
 from PySide6.QtCore import QPointF, Qt
@@ -15,6 +17,7 @@ from core.standards import COMMERCIAL_DIAMETERS, FITTING_LABELS, FIXTURE_INFO, M
 from gui.canvas import ModelCanvas
 from gui.properties import PropertiesPanel
 from gui.ribbon import Ribbon
+from gui.calibration import CalibrationPage
 from gui.extended import ExtendedPage
 from gui.synoptic import SynopticPage
 from gui.theme import COR
@@ -93,6 +96,10 @@ class MainWindow(QMainWindow):
         self.extended = ExtendedPage(lambda: (self.canvas.project, self.canvas.source_id, self.max_velocity.value(),
                                               self.fittings_check.isChecked()))
         self.extended.applyStep.connect(self._apply_instant)
+        self.calibration = CalibrationPage(lambda: (self.canvas.project, self.canvas.source_id, self.pressure.value(),
+                                                    self.fittings_check.isChecked(), self.canvas.selected_items()))
+        self.calibration.before.connect(self._snapshot)
+        self.calibration.applied.connect(lambda msg: (self._after_change(), self.statusBar().showMessage(msg)))
         self.pipe_table = self._table(["Trecho", "Q (L/s)", "DN (mm)", "v (m/s)", "hf (mca)", "Leq (m)"])
         self.node_table = self._table(["Nó", "Cota (m)", "Pressão (mca)", "Mínima (mca)", "Situação"])
         self.budget_table = self._table(["Material", "Qtd (m)", "Preço un.", "Total"])
@@ -147,7 +154,7 @@ class MainWindow(QMainWindow):
         rl.setContentsMargins(10, 10, 10, 10)
         rl.addWidget(results)
         self.pages = QStackedWidget()
-        for w in (model_page, self.synoptic, res_page, self.extended):
+        for w in (model_page, self.synoptic, res_page, self.extended, self.calibration):
             self.pages.addWidget(w)
         holder = QWidget()
         hl = QVBoxLayout(holder)
@@ -211,7 +218,7 @@ class MainWindow(QMainWindow):
         hl.addLayout(titles)
         hl.addStretch(1)
         self.nav = QButtonGroup(self)
-        for i, text in enumerate(("MODELO", "SINÓTICO", "RESULTADOS", "PERÍODO ESTENDIDO")):
+        for i, text in enumerate(("MODELO", "SINÓTICO", "RESULTADOS", "PERÍODO ESTENDIDO", "CALIBRAÇÃO")):
             b = QToolButton(); b.setObjectName("nav"); b.setText(text); b.setCheckable(True)
             b.setChecked(i == 0)
             self.nav.addButton(b, i)
@@ -347,6 +354,11 @@ class MainWindow(QMainWindow):
         g.button("Período\nestendido", "relogio", lambda: self.show_page(3),
                  "Simulação ao longo do dia: consumo, nível do reservatório e pressões")
         g.button("Memorial", "memorial", lambda: self.export_report())
+        g = pg.group("Calibração")
+        g.button("Calibrar\n(Darwin)", "calibracao", lambda: self.show_page(4),
+                 "Ajusta rugosidade e demanda às pressões e vazões medidas, como o Darwin Calibrator do WaterGEMS")
+        g = pg.group("GWATER")
+        g.button("Abrir\nGWATER", "gwater", self.open_gwater, "Programa de redes de distribuição (pasta GWATER)")
 
         pg = rb.page("Exibir")
         g = pg.group("Vista")
@@ -397,6 +409,23 @@ class MainWindow(QMainWindow):
             self.extended.load_defaults()
         if i == 1:
             self._refresh_synoptic()
+
+    def open_gwater(self):
+        """Abre o GWATER.exe: o da pasta GWATER do repositório ou a versão portátil (que traz o QGIS e o Python)."""
+        root = Path(__file__).resolve().parents[2]
+        candidates = [root / "GWATER" / "PORTATIL" / "GWATER" / "GWATER.exe",
+                      Path(r"C:\0 - PROJETO PILOTO GWATER\PORTATIL\GWATER\GWATER.exe"),
+                      root / "GWATER" / "REV 0.2.0" / "GWATER.exe"]
+        exe = next((c for c in candidates if c.exists() and (c.parent / "runtime").exists()), None)
+        if exe is None:
+            QMessageBox.information(
+                self, "GWATER",
+                "O código do GWATER está em GWATER/ no repositório, mas o programa precisa do ambiente portátil "
+                "(QGIS + Python, ~2,5 GB, fora do Git).\n\nGere-o com GWATER\\REV 0.2.0\\gerar_portatil.bat "
+                "ou copie a pasta PORTATIL\\GWATER para GWATER\\PORTATIL\\GWATER.")
+            return
+        subprocess.Popen([str(exe)], cwd=str(exe.parent))
+        self.statusBar().showMessage(f"Abrindo {exe}")
 
     def _set_view(self, i):
         if self.view_mode.currentIndex() == i:

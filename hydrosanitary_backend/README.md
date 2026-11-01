@@ -59,6 +59,22 @@ A janela usa a identidade visual do GWATER (tema escuro, faixa de menus por abas
 - **Período estendido**: simula o consumo do prédio ao longo de 1 a 14 dias (população, consumo per capita, curva horária editável, reservatório, alimentação e falta d'água programada). Mostra consumo × alimentação, nível do reservatório e pressões mínima/máxima, com reprodução no tempo; "Ver este instante no sinótico" leva o resultado da hora escolhida ao modelo e ao sinótico. As vazões de cada instante são as prováveis da NBR 5626 escaladas pela curva (a hora de pico vale 1).
 - Projetos desenhados são salvos em `.hsp` (JSON). Exemplo pronto: Início → Edifício (ou `python examples/make_sample_building.py edificio.hsp`).
 
+## Calibração (como o Darwin Calibrator do WaterGEMS)
+
+Aba **CALIBRAÇÃO** (`services/calibration.py`, `gui/calibration.py`), a mesma ideia do calibrador do GWATER:
+
+- **Momentos de medição:** nome, fator de demanda (vazão provável × fator) e pressão na saída do reservatório.
+- **Leituras de campo:** pressão em nós e vazão em trechos, com peso. "+ Da seleção" usa os itens selecionados no
+  MODELO; "Leituras de exemplo" gera leituras do próprio modelo com a perda de carga × k, para conferir o método.
+- **Grupos:** rugosidade (multiplicador da perda de carga) por material ou por pavimento; demanda (multiplicador
+  dos pesos dos aparelhos) por pavimento; faixa mín./máx. de cada grupo.
+- **Aptidão:** soma dos quadrados, soma dos absolutos ou maior diferença, com "mca por ponto" e "L/s por ponto".
+- **Método:** genético (evolução diferencial do SciPy) ou gradiente (mínimos quadrados).
+
+O resultado mostra as melhores soluções distintas, o gráfico observado × simulado (antes e calibrado) e a tabela de
+diferenças. "Gravar solução no projeto" grava o fator de rugosidade de cada trecho (Propriedades → Fator de
+rugosidade, salvo no `.hsp`) e os pesos dos aparelhos; Ctrl+Z desfaz.
+
 ## Memorial de cálculo
 
 Na interface: calcule e use Arquivo → Exportar memorial de cálculo (Ctrl+E), em PDF ou HTML. Contém dados de entrada, vista isométrica, método, aparelhos, dimensionamento dos trechos, verificação de pressões, alertas e quantitativo. Em código: `services.report_generator.generate_memorial(...)`. Exemplo: `examples/memorial_exemplo.pdf`.

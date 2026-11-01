@@ -41,4 +41,4 @@ class HydraulicCalculator:
         diameter_m = pipe.diameter_mm / 1000.0
         total_length = pipe.length_m + pipe.equivalent_length_m
         j_unit = 0.0008695 * (flow_m3s ** 1.75) / (diameter_m ** 4.75)
-        return j_unit * total_length
+        return j_unit * total_length * getattr(pipe, "roughness_factor", 1.0)

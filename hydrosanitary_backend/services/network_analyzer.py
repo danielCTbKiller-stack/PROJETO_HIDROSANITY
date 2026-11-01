@@ -63,6 +63,7 @@ class NetworkAnalyzer:
         active_rooms: Optional[Iterable[str]] = None,
         auto_fittings: bool = False,
         flow_factor: float = 1.0,
+        weight_factor: Optional[Dict[str, float]] = None,
     ) -> dict:
         """
         Calcula vazão por trecho (pesos acumulados a jusante), opcionalmente
@@ -73,6 +74,7 @@ class NetworkAnalyzer:
         (joelhos e tês detectados pela geometria + registros informados no nó de chegada),
         sem alterar `equivalent_length_m` do trecho. Trechos sem consumo a jusante ficam com vazão zero e sem alertas.
         `flow_factor` escala as vazões prováveis (1 = hora de pico); usado na simulação em período estendido.
+        `weight_factor` multiplica os pesos dos aparelhos de cada nó (grupos de demanda da calibração).
         """
         active = None if active_rooms is None else set(active_rooms)
 
@@ -87,7 +89,8 @@ class NetworkAnalyzer:
         order = [source_id]
         for nid in order:
             order.extend(children[nid])
-        downstream_weight = {nid: sum(f.weight for f in used(nid)) for nid in order}
+        wf = weight_factor or {}
+        downstream_weight = {nid: sum(f.weight for f in used(nid)) * wf.get(nid, 1.0) for nid in order}
         for nid in reversed(order):
             if nid in parent_pipe:
                 p = parent_pipe[nid]
