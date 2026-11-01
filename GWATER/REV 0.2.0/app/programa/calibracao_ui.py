@@ -798,12 +798,24 @@ def calibrador_watergems(nucleo):
         import webbrowser
         webbrowser.open(url)  # sem o navegador embutido: abre no navegador do Windows
         return
-    # a página é local (file://) mas carrega Chart.js, a leitura de planilhas e as fontes da internet: o navegador
-    # embutido bloqueia isso por padrão
-    from qgis.PyQt.QtWebEngineCore import QWebEngineSettings
+    from qgis.PyQt.QtWebEngineCore import QWebEnginePage, QWebEngineProfile, QWebEngineSettings
     v = nucleo.janela.web["Calibrador WaterGEMS"]
-    v.settings().setAttribute(QWebEngineSettings.WebAttribute.LocalContentCanAccessRemoteUrls, True)
-    v.reload()
+    if not getattr(v, "perfil_calibrador", False):
+        # perfil próprio e permanente: o login, a senha cadastrada e o trabalho (localStorage) ficam entre as
+        # sessões; o perfil padrão do navegador embutido é temporário
+        base = os.environ.get("GWATER_DADOS") or os.path.join(os.environ.get("LOCALAPPDATA", os.path.expanduser("~")),
+                                                              "GWATER")
+        pasta = os.path.join(base, "calibrador_watergems")  # versão portátil: vai junto no pen drive
+        os.makedirs(pasta, exist_ok=True)
+        perfil = QWebEngineProfile("gwater_calibrador", nucleo.janela)
+        perfil.setPersistentStoragePath(pasta)
+        perfil.setCachePath(os.path.join(pasta, "cache"))
+        pagina = QWebEnginePage(perfil, v)
+        # a página é local (file://) mas carrega Chart.js, a leitura de planilhas e as fontes da internet
+        pagina.settings().setAttribute(QWebEngineSettings.WebAttribute.LocalContentCanAccessRemoteUrls, True)
+        v.setPage(pagina)
+        v.perfil_calibrador = True
+    v.setUrl(QUrl(url))
 
 
 ACOES = {"calibracao_darwin": calibracao, "calibrador_watergems": calibrador_watergems}
