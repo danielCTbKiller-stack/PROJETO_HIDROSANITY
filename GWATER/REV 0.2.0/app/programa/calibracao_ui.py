@@ -788,4 +788,15 @@ def nucleo_tem(nucleo, c):
         return False
 
 
-ACOES = {"calibracao_darwin": calibracao}
+def calibrador_watergems(nucleo):
+    """Calibrador WaterGEMS (calibrador_watergems.html, ferramenta web da EFFICO) numa aba do programa."""
+    import os
+    from qgis.PyQt.QtCore import QUrl
+    arq = os.path.join(os.path.dirname(os.path.abspath(__file__)), "calibrador_watergems.html")
+    url = QUrl.fromLocalFile(arq).toString()
+    if not nucleo.janela.abrir_web(url, "Calibrador WaterGEMS"):
+        import webbrowser
+        webbrowser.open(url)  # sem o navegador embutido: abre no navegador do Windows
+
+
+ACOES = {"calibracao_darwin": calibracao, "calibrador_watergems": calibrador_watergems}

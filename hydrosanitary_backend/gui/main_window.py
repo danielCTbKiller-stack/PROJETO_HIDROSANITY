@@ -80,7 +80,7 @@ class FloorDialog(QDialog):
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Hidrossanitário – Água fria predial")
+        self.setWindowTitle("GPREDIAL – Água fria predial · HIDROSANITY")
         self.setWindowIcon(QIcon(logo_pixmap(64)))
         self.resize(1440, 880)
         self.project_name = "Projeto"
@@ -212,7 +212,7 @@ class MainWindow(QMainWindow):
         logo = QLabel(); logo.setPixmap(logo_pixmap(40))
         hl.addWidget(logo)
         titles = QVBoxLayout(); titles.setSpacing(0)
-        h1 = QLabel("Hidrossanitário · Água fria predial"); h1.setObjectName("h1")
+        h1 = QLabel("GPREDIAL · Água fria predial"); h1.setObjectName("h1")
         self.subtitle = QLabel("Projeto"); self.subtitle.setObjectName("sub")
         titles.addWidget(h1); titles.addWidget(self.subtitle)
         hl.addLayout(titles)
@@ -566,7 +566,7 @@ class MainWindow(QMainWindow):
         self.source_label.setText(self.canvas.source_id or "não definido")
         self.subtitle.setText(f"{self.project_name} · {len(p.floors)} pavimento(s) · {len(p.pipes)} trechos · "
                               f"{sum(len(n.fixtures) for n in p.nodes.values())} aparelhos · {len(p.walls)} paredes")
-        self.setWindowTitle(f"{self.project_name} – Hidrossanitário")
+        self.setWindowTitle(f"{self.project_name} – GPREDIAL")
 
     # ================================================================ desfazer / refazer
     def _state(self):

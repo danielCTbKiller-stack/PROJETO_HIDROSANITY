@@ -190,6 +190,7 @@ FAIXA = [
         ("Dados de campo", [
             ("dados", "Séries de campo", "dados", "G", "Dados recebidos (SABESP, SCADA, loggers): 24 h digitadas ou planilha, e balanço hídrico."),
             ("calibracao_darwin", "Calibração", "calibracao", "P", "Dados de campo e calibração (Darwin Calibrator)."),
+            ("calibrador_watergems", "Calibrador WaterGEMS", "calibracao", "P", "Calibrador WaterGEMS (página web): leituras de campo × modelo do WaterGEMS, gráficos e planilhas."),
         ]),
     ]),
     ("revisao", "Revisão", [
@@ -302,6 +303,7 @@ FAIXA = [
             ("dados", "Dados recebidos", "dados", "G", "Dados de campo e balanço hídrico."),
             ("mapa", "Mapa e propostas", "mapa", "G", "Mapa web com propostas e comparação Atual × Proposta."),
             ("calibracao", "Calibração", "calibracao", "G", "Medições de campo e calibração automática."),
+            ("calibrador_watergems", "Calibrador WaterGEMS", "calibracao", "G", "Calibrador WaterGEMS (página web) numa aba do programa."),
             ("aovivo", "Ao vivo", "aovivo", "G", "Telemetria, gêmeo digital e alarmes."),
         ]),
     ]),
