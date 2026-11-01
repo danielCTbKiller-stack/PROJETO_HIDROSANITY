@@ -92,7 +92,9 @@ print("== abrir o exemplo")
 j.abrir_projeto(os.path.join(TMP, "GWATER_cadastro.qgz"))
 esperar()
 checar(n.cadastro() and n.cadastro().endswith("gwater_cadastro.gpkg"), f"cadastro aberto: {n.cadastro()}")
-checar(len(n.camadas_rede()) == 7, f"7 camadas da rede (com os consumidores): {[l.name() for l in n.camadas_rede()]}")
+checar(len(n.camadas_rede()) == 8, f"8 camadas (com consumidores e SCADA): {[l.name() for l in n.camadas_rede()]}")
+checar(n.camada("trecho").fields().indexOf("tipo") >= 0 and n.camada("bomba").fields().indexOf("tipo") >= 0,
+       "cadastro antigo ganhou o campo tipo na tubulação e na bomba")
 checar(j.centro.tabText(0).startswith("Mapa"), "aba do mapa no lugar da tela Início")
 
 print("\n== calcular")
@@ -162,6 +164,51 @@ j.acionar("simular")
 esperar()
 q1 = n.res.d["nos"]["S2"]["d"][0]
 checar(q1 > q0 + 1.0, f"a demanda do consumidor entra no nó S2 no cálculo ({q0:g} → {q1:g} L/s)")
+
+print("\n== elementos do WaterGEMS que faltavam")
+from qgis.core import QgsGeometry as _G, QgsPointXY as _P  # noqa: E402
+
+
+def _desenhar_ponto(chave, x, y):
+    n.executar(chave)
+    fe = j.canvas.mapTool()
+    ft = QgsFeature()
+    ft.setGeometry(_G.fromPointXY(_P(x, y)))
+    fe._concluido(ft)
+    esperar(20)
+
+
+_desenhar_ponto("ventosa", p.x() + 300, p.y() + 300)
+vent = [x for x in nos.getFeatures() if str(x["tipo"]) == "VENTOSA"]
+checar(len(vent) == 1, f"ventosa desenhada como nó do tipo VENTOSA ({len(vent)})")
+n.executar("lateral")
+fe = j.canvas.mapTool()
+ft = QgsFeature()
+ft.setGeometry(_G.fromPolylineXY([_P(p.x() + 300, p.y() + 300), _P(p.x() + 330, p.y() + 330)]))
+fe._concluido(ft)
+esperar(30)
+lat = [x for x in tr.getFeatures() if str(x["tipo"]) == "LATERAL"]
+checar(len(lat) == 1, f"lateral desenhada como tubulação do tipo LATERAL ({len(lat)})")
+n.executar("tubulacao")
+fe = j.canvas.mapTool()
+ft = QgsFeature()
+ft.setGeometry(_G.fromPolylineXY([_P(p.x() + 330, p.y() + 330), _P(p.x() + 380, p.y() + 330)]))
+fe._concluido(ft)
+esperar(30)
+ult = [x for x in tr.getFeatures() if x.id() < 0 and str(x["tipo"]) != "LATERAL"]
+checar(ult and str(ult[-1]["tipo"]) == "TUBULACAO", "depois da lateral, a tubulação volta a ser TUBULACAO")
+_desenhar_ponto("scada", p.x() + 20, p.y() - 20)
+checar(n.camada("scada").featureCount() == 1, "elemento SCADA desenhado na camada própria")
+from qgis.core import QgsProject as _Prj  # noqa: E402
+antes = len(_Prj.instance().mainAnnotationLayer().items())
+n.executar("poligono")
+j.canvas.mapTool().concluido.emit(_G.fromPolygonXY([[_P(p.x(), p.y()), _P(p.x() + 50, p.y()), _P(p.x() + 50, p.y() + 40),
+                                                      _P(p.x(), p.y())]]))
+esperar()
+checar(len(_Prj.instance().mainAnnotationLayer().items()) >= antes + 1, "polígono de anotação no mapa")
+for _ in range(12):
+    j.desfazer()
+esperar()
 
 print("\n== todos os botões da faixa")
 PULAR = {"sair", "novo", "abrir", "importar", "abrir_qgis", "abrir_epanet", "externas", "salvar_como", "recentes",

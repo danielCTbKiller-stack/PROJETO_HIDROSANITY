@@ -442,6 +442,11 @@ class Janela(QMainWindow):
                     l.commitChanges()
                 else:
                     l.rollBack()
+        # sem perguntar, as edições pendentes se perdem: descarta antes de limpar o projeto (apagar uma camada ainda
+        # em edição derruba o QGIS)
+        for l in prj.mapLayers().values():
+            if isinstance(l, QgsVectorLayer) and l.isEditable():
+                l.rollBack()
         if prj.fileName() and prj.isDirty():
             prj.write()
         self.nucleo.acao_limpar() if self.nucleo.res else None
@@ -453,6 +458,11 @@ class Janela(QMainWindow):
 
     def abrir_projeto(self, arq):
         self.ocupado("Abrindo o cadastro…")
+        try:
+            from . import elementos
+            elementos.preparar_arquivo(arq)  # campos novos nos cadastros antigos, antes de as camadas abrirem
+        except Exception:  # noqa: BLE001 - se não der, o campo é criado depois (elementos.garantir)
+            pass
         try:
             ok = QgsProject.instance().read(arq)
         finally:
@@ -469,6 +479,8 @@ class Janela(QMainWindow):
             from . import consumidores
             try:
                 consumidores.garantir(self.nucleo)
+                from . import elementos
+                elementos.garantir(self.nucleo)
             except Exception as e:  # noqa: BLE001 - um erro aqui não pode impedir de abrir o projeto
                 self.nucleo.aviso(f"Consumidores: {e}")
         if self.nucleo.cadastro():

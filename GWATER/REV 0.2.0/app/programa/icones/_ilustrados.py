@@ -168,3 +168,98 @@ ILUSTRADOS["demanda"] = (casa() + R(14.5, 15.5, 8, 7, AG, 1.2, sw=1) + T(18.5, 2
 ILUSTRADOS["loadbuilder"] = (R(1.5, 13, 8.5, 8.5, "#fff4e0", 0.8) + P("M1 13.5 L5.75 9 L10.5 13.5", st=VM, w=1.4) +
                              R(13.5, 13, 8.5, 8.5, "#fff4e0", 0.8) + P("M13 13.5 L17.75 9 L22.5 13.5", st=VM, w=1.4) +
                              P("M12 2 V8 M8.5 5 L12 8 L15.5 5", st=AG3, w=1.6) + P("M5.75 17 V18.5 M17.75 17 V18.5", st=AG, w=1.8))
+
+
+# ---------------------------------------------------------------- elementos do WaterGEMS que faltavam
+def _no_base(cor=AG):
+    """Nó na rede (tubo passando e o nó no meio), onde o elemento fica em cima."""
+    return P("M1.5 19.5 H22.5", st=K, w=3.6) + P("M1.5 19.5 H22.5", st=cor, w=2) + C(12, 19.5, 2.4, BR, sw=1)
+
+
+NOVOS = {
+    # nós
+    "tomada": (P("M1.5 9 H22.5", st=K, w=5) + P("M1.5 9 H22.5", st=AG, w=3.2) + R(9, 5.5, 6, 7, MT, 1, sw=1.1) +
+               P("M12 12.5 V21", st=K, w=3.2) + P("M12 12.5 V21", st=AG2, w=1.6) + C(12, 21, 1.6, BR, sw=0.9)),
+    "ventosa": (_no_base() + R(8.5, 7, 7, 10, MT, 1.5) + P("M12 7 V3.5 M9.5 3.5 H14.5", w=1.3) +
+                P("M17 6 Q19 4.5 21 6 M18 3.5 Q20 2 22 3.5", st=AG2, w=1.1) + T(12, 14.5, "AR", K, 4.2)),
+    "valvula_alivio": (_no_base() + P("M8 17 V10 H16 V17 Z", fill=AM) + P("M12 10 V4 M9 6 L15 4", w=1.3) +
+                       P("M16.5 13 H21 M19 11 L21 13 L19 15", st=AG3, w=1.2)),
+    "disco_ruptura": (_no_base() + R(9, 11, 6, 6, MT, 0.5) + P("M7.5 11 H16.5", w=1.6) +
+                      P("M9 11 Q12 4 15 11", fill="#ffd0cf", st=VM, w=1.2) + P("M10.5 6 L12 8 L13.5 6", st=VM, w=1)),
+    "descarga_atmosfera": (_no_base() + P("M12 17 V9", st=K, w=3.6) + P("M12 17 V9", st=AG, w=2) +
+                           P("M12 8 Q8 4 6 8 M12 8 Q16 4 18 8 M12 8 V3", st=AG3, w=1.1) +
+                           "".join(C(x, y, 0.8, AG, st=AG3, sw=0.5) for x, y in ((6, 10), (18, 10), (9, 3), (15, 3)))),
+    "tanque_hidropneumatico": (_no_base() + P("M7 7 Q7 3 12 3 Q17 3 17 7 V14 Q17 18 12 18 Q7 18 7 14 Z", fill=BR) +
+                               P("M7 11 H17 V14 Q17 18 12 18 Q7 18 7 14 Z", fill=AG, st="none", w=0) +
+                               P("M7 7 Q7 3 12 3 Q17 3 17 7 V14 Q17 18 12 18 Q7 18 7 14 Z") + C(19.5, 5, 2.3, BR, sw=0.9) +
+                               P("M19.5 5 L20.6 4", w=0.8)),
+    "chamine_equilibrio": (_no_base() + R(9, 2.5, 6, 15, BR, 0.5) + R(9, 8, 6, 9.5, AG, 0, st="none", sw=0) +
+                           R(9, 2.5, 6, 15, "none", 0.5) + P("M8 8 H16", st=AG3, w=0.9)),
+    "carga_periodica": (_no_base() + R(4, 3, 16, 12, BR, 1.5) + P("M5.5 9 Q8 3.5 10 9 T14.5 9 T19 9", st=VM, w=1.4) +
+                        P("M12 15 V17", w=1)),
+    # válvulas e peças entre dois tubos
+    "retencao": valvula_corpo(AG, "RET", volante=False) + P("M9.5 6.5 L14.5 6.5 M12.5 4.5 L14.5 6.5 L12.5 8.5", st=VD, w=1.4),
+    "turbina": (R(1.5, 9, 4, 6, MT2, 0.5) + R(18.5, 9, 4, 6, MT2, 0.5) + C(12, 12, 6.5, "#7fd6a6") +
+                "".join(P(f"M12 12 L{12 + 5.5 * dx} {12 + 5.5 * dy}", w=1.3) for dx, dy in ((1, 0), (-0.5, 0.87), (-0.5, -0.87))) +
+                C(12, 12, 1.4, K, sw=0.4) + P("M16 3 L13.5 7 H16.5 L14 11", st=AM, w=1.2)),
+    "orificio": (P("M1.5 12 H22.5", st=K, w=8) + P("M1.5 12 H22.5", st=AG, w=6) + R(10.5, 6, 3, 12, MT, 0.3, sw=1) +
+                 R(10.5, 10.5, 3, 3, AG2, 0, st="none", sw=0) + P("M15 12 H21 M19 10 L21 12 L19 14", st=BR, w=1.1)),
+    "area_linear": valvula_corpo(VD, "LIN") + P("M5 4.5 L9 1.5", st=AM, w=1.2),
+    "lateral": (P("M1.5 6 H22.5", st=K, w=4.4) + P("M1.5 6 H22.5", st=AG, w=2.8) +
+                P("M8 6 V13 Q8 15 10 15 H17", st=K, w=3) + P("M8 6 V13 Q8 15 10 15 H17", st=AG2, w=1.6) +
+                P("M15.5 20.5 L19.5 16.8 L23.5 20.5", st=VM, w=1.4) + R(16.5, 18.5, 6, 4, "#fff4e0", 0.4, sw=0.9)),
+    "bateria_vfd": (R(1.5, 19.5, 21, 2.5, CONC, 0.5) + C(6.5, 14, 4, VM) + C(17.5, 14, 4, VM) + C(6.5, 14, 1.4, "#ffd0cf", sw=0.8) +
+                    C(17.5, 14, 1.4, "#ffd0cf", sw=0.8) + R(7.5, 2, 9, 6, "#16324f", 1, sw=1) + T(12, 6.6, "VFD", AG2, 4)),
+    "scada": (R(3, 4, 12, 9, "#16324f", 1, sw=1.1) + P("M5 10.5 L7.5 7.5 L10 9 L13 6", st=AG2, w=1.1) +
+              P("M9 13 V17 M6 17 H12", w=1.2) + P("M17 9 A4 4 0 0 1 21 13 M17 5.5 A7.5 7.5 0 0 1 22.5 11", st=VD, w=1.3) +
+              C(16.5, 13.5, 1.6, VD, sw=0.8)),
+    "poligono": (P("M3 8 L10 3 L20 6 L21 16 L12 21 L4 17 Z", fill="#cfe8ff", st=AG3, w=1.4) +
+                 "".join(R(x - 1.3, y - 1.3, 2.6, 2.6, BR, 0.3, st=AG3, sw=0.9) for x, y in ((3, 8), (10, 3), (20, 6), (21, 16), (12, 21), (4, 17)))),
+}
+ILUSTRADOS.update(NOVOS)
+# no mapa, o mesmo desenho (elem_*); a lateral é linha, com estilo próprio
+ILUSTRADOS.update({f"elem_{k}": v for k, v in NOVOS.items() if k not in ("lateral", "poligono")})
+ILUSTRADOS["elem_scada"] = NOVOS["scada"]
+
+
+# ---------------------------------------------------------------- válvulas: uma marca por tipo, além da cor
+# (como no WaterGEMS: o corpo é o mesmo e o que fica em cima diz o tipo; vale também nos ícones pequenos do mapa)
+def _piloto(lado):
+    """Piloto (caixinha) ligado ao lado da saída (+1, PRV) ou da entrada (-1, PSV)."""
+    x = 12 + 6.5 * lado
+    seta = "M12 3 V7.2 M10.3 5.6 L12 7.4 L13.7 5.6" if lado > 0 else "M12 7.4 V3.2 M10.3 4.8 L12 3 L13.7 4.8"
+    return (R(9.3, 1.4, 5.4, 7, BR, 1, sw=1) + P(seta, st=K, w=1.1) +
+            P(f"M{12 + 2.7 * lado} 5 H{x} V10.4", st=AG3, w=1.1) + C(x, 10.6, 0.9, AG3, st=AG3, sw=0.5))
+
+
+MARCAS = {
+    "PRV": _piloto(1),
+    "PSV": _piloto(-1),
+    "PBV": P("M13.5 1.2 L9.6 5.6 H12.6 L10.4 9.6", st=AM, w=1.6) + P("M13.5 1.2 L9.6 5.6 H12.6 L10.4 9.6", st=K, w=0.5),
+    "FCV": P("M4 4.6 H18.5", st=K, w=1.4) + P("M15.5 2 L19 4.6 L15.5 7.2", st=K, w=1.4) + C(8, 4.6, 1.3, AG, sw=0.8),
+    "TCV": P("M12 10.4 V3.2", w=1.4) + P("M7.8 3 H16.2", w=2.2) + P("M7.8 3 H16.2", st=MT, w=0.9),
+    "GPV": R(6.5, 1.2, 11, 7.6, BR, 1.2, sw=1) + P("M8 7.4 Q10.5 7.2 12 5 T16 2.6", st="#a0522d", w=1.3),
+    "VRE": P("M8.5 3.4 Q12 2 15.5 3.4 V8.4 Q12 9.8 8.5 8.4 Z", fill=AG2, w=1) + P("M12 8.8 V10.4", w=1.1),
+    "VSE": P("M6.5 8.6 L9 2.6 L12 5.6 L15 2.6 L17.5 8.6 Z", fill="#c9e9a9", w=1) + P("M12 8.6 V10.4", w=1.1),
+    "REGISTRO": P("M12 10.4 V5.2", w=1.3) + f'<ellipse cx="12" cy="4.4" rx="4.2" ry="1.4" fill="{MT}" stroke="{K}" stroke-width="1.1"/>',
+    "RETENCAO": P("M5 5 H16.5", st=K, w=1.4) + P("M13.5 2.4 L17 5 L13.5 7.6", st=VD, w=1.6) + P("M18.8 1.8 V8.2", w=1.6),
+    "AREA_LINEAR": P("M6 9 L18 2.4 V9 Z", fill=AM, w=1),
+}
+CORES_VALVULA = {"PRV": VD, "PSV": AG, "PBV": "#a066d3", "FCV": AM, "TCV": MT2, "GPV": "#a0522d", "VRE": "#15aabf",
+                 "VSE": "#74b816", "REGISTRO": MT2, "RETENCAO": AG, "AREA_LINEAR": VD}
+
+
+def valvula_tipo(tipo, letras=True):
+    """Corpo da válvula na cor do tipo, a marca do tipo em cima e (no botão) a sigla numa etiqueta."""
+    sigla = {"REGISTRO": "REG", "RETENCAO": "RET", "AREA_LINEAR": "LIN"}.get(tipo, tipo)
+    return (valvula_corpo(CORES_VALVULA[tipo], sigla if letras else None, volante=False) + MARCAS[tipo])
+
+
+for _tipo, _chaves in (("PRV", ("prv",)), ("PSV", ("psv",)), ("PBV", ("pbv",)), ("FCV", ("fcv",)), ("TCV", ("tcv",)),
+                       ("GPV", ("gpv",)), ("VRE", ("vre",)), ("VSE", ("vse",)), ("REGISTRO", ("registro",)),
+                       ("RETENCAO", ("retencao",)), ("AREA_LINEAR", ("area_linear",))):
+    for _k in _chaves:
+        ILUSTRADOS[_k] = valvula_tipo(_tipo)
+        ILUSTRADOS[f"elem_{_k}"] = valvula_tipo(_tipo, letras=False)  # no mapa, sem a etiqueta (fica pequeno)
+ILUSTRADOS["valvula"] = valvula_tipo("PRV", letras=False)
+ILUSTRADOS["elem_valvula"] = valvula_corpo("#ffd43b", None, volante=False)

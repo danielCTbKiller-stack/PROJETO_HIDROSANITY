@@ -13,7 +13,12 @@ from .util import Dialogo, ids_selecionados, num
 
 NOMES_TIPO = {"no": "Nó (junção)", "ponto_consumo": "Nó de consumo", "hidrante": "Hidrante",
               "reservatorio": "Reservatório", "captacao": "Captação", "bomba": "Bomba", "valvula_prv": "PRV",
-              "valvula_psv": "PSV", "valvula_pbv": "PBV", "valvula_fcv": "FCV", "valvula_vre": "VRE", "valvula_vse": "VSE",
+              "valvula_psv": "PSV", "valvula_pbv": "PBV", "valvula_fcv": "FCV", "valvula_vre": "VRE", "valvula_vse": "VSE", "valvula_tcv": "TCV",
+              "retencao": "Retenção", "turbina": "Turbina", "orificio": "Orifício entre tubos",
+              "area_linear": "Válvula de área linear", "tomada": "Tomada", "ventosa": "Ventosa",
+              "valvula_alivio": "Válvula de alívio", "disco_ruptura": "Disco de ruptura",
+              "descarga_atmosfera": "Descarga para a atmosfera", "tanque_hidropneumatico": "Tanque hidropneumático",
+              "chamine_equilibrio": "Chaminé de equilíbrio", "carga_periodica": "Carga-vazão periódica",
               "valvula_gpv": "GPV", "registro": "Registro"}
 COMUNS = ("nome", "cota", "setor", "situacao", "observacao", "diametro")
 # camada e valores de cada destino (os que se desenham com tipo; os outros têm camada própria)

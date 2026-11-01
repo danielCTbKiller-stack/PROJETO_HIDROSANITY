@@ -1274,7 +1274,8 @@ def bibliotecas(nucleo):
 CAMPOS_PROTOTIPO = {
     "no_juncao": [("tipo", ["JUNCAO", "CONSUMO", "HIDRANTE", "PONTA"]), ("demanda_base", float), ("padrao", str),
                   ("setor", str)],
-    "valvula": [("tipo", ["PRV", "PSV", "PBV", "FCV", "VRE", "VSE", "GPV"]), ("diametro", float), ("ajuste", float),
+    "valvula": [("tipo", ["PRV", "PSV", "PBV", "FCV", "VRE", "VSE", "TCV", "GPV", "RETENCAO", "TURBINA",
+                           "ORIFICIO", "AREA_LINEAR"]), ("diametro", float), ("ajuste", float),
                 ("status", ["ATIVA", "INATIVA", "ABERTA", "FECHADA"])],
     "bomba": [("curva", str), ("status_inicial", ["ABERTA", "FECHADA"]), ("rotacao_relativa", float),
               ("elevatoria", str)],

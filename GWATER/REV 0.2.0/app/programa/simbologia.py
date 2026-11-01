@@ -19,25 +19,40 @@ from gwater.estilo import COR
 
 from .tema import ICONES, icone
 
-OUTROS_NO = "('CONSUMO', 'HIDRANTE', 'PONTA')"
-VALVULAS = ("PRV", "PSV", "PBV", "FCV", "TCV", "GPV", "REGISTRO", "VRE", "VSE")
+OUTROS_NO = ("('CONSUMO', 'HIDRANTE', 'PONTA', 'TOMADA', 'VENTOSA', 'VALVULA_ALIVIO', 'DISCO_RUPTURA', "
+             "'DESCARGA_ATMOSFERA', 'TANQUE_HIDROPNEUMATICO', 'CHAMINE_EQUILIBRIO', 'CARGA_PERIODICA')")
+VALVULAS = ("PRV", "PSV", "PBV", "FCV", "TCV", "GPV", "REGISTRO", "VRE", "VSE", "RETENCAO", "TURBINA", "ORIFICIO",
+            "AREA_LINEAR")
+LATERAL = "coalesce(\"tipo\", '') <> 'LATERAL'"
 # chave, nome, camada, filtro (expressão; None = todos), valores do elemento novo, ícone, geometria, tamanho (mm)
 TIPOS = [
-    ("tubulacao", "Tubulação", "trecho", "coalesce(\"status\", 'ABERTO') NOT IN ('FECHADO', 'CV')", {},
+    ("tubulacao", "Tubulação", "trecho", f"coalesce(\"status\", 'ABERTO') NOT IN ('FECHADO', 'CV') AND {LATERAL}", {},
      "elem_tubulacao", "linha", 0),
-    ("tubulacao_fechada", "Tubulação fechada", "trecho", "\"status\" = 'FECHADO'", {"status": "FECHADO"},
+    ("tubulacao_fechada", "Tubulação fechada", "trecho", f"\"status\" = 'FECHADO' AND {LATERAL}", {"status": "FECHADO"},
      "elem_tubulacao_fechada", "linha", 0),
-    ("tubulacao_cv", "Tubulação com retenção (CV)", "trecho", "\"status\" = 'CV'", {"status": "CV"},
+    ("tubulacao_cv", "Tubulação com retenção (CV)", "trecho", f"\"status\" = 'CV' AND {LATERAL}", {"status": "CV"},
      "elem_tubulacao_cv", "linha", 0),
+    ("lateral", "Lateral (ramal)", "trecho", "\"tipo\" = 'LATERAL'", {"tipo": "LATERAL"}, "elem_lateral", "linha", 0),
     ("no", "Nó / junção", "no_juncao", f"\"tipo\" IS NULL OR \"tipo\" NOT IN {OUTROS_NO}", {"tipo": "JUNCAO"},
      "elem_no", "ponto", 2.2),
     ("ponto_consumo", "Nó de consumo", "no_juncao", "\"tipo\" = 'CONSUMO'", {"tipo": "CONSUMO"},
      "elem_consumo", "ponto", 3.2),
     ("hidrante", "Hidrante", "no_juncao", "\"tipo\" = 'HIDRANTE'", {"tipo": "HIDRANTE"}, "elem_hidrante", "ponto", 4.2),
     ("ponta", "Ponta de rede", "no_juncao", "\"tipo\" = 'PONTA'", {"tipo": "PONTA"}, "elem_ponta", "ponto", 2.6),
+    ("tomada", "Tomada (tap)", "no_juncao", "\"tipo\" = 'TOMADA'", {"tipo": "TOMADA"}, "elem_tomada", "ponto", 4.4),
+    ("ventosa", "Ventosa", "no_juncao", "\"tipo\" = 'VENTOSA'", {"tipo": "VENTOSA"}, "elem_ventosa", "ponto", 4.4),
+    ("valvula_alivio", "Válvula de alívio", "no_juncao", "\"tipo\" = 'VALVULA_ALIVIO'", {"tipo": "VALVULA_ALIVIO"}, "elem_valvula_alivio", "ponto", 4.4),
+    ("disco_ruptura", "Disco de ruptura", "no_juncao", "\"tipo\" = 'DISCO_RUPTURA'", {"tipo": "DISCO_RUPTURA"}, "elem_disco_ruptura", "ponto", 4.4),
+    ("descarga_atmosfera", "Descarga para a atmosfera", "no_juncao", "\"tipo\" = 'DESCARGA_ATMOSFERA'", {"tipo": "DESCARGA_ATMOSFERA"}, "elem_descarga_atmosfera", "ponto", 4.4),
+    ("tanque_hidropneumatico", "Tanque hidropneumático", "no_juncao", "\"tipo\" = 'TANQUE_HIDROPNEUMATICO'", {"tipo": "TANQUE_HIDROPNEUMATICO"}, "elem_tanque_hidropneumatico", "ponto", 4.4),
+    ("chamine_equilibrio", "Chaminé de equilíbrio", "no_juncao", "\"tipo\" = 'CHAMINE_EQUILIBRIO'", {"tipo": "CHAMINE_EQUILIBRIO"}, "elem_chamine_equilibrio", "ponto", 4.4),
+    ("carga_periodica", "Carga-vazão periódica", "no_juncao", "\"tipo\" = 'CARGA_PERIODICA'", {"tipo": "CARGA_PERIODICA"}, "elem_carga_periodica", "ponto", 4.4),
     ("reservatorio", "Reservatório", "reservatorio", None, {}, "elem_reservatorio", "ponto", 6),
     ("captacao", "Captação", "captacao", None, {}, "elem_captacao", "ponto", 6),
-    ("bomba", "Bomba", "bomba", None, {}, "elem_bomba", "ponto", 5),
+    ("bomba", "Bomba", "bomba", "coalesce(\"tipo\", 'BOMBA') <> 'BATERIA_VFD'", {"tipo": "BOMBA"}, "elem_bomba", "ponto", 5),
+    ("scada", "Elemento SCADA", "scada", None, {}, "elem_scada", "ponto", 5),
+    ("bateria_vfd", "Bateria de bombas VFD", "bomba", "\"tipo\" = 'BATERIA_VFD'", {"tipo": "BATERIA_VFD"}, "elem_bateria_vfd",
+     "ponto", 6),
     ("valvula_prv", "PRV · redutora de pressão", "valvula", "\"tipo\" = 'PRV'", {"tipo": "PRV"}, "elem_prv", "ponto", 5),
     ("valvula_psv", "PSV · sustentadora de pressão", "valvula", "\"tipo\" = 'PSV'", {"tipo": "PSV"}, "elem_psv", "ponto", 5),
     ("valvula_pbv", "PBV · quebra-pressão", "valvula", "\"tipo\" = 'PBV'", {"tipo": "PBV"}, "elem_pbv", "ponto", 5),
@@ -46,7 +61,11 @@ TIPOS = [
      "elem_vre", "ponto", 5),
     ("valvula_vse", "VSE · válvula de setor", "valvula", "\"tipo\" = 'VSE'", {"tipo": "VSE", "status": "ABERTA"},
      "elem_vse", "ponto", 5),
-    ("valvula_tcv", "TCV (antiga: troque por VRE ou VSE)", "valvula", "\"tipo\" = 'TCV'", {"tipo": "TCV", "status": "ABERTA"}, "elem_tcv", "ponto", 5),
+    ("retencao", "Retenção (check valve)", "valvula", "\"tipo\" = 'RETENCAO'", {"tipo": "RETENCAO", "status": "ABERTA"}, "elem_retencao", "ponto", 5),
+    ("turbina", "Turbina", "valvula", "\"tipo\" = 'TURBINA'", {"tipo": "TURBINA", "status": "ABERTA"}, "elem_turbina", "ponto", 5),
+    ("orificio", "Orifício entre tubos", "valvula", "\"tipo\" = 'ORIFICIO'", {"tipo": "ORIFICIO", "status": "ABERTA"}, "elem_orificio", "ponto", 5),
+    ("area_linear", "Válvula de área linear", "valvula", "\"tipo\" = 'AREA_LINEAR'", {"tipo": "AREA_LINEAR", "status": "ABERTA"}, "elem_area_linear", "ponto", 5),
+    ("valvula_tcv", "TCV · estrangulamento", "valvula", "\"tipo\" = 'TCV'", {"tipo": "TCV", "status": "ABERTA"}, "elem_tcv", "ponto", 5),
     ("valvula_gpv", "GPV · perda genérica", "valvula", "\"tipo\" = 'GPV'", {"tipo": "GPV"}, "elem_gpv", "ponto", 5),
     ("registro", "Registro (manobra)", "valvula", "\"tipo\" = 'REGISTRO'", {"tipo": "REGISTRO", "status": "ABERTA"},
      "elem_registro", "ponto", 4.6),
@@ -82,12 +101,13 @@ def _simbolo(t, tam=None, cor=None):
     """Símbolo do tipo; com `cor` (color coding) o ponto vira um círculo daquela cor e a linha muda de cor."""
     _, _, camada, _, _, ic, geo, tam0 = t
     if geo == "linha":
-        base = {"elem_tubulacao": "#1c7ed6", "elem_tubulacao_fechada": "#868e96", "elem_tubulacao_cv": "#ae3ec9"}[ic]
+        base = {"elem_tubulacao": "#1c7ed6", "elem_tubulacao_fechada": "#868e96", "elem_tubulacao_cv": "#ae3ec9",
+                "elem_lateral": "#2fae74"}[ic]
         s = QgsLineSymbol.createSimple({"color": cor or base, "width": "0.7", "capstyle": "round", "joinstyle": "round"})
         s.symbolLayer(0).setDataDefinedProperty(
             QgsSymbolLayer.PropertyStrokeWidth,
             QgsProperty.fromExpression(f'({tam or 1.0}) * (0.45 + coalesce("diametro_nominal", 100) / 250)'))
-        if ic == "elem_tubulacao_fechada":
+        if ic in ("elem_tubulacao_fechada", "elem_lateral"):
             s.symbolLayer(0).setPenStyle(Qt.PenStyle.DashLine)
         return s
     tam = tam or tam0
@@ -119,7 +139,7 @@ def aplicar_simbologia(nucleo):
     from qgis.core import QgsPalLayerSettings, QgsRuleBasedLabeling, QgsTextBufferSettings, QgsTextFormat
     from qgis.PyQt.QtGui import QColor
     cfg = config()
-    for camada in ("trecho", "no_juncao", "reservatorio", "captacao", "bomba", "valvula"):
+    for camada in ("trecho", "no_juncao", "reservatorio", "captacao", "bomba", "valvula", "scada"):
         try:
             lyr = nucleo.camada(camada)
         except LookupError:
@@ -220,7 +240,7 @@ def contar(nucleo):
     """{chave do tipo: quantidade} (uma passada por camada)."""
     from qgis.core import QgsExpression, QgsExpressionContext, QgsExpressionContextUtils
     out = {}
-    for camada in ("trecho", "no_juncao", "reservatorio", "captacao", "bomba", "valvula"):
+    for camada in ("trecho", "no_juncao", "reservatorio", "captacao", "bomba", "valvula", "scada"):
         try:
             lyr = nucleo.camada(camada)
         except LookupError:

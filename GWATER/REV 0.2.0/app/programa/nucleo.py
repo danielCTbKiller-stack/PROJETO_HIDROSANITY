@@ -33,7 +33,24 @@ DESENHO_TIPO = {
     "valvula_fcv": ("valvula", {"tipo": "FCV"}), "valvula_vre": ("valvula", {"tipo": "VRE", "status": "ABERTA"}),
     "valvula_vse": ("valvula", {"tipo": "VSE", "status": "ABERTA"}),
     "valvula_gpv": ("valvula", {"tipo": "GPV"}), "registro": ("valvula", {"tipo": "REGISTRO", "status": "ABERTA"}),
+    # os elementos do WaterGEMS que faltavam (programa/elementos.py)
+    "tomada": ("no_juncao", {"tipo": "TOMADA"}),
+    "ventosa": ("no_juncao", {"tipo": "VENTOSA"}),
+    "valvula_alivio": ("no_juncao", {"tipo": "VALVULA_ALIVIO"}),
+    "disco_ruptura": ("no_juncao", {"tipo": "DISCO_RUPTURA"}),
+    "descarga_atmosfera": ("no_juncao", {"tipo": "DESCARGA_ATMOSFERA"}),
+    "tanque_hidropneumatico": ("no_juncao", {"tipo": "TANQUE_HIDROPNEUMATICO"}),
+    "chamine_equilibrio": ("no_juncao", {"tipo": "CHAMINE_EQUILIBRIO"}),
+    "carga_periodica": ("no_juncao", {"tipo": "CARGA_PERIODICA"}),
+    "valvula_tcv": ("valvula", {"tipo": "TCV", "status": "ABERTA"}),
+    "retencao": ("valvula", {"tipo": "RETENCAO", "status": "ABERTA"}),
+    "turbina": ("valvula", {"tipo": "TURBINA", "status": "ABERTA"}),
+    "orificio": ("valvula", {"tipo": "ORIFICIO", "status": "ABERTA"}),
+    "area_linear": ("valvula", {"tipo": "AREA_LINEAR", "status": "ABERTA"}),
+    "lateral": ("trecho", {"tipo": "LATERAL"}), "bateria_vfd": ("bomba", {"tipo": "BATERIA_VFD"}),
 }
+# botões que desenham o tipo comum da camada (depois de desenhar uma lateral, a tubulação volta a ser tubulação)
+PADRAO_TIPO = {"tubulacao": {"tipo": "TUBULACAO"}, "bomba": {"tipo": "BOMBA"}}
 
 
 class Iface(QObject):
@@ -167,7 +184,7 @@ class Nucleo(GwaterPlugin):
 
     def camadas_rede(self):
         out = []
-        for n in ("captacao", "reservatorio", "bomba", "valvula", "no_juncao", "trecho", "consumidor"):
+        for n in ("captacao", "reservatorio", "bomba", "valvula", "no_juncao", "trecho", "consumidor", "scada"):
             try:
                 out.append(self.camada(n))
             except LookupError:
@@ -185,7 +202,7 @@ class Nucleo(GwaterPlugin):
         # protótipo do botão (tipo do nó, tipo da válvula...) como valor padrão do formulário
         from qgis.core import QgsDefaultValue
         padroes = self.janela.prototipos_tipo.get(nome, {})
-        for campo, valor in {**padroes, **(valores or {})}.items():
+        for campo, valor in {**PADRAO_TIPO.get(chave, {}), **padroes, **(valores or {})}.items():
             i = lyr.fields().indexOf(campo)
             if i >= 0:
                 lyr.setDefaultValueDefinition(i, QgsDefaultValue(repr(valor) if isinstance(valor, str) else str(valor)))
@@ -326,9 +343,9 @@ del _k
 
 def instalar_acoes():
     """Liga as ações dos módulos ao Núcleo (cada módulo tem um dicionário ACOES {chave: função(nucleo)})."""
-    from . import (analise_ui, ajuda, assistente, calibracao_ui, cenarios_ui, componentes, consumidores, componentes_extra, desenho_extra, consultas, ferramentas_modelo, graficos,
+    from . import (analise_ui, ajuda, assistente, calibracao_ui, cenarios_ui, componentes, consumidores, elementos, componentes_extra, desenho_extra, consultas, ferramentas_modelo, graficos,
                    modelbuilder_ui, regras, relatorios, revisao, selecao, tabelas, vistas)
-    for mod in (analise_ui, ajuda, assistente, calibracao_ui, cenarios_ui, componentes, consumidores, componentes_extra, desenho_extra, consultas, ferramentas_modelo, graficos, modelbuilder_ui,
+    for mod in (analise_ui, ajuda, assistente, calibracao_ui, cenarios_ui, componentes, consumidores, elementos, componentes_extra, desenho_extra, consultas, ferramentas_modelo, graficos, modelbuilder_ui,
                 regras, relatorios, revisao, selecao, tabelas, vistas):
         for chave, func in getattr(mod, "ACOES", {}).items():
             setattr(Nucleo, f"acao_{chave}", (lambda f: lambda self: f(self))(func))

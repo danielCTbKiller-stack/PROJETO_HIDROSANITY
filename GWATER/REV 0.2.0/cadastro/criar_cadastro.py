@@ -44,9 +44,12 @@ TIPO_VALVULA = {"PRV": "PRV - redutora de pressão", "PSV": "PSV - sustentadora 
                 "PBV": "PBV - quebra-pressão", "FCV": "FCV - controladora de vazão",
                 "VRE": "VRE - válvula do reservatório (aberta/fechada, aparece no sinótico)",
                 "VSE": "VSE - válvula de setor (aberta/fechada, não aparece no sinótico)",
-                "GPV": "GPV - perda genérica"}
+                "TCV": "TCV - registro/estrangulamento", "GPV": "GPV - perda genérica",
+                "RETENCAO": "RETENCAO - válvula de retenção (Check Valve)", "TURBINA": "TURBINA - turbina",
+                "ORIFICIO": "ORIFICIO - orifício entre tubos", "AREA_LINEAR": "AREA_LINEAR - válvula de área linear"}
 STATUS_VALVULA = ["ATIVA", "INATIVA", "ABERTA", "FECHADA"]
-TIPO_NO = ["JUNCAO", "CONSUMO", "HIDRANTE", "PONTA"]
+TIPO_NO = ["JUNCAO", "CONSUMO", "HIDRANTE", "PONTA", "TOMADA", "VENTOSA", "VALVULA_ALIVIO", "DISCO_RUPTURA",
+           "DESCARGA_ATMOSFERA", "TANQUE_HIDROPNEUMATICO", "CHAMINE_EQUILIBRIO", "CARGA_PERIODICA"]
 
 # ---------------------------------------------------------------- esquema
 COMUNS = [("situacao", S), ("setor", S), ("observacao", S)]
@@ -56,7 +59,7 @@ CAMADAS = {
     "reservatorio": ("Point", [("id", S), ("nome", S), ("cota", D), ("cota_fundo", D), ("nivel_ini", D),
                                ("nivel_min", D), ("nivel_max", D), ("diametro", D),
                                ("volume_util", D)] + COMUNS),
-    "bomba": ("Point", [("id", S), ("nome", S), ("elevatoria", S), ("cota", D), ("curva", S),
+    "bomba": ("Point", [("id", S), ("nome", S), ("tipo", S), ("elevatoria", S), ("cota", D), ("curva", S),
                         ("status_inicial", S), ("rotacao_relativa", D), ("potencia_cv", D)] + COMUNS),
     "valvula": ("Point", [("id", S), ("nome", S), ("tipo", S), ("cota", D), ("diametro", D),
                           ("ajuste", D), ("status", S), ("perda_localizada", D)] + COMUNS),
@@ -66,7 +69,7 @@ CAMADAS = {
     # da tubulação em "ligado_a" (tipo_ligacao NO ou TRECHO)
     "consumidor": ("Point", [("id", S), ("nome", S), ("demanda_base", D), ("padrao", S), ("ligado_a", S),
                              ("tipo_ligacao", S), ("categoria", S)] + COMUNS),
-    "trecho": ("LineString", [("id", S), ("no_inicial", S), ("no_final", S), ("comprimento", D),
+    "trecho": ("LineString", [("id", S), ("tipo", S), ("no_inicial", S), ("no_final", S), ("comprimento", D),
                               ("diametro_nominal", D), ("material", S), ("rugosidade_hw", D),
                               ("perda_localizada", D), ("status", S), ("ano_instalacao", I)] + COMUNS),
     # tabelas sem geometria

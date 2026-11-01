@@ -582,13 +582,26 @@ def converter(gpkg=GPKG_PADRAO, com_projetados=False, alteracoes=None, camadas=N
                 if r["status_inicial"] == "FECHADA":
                     status.append(f"{nid:<10} Closed")
             else:
-                # registro de manobra e as válvulas de reservatório (VRE) e de setor (VSE): 100% abertas ou
-                # fechadas pelo status; no EPANET, TCV sem perda
-                if r["tipo"] in ("REGISTRO", "VRE", "VSE"):
+                dns = [p["D"] for p in pipes if p["a"] == f"{nid}__J" or p["b"] == f"{nid}__M"]
+                if r["tipo"] == "RETENCAO":  # válvula de retenção (Check Valve): tubo curto CV, sentido do desenho
+                    diam = r["diametro"] if not _vazio(r["diametro"]) else (max(dns) if dns else None)
+                    if _vazio(diam):
+                        rel.erro(f"válvula {nid} (retenção): sem diâmetro", ref=("valvula", nid))
+                        continue
+                    pipes.append(dict(id=nid, a=f"{nid}__M", b=f"{nid}__J", L=0.1, D=diam, C=150,
+                                      km=r["perda_localizada"] or 0,
+                                      st="Closed" if r["status"] == "FECHADA" else "CV", vert=[]))
+                    continue
+                # registro de manobra, válvulas de reservatório (VRE) e de setor (VSE): 100% abertas ou fechadas
+                # pelo status; turbina, orifício entre tubos e válvula de área linear (elementos de transiente):
+                # no regime permanente, só a perda localizada. No EPANET, TCV com a perda localizada
+                if r["tipo"] in ("REGISTRO", "VRE", "VSE", "TURBINA", "ORIFICIO", "AREA_LINEAR"):
                     dns = [p["D"] for p in pipes if p["a"] == f"{nid}__J" or p["b"] == f"{nid}__M"]
                     r = r.copy()
                     r["tipo"] = "TCV"
                     r["ajuste"] = 0 if _vazio(r["ajuste"]) else r["ajuste"]
+                    if r["status"] not in ("FECHADA",):
+                        r["status"] = "ABERTA"
                     if _vazio(r["diametro"]) and dns:
                         r["diametro"] = max(dns)
                 if r["tipo"] == "GPV":  # GPV: o "ajuste" é a curva perda × vazão (Valve Characteristics)

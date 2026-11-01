@@ -354,9 +354,9 @@ def anotar(tipo, geom, texto=None):
         fmt.setColor(QColor("#0d2650"))
         item.setFormat(fmt)
     elif tipo == "linha":
-        item = QgsAnnotationLineItem(QgsLineString([QgsPoint(v) for v in geom.vertices()]))
+        item = QgsAnnotationLineItem(QgsLineString([QgsPoint(v.x(), v.y()) for v in geom.vertices()]))
     else:
-        anel = QgsLineString([QgsPoint(v) for v in geom.vertices()])
+        anel = QgsLineString([QgsPoint(v.x(), v.y()) for v in geom.vertices()])
         pol = QgsCurvePolygon()
         pol.setExteriorRing(anel)
         item = QgsAnnotationPolygonItem(pol)
