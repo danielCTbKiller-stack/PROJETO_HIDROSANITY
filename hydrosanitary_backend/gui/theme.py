@@ -51,9 +51,11 @@ def qss():
 
     QFrame#cabecalho, QFrame#card {{ background:qlineargradient(x1:0,y1:0,x2:0,y2:1, stop:0 {c['panel2']}, stop:1 {c['panel']});
                    border:1px solid {c['line']}; border-radius:10px; }}
-    QFrame#faixa {{ background:{c['panel']}; border:1px solid {c['line']}; border-radius:10px; }}
-    QFrame#grupo {{ background:transparent; border:none; border-right:1px solid {c['grid']}; }}
-    QLabel#grupoTitulo {{ color:{c['muted']}; font-family:'{MONO}'; font-size:7.5pt; letter-spacing:1px; }}
+    QFrame#faixa {{ background:{c['panel']}; border:none; border-bottom:1px solid {c['line']}; border-radius:0; }}
+    QStackedWidget#corpoFaixa, QStackedWidget#corpoFaixa > QWidget {{ background:{c['panel']}; }}
+    QStackedWidget#corpoFaixa {{ border-top:1px solid {c['line']}; }}
+    QFrame#grupo {{ background:transparent; border:none; border-right:1px solid {c['line']}; }}
+    QLabel#grupoTitulo {{ color:{c['muted']}; font-size:8pt; padding-top:1px; }}
     QFrame#kpi {{ background:qlineargradient(x1:0,y1:0,x2:0,y2:1, stop:0 {c['panel2']}, stop:1 {c['panel']});
                   border:1px solid {c['line']}; border-radius:10px; }}
     QLabel#kpiK {{ color:{c['muted']}; font-family:'{MONO}'; font-size:7.5pt; font-weight:600; letter-spacing:1px; }}
@@ -66,24 +68,26 @@ def qss():
     QToolButton#nav:checked {{ color:{c['cyan']}; border-color:{c['cyan']}; }}
     QToolButton#nav:hover {{ color:{c['text']}; }}
     QToolButton#aba {{ background:transparent; color:{c['muted']}; border:none; border-bottom:2px solid transparent;
-                       padding:5px 12px; font-family:'{MONO}'; font-weight:600; letter-spacing:1px; }}
-    QToolButton#aba:checked {{ color:{c['cyan']}; border-bottom-color:{c['cyan']}; }}
+                       padding:7px 16px 6px 16px; margin:0 2px; font-size:9.5pt; font-weight:600; }}
+    QToolButton#aba:checked {{ color:{c['cyan']}; border-bottom-color:{c['cyan']}; background:{c['panel2']};
+                       border-top-left-radius:6px; border-top-right-radius:6px; }}
     QToolButton#aba:hover {{ color:{c['text']}; }}
-    QToolButton#acao {{ background:transparent; color:{c['text']}; border:1px solid transparent; border-radius:8px;
-                        padding:3px 4px; font-size:8pt; }}
+    QToolButton#acao {{ background:transparent; color:{c['text']}; border:1px solid transparent; border-radius:6px;
+                        padding:2px 3px; font-size:8.5pt; }}
     QToolButton#acao:hover {{ background:{c['btn']}; border-color:{c['line']}; }}
     QToolButton#acao:checked {{ background:{c['btn_on']}; border-color:{c['cyan']}; }}
     QToolButton#acao:pressed {{ background:{c['btn_on']}; }}
     QToolButton#arquivo {{ background:{c['water']}; color:white; border:none; border-radius:5px; padding:5px 16px;
-                           font-weight:700; }}
+                           font-weight:700; font-size:9.5pt; }}
     QToolButton#arquivo:hover {{ background:#2aa2ec; }}
     QToolButton#arquivo::menu-indicator {{ subcontrol-position:right bottom; }}
     QToolButton#rapido {{ background:transparent; border:1px solid transparent; border-radius:5px; padding:3px; }}
     QToolButton#rapido:hover {{ background:{c['btn']}; border-color:{c['line']}; }}
     QLabel#marcaTitulo {{ color:{c['cyan']}; font-family:'{DISPLAY}'; font-size:12pt; font-weight:700; }}
 
-    QPushButton {{ background:{c['btn']}; color:{c['text']}; border:1px solid {c['line']}; border-radius:8px;
-                   padding:6px 12px; font-weight:600; }}
+    QPushButton {{ background:{c['btn']}; color:{c['text']}; border:1px solid {c['line']}; border-radius:7px;
+                   padding:6px 14px; font-weight:600; }}
+    QPushButton:disabled {{ color:#55708f; border-color:{c['grid']}; }}
     QPushButton:hover {{ border-color:{c['cyan']}; }}
     QPushButton:pressed, QPushButton#pri {{ background:{c['btn_on']}; border-color:{c['cyan']}; }}
     QComboBox, QLineEdit, QDoubleSpinBox, QSpinBox {{ background:{c['btn']}; color:{c['text']};
@@ -96,12 +100,18 @@ def qss():
     QCheckBox::indicator {{ width:13px; height:13px; border:1px solid {c['line']}; background:{c['btn']}; border-radius:4px; }}
     QCheckBox::indicator:checked {{ background:{c['cyan']}; border-color:{c['cyan']}; }}
 
-    QDockWidget {{ color:{c['cyan']}; font-family:'{MONO}'; font-weight:600; }}
-    QDockWidget::title {{ background:{c['panel2']}; padding:6px 10px; border-bottom:1px solid {c['line']}; }}
+    QDockWidget {{ color:{c['text']}; font-weight:600; }}
+    QDockWidget::title {{ background:{c['panel2']}; border-bottom:1px solid {c['line']}; padding:6px 8px; text-align:left; }}
+    QDockWidget::close-button, QDockWidget::float-button {{ background:transparent; border:none; padding:1px; }}
+    QDockWidget::close-button:hover, QDockWidget::float-button:hover {{ background:{c['btn']}; }}
+    QMainWindow::separator {{ background:{c['line']}; width:3px; height:3px; }}
+    QMainWindow::separator:hover {{ background:{c['cyan']}; }}
+    QGroupBox {{ border:1px solid {c['line']}; border-radius:8px; margin-top:14px; padding:10px 8px 8px 8px; }}
+    QGroupBox::title {{ subcontrol-origin:margin; left:10px; padding:0 4px; color:{c['cyan']}; font-weight:600; }}
     QTabWidget::pane {{ border:none; background:transparent; top:-1px; }}
-    QTabBar::tab {{ background:{c['chip']}; color:{c['muted']}; border:1px solid {c['line']}; border-radius:7px;
-        padding:5px 11px; margin:3px 5px 3px 0; font-family:'{MONO}'; font-weight:600; }}
-    QTabBar::tab:selected {{ color:{c['cyan']}; border-color:{c['cyan']}; }}
+    QTabBar::tab {{ background:{c['chip']}; color:{c['muted']}; border:1px solid {c['line']}; padding:5px 12px;
+        border-top-left-radius:6px; border-top-right-radius:6px; margin-right:2px; }}
+    QTabBar::tab:selected {{ color:{c['cyan']}; border-color:{c['cyan']}; background:{c['panel2']}; }}
     QListWidget, QTableWidget, QTextBrowser {{ background:{c['panel']}; color:{c['text']}; border:1px solid {c['line']};
         border-radius:9px; gridline-color:{c['grid']}; selection-background-color:{c['btn_on']}; outline:none; }}
     QListWidget::item {{ padding:5px 7px; border-radius:6px; }}
@@ -119,10 +129,15 @@ def qss():
     QSlider::groove:horizontal {{ height:4px; background:{c['line']}; border-radius:2px; }}
     QSlider::sub-page:horizontal {{ background:{c['cyan']}; border-radius:2px; }}
     QSlider::handle:horizontal {{ background:{c['cyan']}; width:12px; height:12px; margin:-4px 0; border-radius:6px; }}
-    QStatusBar {{ background:{c['panel']}; color:{c['muted']}; border-top:1px solid {c['line']}; font-family:'{MONO}'; }}
+    QStatusBar {{ background:{c['panel']}; color:{c['muted']}; border-top:1px solid {c['line']}; }}
+    QStatusBar::item {{ border:none; }}
     QStatusBar QLabel {{ color:{c['muted']}; padding:0 8px; }}
-    QSplitter::handle {{ background:{c['bg']}; }}
-    QMenu {{ background:{c['panel']}; border:1px solid {c['line']}; }}
+    QSplitter::handle {{ background:{c['line']}; }}
+    QMenu {{ background:{c['panel']}; color:{c['text']}; border:1px solid {c['line']}; padding:4px; }}
+    QMenu::item {{ padding:6px 24px 6px 10px; border-radius:5px; }}
     QMenu::item:selected {{ background:{c['btn_on']}; }}
+    QMenu::item:disabled {{ color:#55708f; }}
+    QMenu::separator {{ height:1px; background:{c['line']}; margin:4px 6px; }}
+    QMenu::icon {{ padding-left:6px; }}
     QScrollArea {{ border:none; }}
     """

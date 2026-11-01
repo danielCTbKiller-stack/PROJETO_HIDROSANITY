@@ -211,13 +211,14 @@ class MainWindow(QMainWindow):
     def _build_top(self):
         top = QWidget()
         col = QVBoxLayout(top)
-        col.setContentsMargins(8, 8, 8, 6)
+        col.setContentsMargins(0, 0, 0, 6)  # faixa colada no topo, como no GWATER
         col.setSpacing(6)
+        col.addWidget(self._build_ribbon())
         head = QFrame()
         head.setObjectName("cabecalho")
         hl = QHBoxLayout(head)
         hl.setContentsMargins(12, 6, 12, 6)
-        logo = QLabel(); logo.setPixmap(logo_pixmap(40))
+        logo = QLabel(); logo.setPixmap(logo_pixmap(30))
         hl.addWidget(logo)
         titles = QVBoxLayout(); titles.setSpacing(0)
         h1 = QLabel("GPREDIAL · Água fria predial"); h1.setObjectName("h1")
@@ -238,8 +239,8 @@ class MainWindow(QMainWindow):
         self.chip_alerts = self._chip("ALERTAS –")
         for c in (self.chip_norm, self.chip_calc, self.chip_alerts):
             hl.addWidget(c)
-        col.addWidget(head)
-        col.addWidget(self._build_ribbon())
+        hold = QHBoxLayout(); hold.setContentsMargins(8, 0, 8, 0); hold.addWidget(head)
+        col.addLayout(hold)
         self.setMenuWidget(top)
 
     @staticmethod
