@@ -159,13 +159,15 @@ checar(q1 > q0 + 1.0, f"a demanda do consumidor entra no nó S2 no cálculo ({q0
 
 print("\n== todos os botões da faixa")
 PULAR = {"sair", "novo", "abrir", "importar", "abrir_qgis", "abrir_epanet", "externas", "salvar_como", "recentes",
-         "mapa", "calibracao", "aovivo", "dados", "sinotico", "esqueletizar", "loadbuilder", "rastreio_ligar"}
+         "mapa", "calibracao", "aovivo", "dados", "sinotico", "calibrador_watergems", "esqueletizar", "loadbuilder", "rastreio_ligar"}
 erros = []
 for chave in catalogo.todos():
     if chave in PULAR:
         continue
     if os.environ.get("GWATER_VERBOSO"):
         print("    →", chave, flush=True)
+        import faulthandler  # noqa: E402
+        faulthandler.dump_traceback_later(90, exit=True)
     try:
         j.acionar(chave)
         esperar(3)

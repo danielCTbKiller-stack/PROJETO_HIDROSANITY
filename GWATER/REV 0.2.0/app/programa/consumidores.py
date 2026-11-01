@@ -12,7 +12,7 @@ import math
 
 from qgis.core import (
     Qgis, QgsCoordinateTransformContext, QgsDefaultValue, QgsFeatureRequest, QgsField, QgsFields,
-    QgsGeometryGeneratorSymbolLayer, QgsLineSymbol, QgsMarkerSymbol, QgsProject, QgsSingleSymbolRenderer,
+    QgsMarkerSymbol, QgsProject, QgsSingleSymbolRenderer,
     QgsSvgMarkerSymbolLayer, QgsVectorFileWriter, QgsVectorLayer,
 )
 from qgis.PyQt.QtCore import QMetaType, QTimer
@@ -92,25 +92,93 @@ def formulario(nucleo, lyr=None):
 
 
 def estilo(nucleo, lyr):
-    """Casa no ponto e linha tracejada até o nó, ou até o meio da tubulação, a que o consumidor está ligado."""
-    try:
-        id_no, id_tr = nucleo.camada("no_juncao").id(), nucleo.camada("trecho").id()
-    except LookupError:
-        return
-    g_tr = f"geometry(get_feature('{id_tr}', 'id', \"ligado_a\"))"
-    expr = (f"CASE WHEN \"tipo_ligacao\" = 'TRECHO' THEN make_line($geometry, line_interpolate_point({g_tr}, "
-            f"length({g_tr}) / 2)) WHEN \"ligado_a\" IS NOT NULL THEN "
-            f"make_line($geometry, geometry(get_feature('{id_no}', 'id', \"ligado_a\"))) END")
-    linha = QgsLineSymbol.createSimple({"color": "#e8590c", "width": "0.35", "line_style": "dash"})
-    ger = QgsGeometryGeneratorSymbolLayer.create({"geometryModifier": expr})
-    ger.setSymbolType(Qgis.SymbolType.Line)
-    ger.setSubSymbol(linha)
+    """Casa no ponto. A linha tracejada até o nó (ou o meio da tubulação) é desenhada à parte (`Ligacoes`): um
+    símbolo que lê as outras camadas (get_feature) roda na linha de desenho do mapa e travava o QGIS quando os nós
+    eram editados ao mesmo tempo."""
     s = QgsMarkerSymbol()
     s.deleteSymbolLayer(0)
-    s.appendSymbolLayer(ger)
     s.appendSymbolLayer(QgsSvgMarkerSymbolLayer(f"{ICONES}/elem_consumidor.svg".replace("\\", "/"), 5.0))
     lyr.setRenderer(QgsSingleSymbolRenderer(s))
     lyr.triggerRepaint()
+    lig = getattr(nucleo, "_ligacoes_consumidores", None)
+    if lig is None:
+        lig = nucleo._ligacoes_consumidores = Ligacoes(nucleo)
+    lig.conectar(lyr)
+
+
+class Ligacoes:
+    """Linhas tracejadas casa → nó / meio da tubulação, numa camada de desenho do mapa (não vai para o projeto).
+    Refeitas pouco depois de qualquer mudança em consumidores, nós ou tubulações."""
+
+    def __init__(self, nucleo):
+        from qgis.gui import QgsRubberBand
+        from qgis.PyQt.QtCore import Qt
+        from qgis.PyQt.QtGui import QColor
+        self.nucleo = nucleo
+        self.banda = QgsRubberBand(nucleo.janela.canvas, Qgis.GeometryType.Line)
+        self.banda.setColor(QColor("#e8590c"))
+        self.banda.setWidth(1)
+        self.banda.setLineStyle(Qt.PenStyle.DashLine)
+        self.timer = QTimer()
+        self.timer.setSingleShot(True)
+        self.timer.setInterval(150)
+        self.timer.timeout.connect(self.refazer)
+        self.ligadas = set()
+        QgsProject.instance().cleared.connect(self._limpar)
+
+    def _limpar(self):
+        self.timer.stop()
+        self.ligadas.clear()
+        self.banda.reset(Qgis.GeometryType.Line)
+
+    def conectar(self, cons):
+        for nome in ("consumidor", "no_juncao", "trecho"):
+            try:
+                lyr = cons if nome == "consumidor" else self.nucleo.camada(nome)
+            except LookupError:
+                continue
+            if lyr.id() in self.ligadas:
+                continue
+            self.ligadas.add(lyr.id())
+            for sinal in (lyr.featureAdded, lyr.featuresDeleted, lyr.attributeValueChanged, lyr.geometryChanged,
+                          lyr.afterRollBack, lyr.afterCommitChanges):
+                sinal.connect(lambda *_: self.timer.start())
+            if nome == "consumidor":
+                QgsProject.instance().layerTreeRoot().findLayer(lyr.id()).visibilityChanged.connect(
+                    lambda *_: self.timer.start())
+        self.timer.start()
+
+    def refazer(self):
+        from qgis.core import QgsGeometry, QgsPointXY
+        try:
+            cons = self.nucleo.camada("consumidor")
+            nos, tr = self.nucleo.camada("no_juncao"), self.nucleo.camada("trecho")
+            no_arvore = QgsProject.instance().layerTreeRoot().findLayer(cons.id())
+        except (LookupError, RuntimeError):
+            self.banda.reset(Qgis.GeometryType.Line)
+            return
+        self.banda.reset(Qgis.GeometryType.Line)
+        if no_arvore is not None and not no_arvore.isVisible():
+            return
+        alvos = {}
+        for f in cons.getFeatures():
+            if f.hasGeometry() and f["ligado_a"] not in (None, "") and str(f["ligado_a"]) != "NULL":
+                alvos.setdefault((str(f["tipo_ligacao"]) == "TRECHO", str(f["ligado_a"])), []).append(f.geometry())
+        if not alvos:
+            return
+        pos = {}
+        for f in nos.getFeatures():
+            if f.hasGeometry() and (False, str(f["id"])) in alvos:
+                pos[(False, str(f["id"]))] = f.geometry().centroid().asPoint()
+        for f in tr.getFeatures():
+            if f.hasGeometry() and (True, str(f["id"])) in alvos:
+                g = f.geometry()
+                pos[(True, str(f["id"]))] = g.interpolate(g.length() / 2).asPoint()
+        crs = cons.crs()
+        linhas = [[QgsPointXY(g.centroid().asPoint()), QgsPointXY(pos[k])]
+                  for k, gs in alvos.items() if k in pos for g in gs]
+        if linhas:
+            self.banda.setToGeometry(QgsGeometry.fromMultiPolylineXY(linhas), crs)
 
 
 def mais_perto(nucleo, ponto):
