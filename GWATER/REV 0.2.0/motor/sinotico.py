@@ -44,8 +44,8 @@ def montar(gpkg=GPKG_PADRAO, com_projetados=False):
                 elem[str(r["id"])] = (camada, r)
     tubos = [r for r in c["trecho"].to_dict("records")
              if ativo(r) and str(r.get("no_inicial")) in elem and str(r.get("no_final")) in elem]
-    tubos = _atravessar(tubos, {k for k, (cam, r) in elem.items()
-                                if cam == "valvula" and str(r.get("tipo") or "").upper() in OCULTAS})
+    ocultas = {k: r for k, (cam, r) in elem.items() if cam == "valvula" and str(r.get("tipo") or "").upper() in OCULTAS}
+    tubos = _atravessar(tubos, ocultas)
     for k in [k for k, (cam, r) in elem.items() if cam == "valvula" and str(r.get("tipo") or "").upper() in OCULTAS]:
         del elem[k]
 
@@ -196,13 +196,17 @@ def montar(gpkg=GPKG_PADRAO, com_projetados=False):
             cont[b["rotulo"]] += 1
             b["rotulo"] = f"{b['rotulo']} {cont[b['rotulo']]}"
 
+    # ligação só por válvula oculta fechada (ex.: bypass de VRP com a VSE fechada): a tela mostra sem água
+    fechados = {str(t["id"]) for t in tubos if t.get("_fechada")}
+    for a in arestas:
+        a["fechada"] = all(t in fechados for t, _ in a["tubos"])
     _posicionar(blocos, arestas)
     return {"blocos": list(blocos.values()), "arestas": arestas,
             "colunas": 1 + max((b["col"] for b in blocos.values()), default=0),
             "linhas": 1 + max((b["lin"] for b in blocos.values()), default=0)}
 
 
-def _atravessar(tubos, ocultas):
+def _atravessar(tubos, ocultas):  # ocultas: {id: registro da válvula}
     """Tira do caminho cada válvula oculta: os dois tubos dela viram um só, com o id e o sentido do primeiro (a
     vazão é a mesma). Uma de cada vez, para valerem também válvulas ocultas seguidas. Válvula oculta com outro
     número de tubos some com eles."""
@@ -216,7 +220,8 @@ def _atravessar(tubos, ocultas):
         o1 = str(t1["no_final"]) if str(t1["no_inicial"]) == v else str(t1["no_inicial"])
         o2 = str(t2["no_final"]) if str(t2["no_inicial"]) == v else str(t2["no_inicial"])
         a, b = (o1, o2) if str(t1["no_final"]) == v else (o2, o1)  # o sentido de t1 vale para o caminho todo
-        tubos.append(dict(t1, no_inicial=a, no_final=b, _oculta=True, diametro_nominal=max(
+        fechada = t1.get("_fechada") or t2.get("_fechada") or ocultas[v].get("status") == "FECHADA"
+        tubos.append(dict(t1, no_inicial=a, no_final=b, _oculta=True, _fechada=fechada, diametro_nominal=max(
             _num(t1.get("diametro_nominal")), _num(t2.get("diametro_nominal")))))
     return tubos
 

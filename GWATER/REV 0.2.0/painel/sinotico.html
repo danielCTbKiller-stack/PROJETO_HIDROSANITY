@@ -57,6 +57,9 @@ h3{font:600 13px var(--mono);letter-spacing:.08em;text-transform:uppercase;color
 .fl{fill:none;stroke:#9cecff;stroke-width:2.6;stroke-dasharray:9 9;stroke-linecap:round;animation:flui 1s linear infinite}
 .fl.rev{animation-direction:reverse}
 .fl.parado{animation:none;stroke:#3b5b85;stroke-dasharray:2 7}
+.tubo.fechada{stroke:#2a3a52;stroke-dasharray:6 5}
+.fl.fechada{display:none}
+.qtx.fechada{fill:#86a3c9}
 @keyframes flui{to{stroke-dashoffset:-18}}
 .bl{fill:#08254f;stroke:#35d0ff;stroke-width:1.6}
 .rot{font:700 13px var(--display);letter-spacing:.04em;fill:var(--text)}
@@ -200,15 +203,27 @@ function desenhar(){
   let s=`<defs><linearGradient id="wg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5fdcff"/><stop offset="1" stop-color="#1a7fc4"/></linearGradient>
     <g id="bld" fill="#2b78c2" stroke="#7fd0ff" stroke-width="1"><rect x="0" y="-22" width="12" height="22"/><rect x="15" y="-36" width="15" height="36"/><rect x="33" y="-17" width="11" height="17"/><rect x="47" y="-29" width="10" height="29"/></g></defs>`;
   // tubulações (atrás dos blocos)
-  S.arestas.forEach((a,i)=>{
+  // as fechadas primeiro (por baixo); ligações com curva que saem do mesmo bloco descem em x diferentes,
+  // senão uma cobre a outra (ex.: VRP e o bypass dela saindo da mesma derivação)
+  const ordem=S.arestas.map((a,i)=>i).sort((i,j)=>(S.arestas[j].fechada?1:0)-(S.arestas[i].fechada?1:0));
+  const curvas={};
+  ordem.forEach(i=>{ const a=S.arestas[i];
     const A=B[a.de], Z=B[a.para]; if(!A||!Z) return;
     const pa=pos(A), pz=pos(Z), ra=A.tipo==='derivacao'?8:BW/2, rz=Z.tipo==='derivacao'?8:BW/2;
-    const x1=pa.x+ra, x2=pz.x-rz, xm=(x1+x2)/2;
-    const d=pa.y===pz.y?`M${x1},${pa.y} H${x2}`:`M${x1},${pa.y} H${xm} V${pz.y} H${x2}`;
-    const w=Math.max(4,Math.min(12,(a.dn||100)/25));
-    s+=`<path d="${d}" class="tubo" stroke-width="${w}"/><path id="fl${i}" d="${d}" class="fl"/>`;
-    const ty=pa.y===pz.y?pa.y-9:(pa.y+pz.y)/2, tx=pa.y===pz.y?xm:xm+6;
-    s+=`<text id="q${i}" x="${tx}" y="${ty}" class="qtx" text-anchor="${pa.y===pz.y?'middle':'start'}">–</text>`;
+    const x1=pa.x+ra, x2=pz.x-rz;
+    let d, tx, ty, anc='start';
+    if(pa.x===pz.x){  // mesma coluna: desce (ou sobe) direto de um bloco ao outro
+      const sg=pz.y>pa.y?1:-1, ya=pa.y+sg*(A.tipo==='derivacao'?8:BH/2), yz=pz.y-sg*(Z.tipo==='derivacao'?8:BH/2);
+      d=`M${pa.x},${ya} V${yz}`; tx=pa.x+6; ty=(ya+yz)/2;
+    } else if(pa.y===pz.y){ const xm=(x1+x2)/2; d=`M${x1},${pa.y} H${x2}`; tx=xm; ty=pa.y-9; anc='middle'; }
+    else {
+      const k=curvas[a.de]=(curvas[a.de]||0)+1, xm=(x1+x2)/2+(k%2?-1:1)*14*Math.floor(k/2);  // 0, +14, -14, +28…
+      d=`M${x1},${pa.y} H${xm} V${pz.y} H${x2}`; tx=xm+6; ty=(pa.y+pz.y)/2;
+      if(a.fechada){ tx=xm+6; ty=pz.y-6; }  // perto da chegada: no meio ficaria em cima das outras linhas
+    }
+    const w=Math.max(4,Math.min(12,(a.dn||100)/25)), fc=a.fechada?' fechada':'';
+    s+=`<path d="${d}" class="tubo${fc}" stroke-width="${a.fechada?3:w}"/><path id="fl${i}" d="${d}" class="fl${fc}"/>`;
+    s+=`<text id="q${i}" x="${tx}" y="${ty}" class="qtx${fc}" text-anchor="${anc}">–</text>`;
   });
   S.blocos.forEach(b=>{ const {x,y}=pos(b); s+=`<g class="alvo" id="g_${b.id.replace(/[^\w-]/g,'_')}" data-id="${esc(b.id)}" transform="translate(${x},${y})">${bloco(b)}</g>`; });
   svg.innerHTML=s;
@@ -263,7 +278,7 @@ function atualizar(){
   S.arestas.forEach((a,j)=>{ const q=qAresta(a,i), e=$('fl'+j), t=$('q'+j); if(!e) return;
     const v=Math.abs(q||0); e.classList.toggle('parado',v<0.01); e.classList.toggle('rev',(q||0)<0);
     e.style.animationDuration=(v<0.01?0:Math.max(0.25,Math.min(3,6/v)))+'s';
-    t.textContent=q==null?'':nf(v)+' L/s'; });
+    t.textContent=a.fechada?'fechada':q==null?'':nf(v)+' L/s'; });
   if(!R) return;
   $('kProd').textContent=nf(prod); $('kCons').textContent=nf(cons);
   $('kPmin').textContent=nf(pmin); $('kPminD').textContent=pminNo?'no nó '+pminNo:'nos pontos de consumo';
