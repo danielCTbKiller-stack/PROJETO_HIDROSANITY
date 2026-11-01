@@ -793,8 +793,11 @@ def central_demanda(nucleo):
             for x, _, c in lst:
                 por_cat[c or "(sem categoria)"] = por_cat.get(c or "(sem categoria)", 0) + x
         cats = " · ".join(f"{c}: {num(v, 3)}" for c, v in sorted(por_cat.items(), key=lambda kv: -kv[1])[:5])
+        qc, nc = total_consumidores(nucleo)
+        cons = (f"<br>Consumidores: {num(qc, 3)} L/s em {nc} (somados ao nó ou às pontas da tubulação a que "
+                f"estão ligados)") if nc else ""
         total.setText(f"Total: {num(s, 3)} L/s ({num(s * 86.4, 0)} m³/dia) em {n} nós com demanda"
-                      + (f"<br><span style='font-weight:400'>{cats}</span>" if len(por_cat) > 1 else ""))
+                      + (f"<br><span style='font-weight:400'>{cats}</span>" if len(por_cat) > 1 else "") + cons)
 
     def filtrar():
         t = filtro.text().strip().lower()
@@ -942,11 +945,17 @@ def central_demanda(nucleo):
     def no_mapa():
         selecionar_ids(nucleo, nos_sel())
 
+    def nos_consumidores():
+        if distribuir_consumidores(nucleo, d, pads):
+            somar()
+
     h = QHBoxLayout()
     for texto, f, dica in (("Multiplicar…", multiplicar, "Multiplica todas as demandas dos nós"),
                            ("Padrão…", padrao, "Mesmo padrão em todas as demandas dos nós"),
                            ("Adicionar demanda aos nós…", nova_em_todos, "Uma demanda a mais em cada nó"),
                            ("Distribuir uma vazão total…", distribuir, "Reparte uma vazão pelos nós"),
+                           ("Distribuir nos consumidores…", nos_consumidores,
+                            "Reparte uma vazão pelos consumidores (casas), que levam a demanda ao nó ou à tubulação"),
                            ("Selecionar no mapa", no_mapa, "")):
         b = QPushButton(texto)
         b.setToolTip(dica)
@@ -981,6 +990,88 @@ def central_demanda(nucleo):
     if _substituir(nucleo, lyr, linhas, ["no_id", "demanda", "padrao", "categoria"]):
         nucleo.informar(f"Demandas gravadas: {len(linhas)} linha(s) em {len({l['no_id'] for l in linhas})} nó(s) com "
                         "mais de uma demanda. Os totais dos nós ficaram na edição: Salvar edições grava.")
+
+
+def total_consumidores(nucleo):
+    """(vazão, quantos) dos consumidores com demanda."""
+    try:
+        cons = nucleo.camada("consumidor")
+    except LookupError:
+        return 0.0, 0
+    q = [float(f["demanda_base"]) for f in cons.getFeatures()
+         if f["demanda_base"] not in (None, "") and str(f["demanda_base"]) != "NULL" and float(f["demanda_base"]) > 0]
+    return sum(q), len(q)
+
+
+def distribuir_consumidores(nucleo, pai, pads):
+    """Reparte uma vazão total entre os consumidores (todos, de um setor ou os selecionados no mapa): igual para cada
+    um ou proporcional a um campo numérico (ex.: economias, consumo medido). Fica na edição da camada."""
+    from qgis.core import QgsFeatureRequest
+    try:
+        cons = nucleo.camada("consumidor")
+    except LookupError:
+        nucleo.aviso("Este cadastro não tem consumidores: desenhe com o botão Consumidor (aba Desenho).")
+        return False
+    feats = list(cons.getFeatures())
+    if not feats:
+        nucleo.aviso("Nenhum consumidor no cadastro: desenhe com o botão Consumidor (aba Desenho).")
+        return False
+    dd = Dialogo(pai, "Distribuir nos consumidores",
+                 "Reparte uma vazão total entre os consumidores, como o LoadBuilder do WaterGEMS com os Customer "
+                 "Meters. Cada consumidor leva a sua parte para o nó, ou para as pontas da tubulação, a que está ligado.")
+    q = dd.linha("Vazão total (L/s):", QDoubleSpinBox())
+    q.setRange(0, 1e6)
+    q.setDecimals(4)
+    q.setValue(10)
+    escopo = dd.linha("Distribuir entre:", QComboBox())
+    escopo.addItem(f"Todos os consumidores ({len(feats)})", ("todos", None))
+    for st in sorted({str(f["setor"]) for f in feats if f["setor"] not in (None, "") and str(f["setor"]) != "NULL"}):
+        escopo.addItem(f"Consumidores do setor {st}", ("setor", st))
+    if cons.selectedFeatureCount():
+        escopo.addItem(f"Selecionados no mapa ({cons.selectedFeatureCount()})", ("selecao", None))
+    metodo = dd.linha("Método:", QComboBox())
+    metodo.addItem("Igual para todos", None)
+    for fld in cons.fields():
+        if fld.isNumeric() and fld.name() not in ("fid", "demanda_base"):
+            metodo.addItem(f"Proporcional ao campo {fld.name()}", fld.name())
+    pad = dd.linha("Padrão:", QComboBox())
+    pad.addItem("(manter o de cada consumidor)", None)
+    pad.addItem("(nenhum: o do nó)", "")
+    for x in pads:
+        pad.addItem(x, x)
+    dd.botoes("Distribuir")
+    if not dd.exec():
+        return False
+    tipo, setor = escopo.currentData()
+    if tipo == "selecao":
+        alvo = list(cons.getFeatures(QgsFeatureRequest().setFilterFids(list(cons.selectedFeatureIds()))))
+    elif tipo == "setor":
+        alvo = [f for f in feats if str(f["setor"]) == setor]
+    else:
+        alvo = feats
+    campo = metodo.currentData()
+
+    def peso(f):
+        if campo is None:
+            return 1.0
+        v = f[campo]
+        return float(v) if v not in (None, "") and str(v) != "NULL" else 0.0
+    pesos = {f.id(): peso(f) for f in alvo}
+    soma = sum(pesos.values())
+    if not alvo or soma <= 0:
+        nucleo.aviso("Nenhum consumidor com peso maior que zero no grupo escolhido.")
+        return False
+    if not cons.isEditable():
+        cons.startEditing()
+    i_q, i_p = cons.fields().indexOf("demanda_base"), cons.fields().indexOf("padrao")
+    cons.beginEditCommand("Distribuir nos consumidores")
+    for f in alvo:
+        cons.changeAttributeValue(f.id(), i_q, round(q.value() * pesos[f.id()] / soma, 6))
+        if pad.currentData() is not None:
+            cons.changeAttributeValue(f.id(), i_p, pad.currentData() or None)
+    cons.endEditCommand()
+    nucleo.informar(f"{num(q.value(), 3)} L/s distribuídos entre {len(alvo)} consumidor(es). Salvar edições grava.")
+    return True
 
 
 def _tem(nucleo, c):

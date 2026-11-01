@@ -151,6 +151,12 @@ j.salvar_camadas()
 esperar()
 c = list(cons.getFeatures())
 checar(len(c) == 1 and str(c[0]["ligado_a"]) == "S2" and c[0]["demanda_base"] == 3.0, "consumidor gravado")
+from programa.componentes import distribuir_consumidores, total_consumidores  # noqa: E402
+checar(distribuir_consumidores(n, j, ["PAD_CONS"]), "Central de demanda: distribuir nos consumidores")
+checar(abs(total_consumidores(n)[0] - 10.0) < 1e-6, f"10 L/s no consumidor: {total_consumidores(n)}")
+cons.changeAttributeValue(c[0].id(), cons.fields().indexOf("demanda_base"), 3.0)
+j.salvar_camadas()
+esperar()
 q0 = n.res.d["nos"]["S2"]["d"][0]
 j.acionar("simular")
 esperar()
