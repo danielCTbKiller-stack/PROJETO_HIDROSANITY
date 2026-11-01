@@ -1,0 +1,34 @@
+{
+  "_leia": "Programas do GeoLogic Water. O hub (esta pasta) e a gota no canto de cada programa abrem esta lista. Para integrar outro, acrescente um item: comando relativo à raiz do repositório (a pasta acima desta; o primeiro que existir é usado), pasta de trabalho e ícone (rede ou predio).",
+  "programas": [
+    {
+      "id": "gwater",
+      "nome": "GWATER",
+      "descricao": "Redes de distribuição de água · EPANET, QGIS, calibração",
+      "icone": "rede",
+      "comandos": [
+        [
+          "GWATER/REV 0.2.0/GWATER.exe"
+        ]
+      ],
+      "pasta": "GWATER/REV 0.2.0"
+    },
+    {
+      "id": "gpredial",
+      "nome": "GPREDIAL",
+      "descricao": "Instalações prediais de água fria · NBR 5626",
+      "icone": "predio",
+      "comandos": [
+        [
+          "GPREDIAL/.venv/Scripts/pythonw.exe",
+          "-m",
+          "gui.app"
+        ],
+        [
+          "GPREDIAL/GPREDIAL.exe"
+        ]
+      ],
+      "pasta": "GPREDIAL"
+    }
+  ]
+}

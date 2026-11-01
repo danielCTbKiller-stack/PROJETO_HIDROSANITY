@@ -1,31 +1,29 @@
-﻿// HIDROSANITY.exe / Hidrossanitario.exe - lançador (mesma ideia do GWATER.exe).
+﻿// GPREDIAL.exe - lançador do GPREDIAL (mesma ideia do GWATER.exe). O hub que escolhe entre os programas é o
+// "GeoLogic Water.exe", na pasta GeoLogic Water ao lado desta.
 //
-// Abre o menu inicial do HIDROSANITY (gui\inicio.py: GWATER ou GPREDIAL); com um arquivo de projeto predial vai
-// direto ao GPREDIAL. Funciona na raiz do repositório (acha hydrosanitary_backend) ou dentro dela. Este lançador:
+// Este lançador:
 //   1. confere o ambiente Python (.venv) e oferece criar se faltar (instalar.bat);
 //   2. abre o programa pelo pythonw.exe do .venv, sem janela de console;
 //   3. repassa o arquivo a abrir (duplo clique num .hsp/.dxf/.ifc ou arrastar sobre o .exe).
 // Como roda direto o código-fonte, não precisa recompilar quando o programa muda.
-// Erros de inicialização vão para hidrossanitario_erros.log.
+// Erros de inicialização vão para gpredial_erros.log.
 //
 // Compilar (o compilador vem com o Windows) - ou rode compilar_lancador.bat:
-//   C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe /target:winexe /out:..\Hidrossanitario.exe
-//       /win32icon:hidrossanitario.ico /reference:System.Windows.Forms.dll Hidrossanitario.cs
+//   C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe /target:winexe /out:..\GPREDIAL.exe
+//       /win32icon:gpredial.ico /reference:System.Windows.Forms.dll GPREDIAL.cs
 using System;
 using System.Diagnostics;
 using System.IO;
 using System.Windows.Forms;
 
-class Hidrossanitario
+class Gpredial
 {
     [STAThread]
     static void Main(string[] args)
     {
         string raiz = AppDomain.CurrentDomain.BaseDirectory;
-        string sub = Path.Combine(raiz, "hydrosanitary_backend");
-        if (Directory.Exists(sub)) raiz = sub;
         string pythonw = Path.Combine(raiz, ".venv", "Scripts", "pythonw.exe");
-        string log = Path.Combine(raiz, "hidrossanitario_erros.log");
+        string log = Path.Combine(raiz, "gpredial_erros.log");
 
         if (!File.Exists(pythonw))
         {
@@ -33,11 +31,11 @@ class Hidrossanitario
             DialogResult r = MessageBox.Show(
                 "O ambiente do programa ainda não foi instalado nesta pasta.\n\n" +
                 "Instalar agora? (precisa do Python 3.10+ e de internet; leva alguns minutos)",
-                "HIDROSANITY", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                "GPREDIAL", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
             if (r != DialogResult.Yes) return;
             if (!File.Exists(instalar))
             {
-                MessageBox.Show("instalar.bat não encontrado em " + raiz, "HIDROSANITY",
+                MessageBox.Show("instalar.bat não encontrado em " + raiz, "GPREDIAL",
                                 MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
@@ -47,13 +45,13 @@ class Hidrossanitario
             if (!File.Exists(pythonw))
             {
                 MessageBox.Show("A instalação não terminou. Veja as mensagens da janela do instalar.bat.",
-                                "HIDROSANITY", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                                "GPREDIAL", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
         }
 
         string arquivo = args.Length > 0 && File.Exists(args[0]) ? " \"" + Path.GetFullPath(args[0]) + "\"" : "";
-        var info = new ProcessStartInfo(pythonw, "-m gui.inicio" + arquivo)
+        var info = new ProcessStartInfo(pythonw, "-m gui.app" + arquivo)
         {
             WorkingDirectory = raiz,
             UseShellExecute = false,
@@ -68,13 +66,13 @@ class Hidrossanitario
             if (proc.ExitCode != 0)
             {
                 File.WriteAllText(log, DateTime.Now + "\r\n" + erros);
-                MessageBox.Show("O programa fechou com erro.\n\nDetalhes em:\n" + log, "HIDROSANITY",
+                MessageBox.Show("O programa fechou com erro.\n\nDetalhes em:\n" + log, "GPREDIAL",
                                 MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
         catch (Exception e)
         {
-            MessageBox.Show("Não foi possível abrir o programa:\n" + e.Message, "HIDROSANITY",
+            MessageBox.Show("Não foi possível abrir o programa:\n" + e.Message, "GPREDIAL",
                             MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
     }

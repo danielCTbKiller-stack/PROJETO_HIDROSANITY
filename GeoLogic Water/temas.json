@@ -1,5 +1,5 @@
 {
-  "_leia": "Temas do HIDROSANITY: o GWATER (app/programa/tema.py) e o GPREDIAL (gui/theme.py) leem este arquivo. Cores com os nomes do Centro de Operações (cyan = cor de destaque, sobre = texto em cima do destaque); fontes que o Windows já tem; raio = arredondamento dos cantos em px; maiusculas = abas e títulos de grupo em caixa alta.",
+  "_leia": "Temas do GeoLogic Water: o hub, o GWATER (app/programa/tema.py) e o GPREDIAL (gui/theme.py) leem este arquivo. Cores com os nomes do Centro de Operações (cyan = cor de destaque, sobre = texto em cima do destaque); fontes que o Windows já tem; raio = arredondamento dos cantos em px; maiusculas = abas e títulos de grupo em caixa alta.",
   "padrao": "Verde Saneamento",
   "temas": {
     "Claro Profissional": {

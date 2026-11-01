@@ -1,7 +1,8 @@
-"""Identidade visual: os temas do HIDROSANITY, os mesmos do GWATER (temas.json, na raiz do repositório).
+"""Identidade visual: os temas do GeoLogic Water, os mesmos do hub e do GWATER (GeoLogic Water/temas.json).
 
 Cada tema tem cores (nomes do Centro de Operações: cyan = destaque, sobre = texto em cima do destaque), fontes e o
-arredondamento dos cantos. O escolhido em Configurações fica gravado (QSettings) e vale ao abrir de novo.
+arredondamento dos cantos. O escolhido em Configurações fica gravado (QSettings, o mesmo do hub) e vale ao abrir
+de novo.
 """
 import json
 import re
@@ -26,7 +27,7 @@ ESTILO = dict(_ESTILO_ORIGINAL)
 
 def _ler_temas():
     try:
-        d = json.loads((Path(__file__).resolve().parents[2] / "temas.json").read_text(encoding="utf-8"))
+        d = json.loads((Path(__file__).resolve().parents[2] / "GeoLogic Water" / "temas.json").read_text(encoding="utf-8"))
         return d["temas"], d.get("padrao")
     except (OSError, ValueError, KeyError):
         return {}, None
@@ -37,7 +38,7 @@ PADRAO = PADRAO if PADRAO in TEMAS else None
 
 
 def configuracoes():
-    return QSettings("HIDROSANITY", "GPREDIAL")
+    return QSettings("GeoLogic Water", "GeoLogic Water")  # o hub lê o mesmo tema
 
 
 def tema_atual():

@@ -1,6 +1,7 @@
-# Hydrosanitary backend
+# GPREDIAL
 
-Motor de cálculo de água fria + importação de projetos.
+Instalações prediais de água fria (NBR 5626): motor de cálculo, desenho e importação de projetos. Faz parte do
+GeoLogic Water: o hub (pasta `GeoLogic Water`, ao lado desta) abre este programa e o GWATER.
 
 ## Importação (DXF e IFC)
 
@@ -88,9 +89,9 @@ Na interface: calcule e use Arquivo → Exportar memorial de cálculo (Ctrl+E), 
 
 Os valores da tabela são típicos de fabricante: confira com a tabela adotada no projeto.
 
-## Instalação no Windows (ex.: `C:\01 - HIDROSANITARIO`)
+## Instalação no Windows
 
-1. Copie esta pasta para `C:\01 - HIDROSANITARIO`.
+1. Esta pasta fica em `C:\01 - HIDROSANITARIO\GPREDIAL`, ao lado de `GeoLogic Water` e `GWATER`.
 2. Instale o Python 3.10+ (python.org, marcando "Add python.exe to PATH").
-3. Execute `instalar.bat` uma vez e depois `iniciar.bat` (ou arraste um .dxf/.ifc sobre ele).
+3. Execute `instalar.bat` uma vez e depois o `GPREDIAL.exe` ou o `iniciar.bat` (ou arraste um .dxf/.ifc sobre eles).
 4. Opcional: `build_exe.bat` gera `dist\Hidrosanitario\Hidrosanitario.exe` (PyInstaller).

@@ -39,7 +39,7 @@ class Faixa(QWidget):
         marca.setObjectName("rapido")
         marca.setIcon(icone("marca"))
         marca.setIconSize(QSize(22, 22))
-        marca.setToolTip("<b>Programas integrados</b><br>Abrir o GPREDIAL ou outro programa do HIDROSANITY")
+        marca.setToolTip("<b>Programas integrados</b><br>Abrir o GPREDIAL ou outro programa do GeoLogic Water")
         marca.clicked.connect(self._programas)
         topo.addWidget(marca)
         self.menu_arquivo = QMenu(self)

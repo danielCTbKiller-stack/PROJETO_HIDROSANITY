@@ -32,7 +32,7 @@ def abrir(janela):
     t = QLabel("TEMA")
     t.setObjectName("h3")
     col.addWidget(t)
-    s = QLabel("O mesmo tema vale para o GPREDIAL e o GWATER. A escolha fica gravada para as próximas vezes.")
+    s = QLabel("O mesmo tema vale para o GPREDIAL e o hub GeoLogic Water (o GWATER tem o seu, nas Configurações dele). A escolha fica gravada para as próximas vezes.")
     s.setObjectName("sub")
     s.setWordWrap(True)
     col.addWidget(s)

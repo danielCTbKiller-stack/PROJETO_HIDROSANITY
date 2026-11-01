@@ -81,7 +81,7 @@ class FloorDialog(QDialog):
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("GPREDIAL – Água fria predial · HIDROSANITY")
+        self.setWindowTitle("GPREDIAL – Água fria predial · GeoLogic Water")
         self.setWindowIcon(QIcon(logo_pixmap(64)))
         self.resize(1440, 880)
         self.project_name = "Projeto"

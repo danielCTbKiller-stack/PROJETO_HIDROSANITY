@@ -1,4 +1,4 @@
-"""Programas integrados do HIDROSANITY (lista em programas.json, na raiz do repositório).
+"""Programas integrados do GeoLogic Water (lista em GeoLogic Water/programas.json, a pasta do hub).
 
 A gota no canto da faixa abre `escolher()`: o seletor (gui/seletor.py), com um cartão por programa; clicar abre o
 programa. O GWATER tem o mesmo seletor (GWATER/REV 0.2.0/app/programa/seletor.py), lendo o mesmo arquivo.
@@ -10,12 +10,13 @@ from pathlib import Path
 from gui import theme
 from gui.theme import COR
 
-RAIZ = Path(__file__).resolve().parents[2]
+RAIZ = Path(__file__).resolve().parents[2]  # raiz do repositório: GeoLogic Water, GWATER e GPREDIAL lado a lado
+HUB = RAIZ / "GeoLogic Water"
 
 
 def programas():
     try:
-        return json.loads((RAIZ / "programas.json").read_text(encoding="utf-8"))["programas"]
+        return json.loads((HUB / "programas.json").read_text(encoding="utf-8"))["programas"]
     except (OSError, ValueError, KeyError):
         return []
 

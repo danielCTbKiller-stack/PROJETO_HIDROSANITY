@@ -15,12 +15,12 @@ ICONES_NUCLEO = os.path.join(os.path.dirname(os.path.dirname(__file__)), "gwater
 
 
 # ---------------------------------------------------------------- temas (Configurações)
-# Os temas do HIDROSANITY ficam em temas.json, na raiz do repositório: o GPREDIAL lê o mesmo arquivo. Cada um tem
+# Os temas do GeoLogic Water ficam em temas.json, na pasta do hub (GeoLogic Water): o GPREDIAL lê o mesmo. Cada um tem
 # cores, fontes e o arredondamento dos cantos. Sem o arquivo (GWATER sozinho), só o tema original.
 def _ler_temas():
     import json
     rev = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    for arq in (os.path.join(os.path.dirname(os.path.dirname(rev)), "temas.json"), os.path.join(rev, "temas.json")):
+    for arq in (os.path.join(os.path.dirname(os.path.dirname(rev)), "GeoLogic Water", "temas.json"), os.path.join(rev, "temas.json")):
         try:
             with open(arq, encoding="utf-8") as fh:
                 d = json.load(fh)

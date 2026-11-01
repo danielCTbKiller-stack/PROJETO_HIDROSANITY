@@ -1,7 +1,7 @@
-"""Programas integrados do HIDROSANITY: a gota no canto da faixa abre esta janela.
+"""Programas do GeoLogic Water: a gota no canto da faixa abre o seletor (seletor.py, o mesmo do hub e do GPREDIAL).
 
-A lista fica em programas.json, na raiz do repositório (duas pastas acima de REV 0.2.0); o GPREDIAL lê o mesmo
-arquivo (hydrosanitary_backend/gui/integrados.py). Sem a lista (GWATER sozinho), mostra só o GWATER.
+A lista fica em GeoLogic Water/programas.json, a pasta do hub, ao lado da pasta GWATER (duas pastas acima de
+REV 0.2.0). Sem a lista (GWATER sozinho), mostra só o GWATER.
 """
 import json
 import os
@@ -10,12 +10,13 @@ import subprocess
 from .tema import COR
 
 REV = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # .../GWATER/REV 0.2.0
-RAIZ = os.path.dirname(os.path.dirname(REV))
+RAIZ = os.path.dirname(os.path.dirname(REV))  # raiz do repositório: GeoLogic Water, GWATER e GPREDIAL
+HUB = os.path.join(RAIZ, "GeoLogic Water")
 
 
 def programas():
     try:
-        with open(os.path.join(RAIZ, "programas.json"), encoding="utf-8") as f:
+        with open(os.path.join(HUB, "programas.json"), encoding="utf-8") as f:
             return json.load(f)["programas"]
     except (OSError, ValueError, KeyError):
         return [{"id": "gwater", "nome": "GWATER", "descricao": "Redes de distribuição de água", "icone": "rede"}]

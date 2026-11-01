@@ -107,7 +107,7 @@ class Ribbon(QFrame):
         marca.setObjectName("rapido")
         marca.setIcon(brand_icon)
         marca.setIconSize(QSize(22, 22))
-        marca.setToolTip("<b>Programas integrados</b><br>Abrir o GWATER ou outro programa do HIDROSANITY")
+        marca.setToolTip("<b>Programas integrados</b><br>Abrir o GWATER ou outro programa do GeoLogic Water")
         marca.clicked.connect(on_brand)
         self.top.addWidget(marca)
         arq = QToolButton()

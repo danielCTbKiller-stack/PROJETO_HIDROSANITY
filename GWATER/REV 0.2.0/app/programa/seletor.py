@@ -1,7 +1,7 @@
-"""Seletor dos programas integrados do HIDROSANITY: a janela que a gota abre, igual no GWATER e no GPREDIAL.
+"""Seletor dos programas do GeoLogic Water: a tela do hub e a janela que a gota abre no GWATER e no GPREDIAL.
 
-Este arquivo é o mesmo nos dois programas (hydrosanitary_backend/gui/seletor.py e
-GWATER/REV 0.2.0/app/programa/seletor.py) e funciona com o PySide6 (GPREDIAL) ou com o PyQt do QGIS (GWATER):
+Este arquivo é o mesmo nos três (GeoLogic Water/seletor.py, GPREDIAL/gui/seletor.py e
+GWATER/REV 0.2.0/app/programa/seletor.py) e funciona com o PySide6 (hub e GPREDIAL) ou com o PyQt do QGIS (GWATER):
 quem chama passa a lista, a função que abre, as cores e as fontes do tema.
 
 Janela sem moldura, com um cartão grande por programa: o cartão sobe e acende com o mouse, uma luz acompanha o
@@ -296,7 +296,7 @@ class Seletor(QDialog):
         self.cor, self.fontes, self.abrir_prog, self.pai = cor, fontes, abrir, pai
         self.setWindowFlags(Qt.WindowType.Dialog | Qt.WindowType.FramelessWindowHint)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
-        self.setWindowTitle("HIDROSANITY · programas integrados")
+        self.setWindowTitle("GeoLogic Water")
         self._arraste = None
         col = QVBoxLayout(self)
         col.setContentsMargins(34, 96, 34, 54)
@@ -401,7 +401,7 @@ class Seletor(QDialog):
         p.setFont(f)
         p.setPen(QColor(c["text"]))
         p.drawText(QRectF(r.left() + 68, r.top() + 22, 400, 26), Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
-                   "HIDROSANITY")
+                   "GeoLogic Water")
         f2 = QFont(self.fontes.get("corpo") or "Segoe UI")
         f2.setPointSizeF(9.5)
         p.setFont(f2)
@@ -417,6 +417,6 @@ def mostrar(pai, atual, progs, abrir, cor, fontes):
     """Abre o seletor. progs: lista do programas.json; abrir(prog) devolve o erro ou None; cor: as cores do tema
     (bg, panel, panel2, line, text, muted, cyan, water, ok, crit, chip, sobre); fontes: {"corpo", "display"}."""
     if not progs:
-        QMessageBox.information(pai, "HIDROSANITY", "Lista de programas integrados não encontrada (programas.json).")
+        QMessageBox.information(pai, "GeoLogic Water", "Lista de programas integrados não encontrada (programas.json).")
         return
     Seletor(pai, atual, progs, abrir, dict(cor), dict(fontes)).exec()

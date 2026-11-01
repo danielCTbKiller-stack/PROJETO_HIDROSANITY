@@ -1,5 +1,5 @@
 @echo off
-rem Instala o Hidrossanitario (ambiente virtual + dependencias). Rode uma vez.
+rem Instala o GPREDIAL e o hub GeoLogic Water (ambiente virtual + dependencias). Rode uma vez.
 cd /d "%~dp0"
 where python >nul 2>nul
 if errorlevel 1 (
