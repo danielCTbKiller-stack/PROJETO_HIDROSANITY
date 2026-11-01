@@ -62,6 +62,9 @@ class Ribbon(QFrame):
         col = QVBoxLayout(self)
         col.setContentsMargins(6, 2, 6, 4)
         col.setSpacing(2)
+        self.top = QHBoxLayout()  # linha de cima, como no GWATER: gota, Arquivo e acesso rápido
+        self.top.setSpacing(4)
+        col.addLayout(self.top)
         self.tabs = QHBoxLayout()
         self.tabs.setSpacing(2)
         self.tabs.addStretch(1)
@@ -96,6 +99,37 @@ class Ribbon(QFrame):
         page.group = group
         page.tab_button = btn
         return page
+
+    def top_row(self, brand_icon, on_brand, file_menu, quick, title):
+        """Linha de cima no padrão do GWATER. `quick`: [(ícone, dica, slot)]."""
+        marca = QToolButton()
+        marca.setObjectName("rapido")
+        marca.setIcon(brand_icon)
+        marca.setIconSize(QSize(22, 22))
+        marca.setToolTip("<b>Programas integrados</b><br>Abrir o GWATER ou outro programa do HIDROSANITY")
+        marca.clicked.connect(on_brand)
+        self.top.addWidget(marca)
+        arq = QToolButton()
+        arq.setObjectName("arquivo")
+        arq.setText("Arquivo")
+        arq.setMenu(file_menu)
+        arq.setPopupMode(QToolButton.InstantPopup)
+        self.top.addWidget(arq)
+        self.top.addSpacing(6)
+        for icon_name, tip, slot in quick:
+            b = QToolButton()
+            b.setObjectName("rapido")
+            b.setIcon(icon(icon_name))
+            b.setIconSize(QSize(18, 18))
+            b.setToolTip(tip)
+            b.clicked.connect(slot)
+            self.top.addWidget(b)
+        self.top.addStretch(1)
+        t = QLabel(title)
+        t.setObjectName("marcaTitulo")
+        self.top.addWidget(t)
+        self.brand_button, self.file_button = marca, arq
+        return marca
 
     def show_page(self, page):
         self.stack.setCurrentWidget(page)

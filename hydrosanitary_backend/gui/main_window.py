@@ -17,6 +17,7 @@ from core.standards import COMMERCIAL_DIAMETERS, FITTING_LABELS, FIXTURE_INFO, M
 from gui.canvas import ModelCanvas
 from gui.properties import PropertiesPanel
 from gui.ribbon import Ribbon
+from gui.symbols import icon
 from gui.calibration import CalibrationPage
 from gui.extended import ExtendedPage
 from gui.synoptic import SynopticPage
@@ -256,6 +257,29 @@ class MainWindow(QMainWindow):
 
     def _build_ribbon(self):
         rb = self.ribbon = Ribbon()
+        menu = QMenu(self)
+        for item in (("Novo", "novo", lambda: self.new_project(), "Ctrl+N"), ("Abrir…", "abrir", self.open_file, "Ctrl+O"),
+                     ("Salvar", "salvar", self.save_file, "Ctrl+S"),
+                     ("Salvar como…", "salvar", lambda: self.save_file(as_new=True), "Ctrl+Shift+S"), None,
+                     ("Exportar memorial…", "memorial", lambda: self.export_report(), "Ctrl+E"),
+                     ("Edifício de exemplo", "exemplo", self.load_sample_building, ""), None,
+                     ("Programas integrados…", "gwater", self.open_programs, ""), None,
+                     ("Sair", "excluir", self.close, "Ctrl+Q")):
+            if item is None:
+                menu.addSeparator()
+                continue
+            text, icon_name, slot, keys = item
+            # o atalho só aparece no texto: as teclas já são ações da janela (repetir aqui as deixaria ambíguas)
+            a = menu.addAction(icon(icon_name), f"{text}	{keys}" if keys else text)
+            a.triggered.connect(slot)
+        rb.top_row(QIcon(logo_pixmap(22)), self.open_programs, menu, [
+            ("novo", "Novo projeto (Ctrl+N)", lambda: self.new_project()),
+            ("abrir", "Abrir projeto (Ctrl+O)", self.open_file),
+            ("salvar", "Salvar (Ctrl+S)", self.save_file),
+            ("desfazer", "Desfazer (Ctrl+Z)", self.undo),
+            ("refazer", "Refazer (Ctrl+Y)", self.redo),
+            ("calcular", "Calcular (F5)", lambda: self.run_analysis()),
+        ], "GPREDIAL")
         self.tool_group = QButtonGroup(self)
         self.tool_group.setExclusive(True)
         self._tool_buttons = {}
@@ -416,6 +440,10 @@ class MainWindow(QMainWindow):
             self.extended.load_defaults()
         if i == 1:
             self._refresh_synoptic()
+
+    def open_programs(self):
+        from gui.integrados import escolher
+        escolher(self, "gpredial")
 
     def open_gwater(self):
         """Abre o GWATER.exe: o da pasta GWATER do repositório ou a versão portátil (que traz o QGIS e o Python)."""

@@ -74,6 +74,13 @@ def qss():
     QToolButton#acao:hover {{ background:{c['btn']}; border-color:{c['line']}; }}
     QToolButton#acao:checked {{ background:{c['btn_on']}; border-color:{c['cyan']}; }}
     QToolButton#acao:pressed {{ background:{c['btn_on']}; }}
+    QToolButton#arquivo {{ background:{c['water']}; color:white; border:none; border-radius:5px; padding:5px 16px;
+                           font-weight:700; }}
+    QToolButton#arquivo:hover {{ background:#2aa2ec; }}
+    QToolButton#arquivo::menu-indicator {{ subcontrol-position:right bottom; }}
+    QToolButton#rapido {{ background:transparent; border:1px solid transparent; border-radius:5px; padding:3px; }}
+    QToolButton#rapido:hover {{ background:{c['btn']}; border-color:{c['line']}; }}
+    QLabel#marcaTitulo {{ color:{c['cyan']}; font-family:'{DISPLAY}'; font-size:12pt; font-weight:700; }}
 
     QPushButton {{ background:{c['btn']}; color:{c['text']}; border:1px solid {c['line']}; border-radius:8px;
                    padding:6px 12px; font-weight:600; }}

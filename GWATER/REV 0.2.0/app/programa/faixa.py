@@ -39,7 +39,8 @@ class Faixa(QWidget):
         marca.setObjectName("rapido")
         marca.setIcon(icone("marca"))
         marca.setIconSize(QSize(22, 22))
-        marca.setToolTip("GWATER")
+        marca.setToolTip("<b>Programas integrados</b><br>Abrir o GPREDIAL ou outro programa do HIDROSANITY")
+        marca.clicked.connect(self._programas)
         topo.addWidget(marca)
         self.menu_arquivo = QMenu(self)
         self.menu_recentes = None
@@ -89,6 +90,10 @@ class Faixa(QWidget):
             self.abas.widget(self.abas.count() - 1).setObjectName(f"aba_{aid}")
         lay.addWidget(self.abas)
         self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
+
+    def _programas(self):
+        from .integrados import escolher
+        escolher(self.window(), "gwater")
 
     def ir_para(self, aid):
         for i in range(self.abas.count()):
