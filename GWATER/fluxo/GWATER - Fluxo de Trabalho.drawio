@@ -1,0 +1,607 @@
+<mxfile host="drawio">
+<diagram id="fluxo" name="Fluxo de Trabalho">
+<mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" math="0" shadow="0">
+<root>
+<mxCell id="0" />
+<mxCell id="1" parent="0" />
+<mxCell id="TIT" value="&lt;b&gt;GWATER · Fluxo de Trabalho · REV 0.1.0 e 0.2.0&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:12px'&gt;QGIS (cadastro) → EPANET (motor) → Centro de Operações (decisão e operação) · 14 fases (0 a 13) concluídas em 25/10/2026 · azul = sequência · rosa tracejado = ciclos de melhoria&lt;/font&gt;" style="text;html=1;fontSize=22;align=left;verticalAlign=top;" vertex="1" parent="1">
+<mxGeometry x="40" y="20" width="1300" height="60" as="geometry" />
+</mxCell>
+<mxCell id="F0" value="FASE 0 · Prova de conceito&lt;br&gt;&lt;font style='font-size:10px' color='#1f7a4a'&gt;✓ CONCLUÍDA&lt;/font&gt;" style="swimlane;rounded=1;arcSize=5;startSize=48;fontStyle=1;fontSize=13;fillColor=#dae8fc;strokeColor=#6c8ebf;swimlaneFillColor=#ffffff;html=1;whiteSpace=wrap;" vertex="1" parent="1">
+<mxGeometry x="40" y="110" width="290" height="420" as="geometry" />
+</mxCell>
+<mxCell id="F0T0" value="&lt;b&gt;Modelo .inp do sistema da tela&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;modelo/sistema_cos.inp&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="F0">
+<mxGeometry x="15" y="62" width="260" height="68" as="geometry" />
+</mxCell>
+<mxCell id="F0T1" value="&lt;b&gt;Simulação 24 h no EPANET (WNTR)&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;motor/simular.py&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="F0">
+<mxGeometry x="15" y="150" width="260" height="68" as="geometry" />
+</mxCell>
+<mxCell id="E1" value="" style="endArrow=block;html=1;strokeColor=#888888;" edge="1" parent="F0" source="F0T0" target="F0T1">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="F0T2" value="&lt;b&gt;Tela do COS lendo dados reais&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;painel/index.html&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="F0">
+<mxGeometry x="15" y="238" width="260" height="68" as="geometry" />
+</mxCell>
+<mxCell id="E2" value="" style="endArrow=block;html=1;strokeColor=#888888;" edge="1" parent="F0" source="F0T1" target="F0T2">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="F0T3" value="&lt;b&gt;Re-simular por parâmetros&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;motor/servidor.py&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="F0">
+<mxGeometry x="15" y="326" width="260" height="68" as="geometry" />
+</mxCell>
+<mxCell id="E3" value="" style="endArrow=block;html=1;strokeColor=#888888;" edge="1" parent="F0" source="F0T2" target="F0T3">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="F1" value="FASE 1 · Cadastro no QGIS&lt;br&gt;&lt;font style='font-size:10px' color='#1f7a4a'&gt;✓ CONCLUÍDA&lt;/font&gt;" style="swimlane;rounded=1;arcSize=5;startSize=48;fontStyle=1;fontSize=13;fillColor=#d5e8d4;strokeColor=#82b366;swimlaneFillColor=#ffffff;html=1;whiteSpace=wrap;" vertex="1" parent="1">
+<mxGeometry x="380" y="110" width="290" height="420" as="geometry" />
+</mxCell>
+<mxCell id="F1T0" value="&lt;b&gt;GeoPackage: 6 camadas + 5 tabelas&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;cadastro/gwater_cadastro.gpkg&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="F1">
+<mxGeometry x="15" y="62" width="260" height="68" as="geometry" />
+</mxCell>
+<mxCell id="F1T1" value="&lt;b&gt;Projeto QGIS: estilos, formulários, snapping&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;cadastro/GWATER_cadastro.qgz&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="F1">
+<mxGeometry x="15" y="150" width="260" height="68" as="geometry" />
+</mxCell>
+<mxCell id="E4" value="" style="endArrow=block;html=1;strokeColor=#888888;" edge="1" parent="F1" source="F1T0" target="F1T1">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="F1T2" value="&lt;b&gt;Código, comprimento e nós automáticos&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;expressões do formulário&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="F1">
+<mxGeometry x="15" y="238" width="260" height="68" as="geometry" />
+</mxCell>
+<mxCell id="E5" value="" style="endArrow=block;html=1;strokeColor=#888888;" edge="1" parent="F1" source="F1T1" target="F1T2">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="F1T3" value="&lt;b&gt;Rede de exemplo georreferenciada&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;SIRGAS 2000 / UTM 23S&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="F1">
+<mxGeometry x="15" y="326" width="260" height="68" as="geometry" />
+</mxCell>
+<mxCell id="E6" value="" style="endArrow=block;html=1;strokeColor=#888888;" edge="1" parent="F1" source="F1T2" target="F1T3">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="F2" value="FASE 2 · Conversor e motor&lt;br&gt;&lt;font style='font-size:10px' color='#1f7a4a'&gt;✓ CONCLUÍDA&lt;/font&gt;" style="swimlane;rounded=1;arcSize=5;startSize=48;fontStyle=1;fontSize=13;fillColor=#fff2cc;strokeColor=#d6b656;swimlaneFillColor=#ffffff;html=1;whiteSpace=wrap;" vertex="1" parent="1">
+<mxGeometry x="720" y="110" width="290" height="420" as="geometry" />
+</mxCell>
+<mxCell id="F2T0" value="&lt;b&gt;Cadastro → .inp com validação&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;motor/cadastro_para_inp.py&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="F2">
+<mxGeometry x="15" y="62" width="260" height="68" as="geometry" />
+</mxCell>
+<mxCell id="F2T1" value="&lt;b&gt;Importador de shapefile&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;motor/importar_shp.py&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="F2">
+<mxGeometry x="15" y="150" width="260" height="68" as="geometry" />
+</mxCell>
+<mxCell id="E7" value="" style="endArrow=block;html=1;strokeColor=#888888;" edge="1" parent="F2" source="F2T0" target="F2T1">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="F2T2" value="&lt;b&gt;Folgas, T, cotas, demanda, linhas 3D&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;testes/teste_importacao.py&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="F2">
+<mxGeometry x="15" y="238" width="260" height="68" as="geometry" />
+</mxCell>
+<mxCell id="E8" value="" style="endArrow=block;html=1;strokeColor=#888888;" edge="1" parent="F2" source="F2T1" target="F2T2">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="F2T3" value="&lt;b&gt;Reproduz a Fase 0 (diferença 0,0000)&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;motor/testar_conversor.py&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="F2">
+<mxGeometry x="15" y="326" width="260" height="68" as="geometry" />
+</mxCell>
+<mxCell id="E9" value="" style="endArrow=block;html=1;strokeColor=#888888;" edge="1" parent="F2" source="F2T2" target="F2T3">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="F3" value="FASE 3 · Plugin QGIS&lt;br&gt;&lt;font style='font-size:10px' color='#1f7a4a'&gt;✓ CONCLUÍDA&lt;/font&gt;" style="swimlane;rounded=1;arcSize=5;startSize=48;fontStyle=1;fontSize=13;fillColor=#f8cecc;strokeColor=#b85450;swimlaneFillColor=#ffffff;html=1;whiteSpace=wrap;" vertex="1" parent="1">
+<mxGeometry x="1060" y="110" width="290" height="420" as="geometry" />
+</mxCell>
+<mxCell id="F3T0" value="&lt;b&gt;Barra: Validar · Simular · Painel web&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;qgis_plugin/gwater&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="F3">
+<mxGeometry x="15" y="62" width="260" height="68" as="geometry" />
+</mxCell>
+<mxCell id="F3T1" value="&lt;b&gt;Problemas com clique → elemento&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;dock.py&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="F3">
+<mxGeometry x="15" y="150" width="260" height="68" as="geometry" />
+</mxCell>
+<mxCell id="E10" value="" style="endArrow=block;html=1;strokeColor=#888888;" edge="1" parent="F3" source="F3T0" target="F3T1">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="F3T2" value="&lt;b&gt;Pressão e velocidade no mapa, 24 h&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;resultados.py&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="F3">
+<mxGeometry x="15" y="238" width="260" height="68" as="geometry" />
+</mxCell>
+<mxCell id="E11" value="" style="endArrow=block;html=1;strokeColor=#888888;" edge="1" parent="F3" source="F3T1" target="F3T2">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="F3T3" value="&lt;b&gt;Teste sem abrir o QGIS&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;testes/teste_plugin.py&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="F3">
+<mxGeometry x="15" y="326" width="260" height="68" as="geometry" />
+</mxCell>
+<mxCell id="E12" value="" style="endArrow=block;html=1;strokeColor=#888888;" edge="1" parent="F3" source="F3T2" target="F3T3">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="F4" value="FASE 4 · Painel web · mapa&lt;br&gt;&lt;font style='font-size:10px' color='#1f7a4a'&gt;✓ CONCLUÍDA&lt;/font&gt;" style="swimlane;rounded=1;arcSize=5;startSize=48;fontStyle=1;fontSize=13;fillColor=#e1d5e7;strokeColor=#9673a6;swimlaneFillColor=#ffffff;html=1;whiteSpace=wrap;" vertex="1" parent="1">
+<mxGeometry x="40" y="650" width="290" height="420" as="geometry" />
+</mxCell>
+<mxCell id="F4T0" value="&lt;b&gt;Mapa MapLibre de qualquer cadastro&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;painel/mapa.html&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="F4">
+<mxGeometry x="15" y="62" width="260" height="68" as="geometry" />
+</mxCell>
+<mxCell id="F4T1" value="&lt;b&gt;Cores, setas de fluxo, mostradores&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;velocidade · vazão · NBR 12218&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="F4">
+<mxGeometry x="15" y="150" width="260" height="68" as="geometry" />
+</mxCell>
+<mxCell id="E13" value="" style="endArrow=block;html=1;strokeColor=#888888;" edge="1" parent="F4" source="F4T0" target="F4T1">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="F4T2" value="&lt;b&gt;KPIs e gráfico 24 h por elemento&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="F4">
+<mxGeometry x="15" y="238" width="260" height="68" as="geometry" />
+</mxCell>
+<mxCell id="E14" value="" style="endArrow=block;html=1;strokeColor=#888888;" edge="1" parent="F4" source="F4T1" target="F4T2">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="F4T3" value="&lt;b&gt;Rede em GeoJSON pela API&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;motor/rede_geojson.py&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="F4">
+<mxGeometry x="15" y="326" width="260" height="68" as="geometry" />
+</mxCell>
+<mxCell id="E15" value="" style="endArrow=block;html=1;strokeColor=#888888;" edge="1" parent="F4" source="F4T2" target="F4T3">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="F5" value="FASE 5 · Cenários e propostas&lt;br&gt;&lt;font style='font-size:10px' color='#1f7a4a'&gt;✓ CONCLUÍDA&lt;/font&gt;" style="swimlane;rounded=1;arcSize=5;startSize=48;fontStyle=1;fontSize=13;fillColor=#ffe6cc;strokeColor=#d79b00;swimlaneFillColor=#ffffff;html=1;whiteSpace=wrap;" vertex="1" parent="1">
+<mxGeometry x="380" y="650" width="290" height="420" as="geometry" />
+</mxCell>
+<mxCell id="F5T0" value="&lt;b&gt;Alterar DN, status, setpoint, demanda&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;editor no mapa&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="F5">
+<mxGeometry x="15" y="62" width="260" height="68" as="geometry" />
+</mxCell>
+<mxCell id="F5T1" value="&lt;b&gt;Atual × Proposta: vista Diferença&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;14 indicadores, energia&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="F5">
+<mxGeometry x="15" y="150" width="260" height="68" as="geometry" />
+</mxCell>
+<mxCell id="E16" value="" style="endArrow=block;html=1;strokeColor=#888888;" edge="1" parent="F5" source="F5T0" target="F5T1">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="F5T2" value="&lt;b&gt;Manobras com PDA (quem fica sem água)&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;EPANET 2.2 PDA&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="F5">
+<mxGeometry x="15" y="238" width="260" height="68" as="geometry" />
+</mxCell>
+<mxCell id="E17" value="" style="endArrow=block;html=1;strokeColor=#888888;" edge="1" parent="F5" source="F5T1" target="F5T2">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="F5T3" value="&lt;b&gt;Propostas salvas no GeoPackage&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;motor/cenarios.py&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="F5">
+<mxGeometry x="15" y="326" width="260" height="68" as="geometry" />
+</mxCell>
+<mxCell id="E18" value="" style="endArrow=block;html=1;strokeColor=#888888;" edge="1" parent="F5" source="F5T2" target="F5T3">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="F6" value="FASE 6 · Calibração&lt;br&gt;&lt;font style='font-size:10px' color='#1f7a4a'&gt;✓ CONCLUÍDA&lt;/font&gt;" style="swimlane;rounded=1;arcSize=5;startSize=48;fontStyle=1;fontSize=13;fillColor=#d0f0f0;strokeColor=#3a9a9a;swimlaneFillColor=#ffffff;html=1;whiteSpace=wrap;" vertex="1" parent="1">
+<mxGeometry x="720" y="650" width="290" height="420" as="geometry" />
+</mxCell>
+<mxCell id="F6T0" value="&lt;b&gt;Medições de campo por CSV&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;tabela medicao&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#d0f0f0;strokeColor=#3a9a9a;" vertex="1" parent="F6">
+<mxGeometry x="15" y="62" width="260" height="68" as="geometry" />
+</mxCell>
+<mxCell id="F6T1" value="&lt;b&gt;Modelo × campo: viés, RMSE, % na meta&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;painel/calibracao.html&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#d0f0f0;strokeColor=#3a9a9a;" vertex="1" parent="F6">
+<mxGeometry x="15" y="150" width="260" height="68" as="geometry" />
+</mxCell>
+<mxCell id="E19" value="" style="endArrow=block;html=1;strokeColor=#888888;" edge="1" parent="F6" source="F6T0" target="F6T1">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="F6T2" value="&lt;b&gt;Calibração automática de C e demanda&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;motor/calibracao.py&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#d0f0f0;strokeColor=#3a9a9a;" vertex="1" parent="F6">
+<mxGeometry x="15" y="238" width="260" height="68" as="geometry" />
+</mxCell>
+<mxCell id="E20" value="" style="endArrow=block;html=1;strokeColor=#888888;" edge="1" parent="F6" source="F6T1" target="F6T2">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="F6T3" value="&lt;b&gt;Recuperou C=94,2 (verdade 95) em 2 s&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;testes/teste_calibracao.py&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#d0f0f0;strokeColor=#3a9a9a;" vertex="1" parent="F6">
+<mxGeometry x="15" y="326" width="260" height="68" as="geometry" />
+</mxCell>
+<mxCell id="E21" value="" style="endArrow=block;html=1;strokeColor=#888888;" edge="1" parent="F6" source="F6T2" target="F6T3">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="F7" value="FASE 7 · Ao vivo · gêmeo digital&lt;br&gt;&lt;font style='font-size:10px' color='#1f7a4a'&gt;✓ CONCLUÍDA&lt;/font&gt;" style="swimlane;rounded=1;arcSize=5;startSize=48;fontStyle=1;fontSize=13;fillColor=#e8e8f5;strokeColor=#6b6bb5;swimlaneFillColor=#ffffff;html=1;whiteSpace=wrap;" vertex="1" parent="1">
+<mxGeometry x="1060" y="650" width="290" height="420" as="geometry" />
+</mxCell>
+<mxCell id="F7T0" value="&lt;b&gt;Telemetria: POST /api/telemetria&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;SCADA / gateway / simulador&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#e8e8f5;strokeColor=#6b6bb5;" vertex="1" parent="F7">
+<mxGeometry x="15" y="62" width="260" height="68" as="geometry" />
+</mxCell>
+<mxCell id="F7T1" value="&lt;b&gt;Gêmeo re-sincroniza a cada 15 min&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;motor/aovivo.py&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#e8e8f5;strokeColor=#6b6bb5;" vertex="1" parent="F7">
+<mxGeometry x="15" y="150" width="260" height="68" as="geometry" />
+</mxCell>
+<mxCell id="E22" value="" style="endArrow=block;html=1;strokeColor=#888888;" edge="1" parent="F7" source="F7T0" target="F7T1">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="F7T2" value="&lt;b&gt;Alarmes: vazamento, limite, previsão…&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;reconhecer · histórico&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#e8e8f5;strokeColor=#6b6bb5;" vertex="1" parent="F7">
+<mxGeometry x="15" y="238" width="260" height="68" as="geometry" />
+</mxCell>
+<mxCell id="E23" value="" style="endArrow=block;html=1;strokeColor=#888888;" edge="1" parent="F7" source="F7T1" target="F7T2">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="F7T3" value="&lt;b&gt;Vazamento às 10:00 detectado às 10:15&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;testes/teste_aovivo.py&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#e8e8f5;strokeColor=#6b6bb5;" vertex="1" parent="F7">
+<mxGeometry x="15" y="326" width="260" height="68" as="geometry" />
+</mxCell>
+<mxCell id="E24" value="" style="endArrow=block;html=1;strokeColor=#888888;" edge="1" parent="F7" source="F7T2" target="F7T3">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="E25" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;endArrow=block;endFill=1;strokeWidth=2.5;strokeColor=#1f5fa8;html=1;fontSize=11;exitX=1;exitY=0.06;exitDx=0;exitDy=0;entryX=0;entryY=0.06;entryDx=0;entryDy=0;" edge="1" parent="1" source="F0" target="F1">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="E26" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;endArrow=block;endFill=1;strokeWidth=2.5;strokeColor=#1f5fa8;html=1;fontSize=11;exitX=1;exitY=0.06;exitDx=0;exitDy=0;entryX=0;entryY=0.06;entryDx=0;entryDy=0;" edge="1" parent="1" source="F1" target="F2">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="E27" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;endArrow=block;endFill=1;strokeWidth=2.5;strokeColor=#1f5fa8;html=1;fontSize=11;exitX=1;exitY=0.06;exitDx=0;exitDy=0;entryX=0;entryY=0.06;entryDx=0;entryDy=0;" edge="1" parent="1" source="F2" target="F3">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="E28" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;endArrow=block;endFill=1;strokeWidth=2.5;strokeColor=#1f5fa8;html=1;fontSize=11;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="F3" target="F4">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="E29" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;endArrow=block;endFill=1;strokeWidth=2.5;strokeColor=#1f5fa8;html=1;fontSize=11;exitX=1;exitY=0.06;exitDx=0;exitDy=0;entryX=0;entryY=0.06;entryDx=0;entryDy=0;" edge="1" parent="1" source="F4" target="F5">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="E30" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;endArrow=block;endFill=1;strokeWidth=2.5;strokeColor=#1f5fa8;html=1;fontSize=11;exitX=1;exitY=0.06;exitDx=0;exitDy=0;entryX=0;entryY=0.06;entryDx=0;entryDy=0;" edge="1" parent="1" source="F5" target="F6">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="E31" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;endArrow=block;endFill=1;strokeWidth=2.5;strokeColor=#1f5fa8;html=1;fontSize=11;exitX=1;exitY=0.06;exitDx=0;exitDy=0;entryX=0;entryY=0.06;entryDx=0;entryDy=0;" edge="1" parent="1" source="F6" target="F7">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="E32" value="proposta aprovada&lt;br&gt;vira cadastro" style="edgeStyle=orthogonalEdgeStyle;rounded=1;endArrow=block;endFill=1;strokeWidth=2;dashed=1;strokeColor=#d6336c;html=1;fontSize=11;fontColor=#d6336c;labelBackgroundColor=#ffffff;exitX=0.35;exitY=0;exitDx=0;exitDy=0;entryX=0.35;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="F5" target="F1">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="E33" value="calibração aplicada&lt;br&gt;ao cadastro (backup)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;endArrow=block;endFill=1;strokeWidth=2;dashed=1;strokeColor=#d6336c;html=1;fontSize=11;fontColor=#d6336c;labelBackgroundColor=#ffffff;exitX=0.3;exitY=0;exitDx=0;exitDy=0;entryX=0.75;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="F6" target="F1">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="E34" value="telemetria alimenta nova calibração" style="edgeStyle=orthogonalEdgeStyle;rounded=1;endArrow=block;endFill=1;strokeWidth=2;dashed=1;strokeColor=#d6336c;html=1;fontSize=11;fontColor=#d6336c;labelBackgroundColor=#ffffff;exitX=0.3;exitY=1;exitDx=0;exitDy=0;entryX=0.7;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="F7" target="F6">
+<mxGeometry relative="1" as="geometry">
+<Array as="points">
+<mxPoint x="1147.0" y="1095" />
+<mxPoint x="923.0" y="1095" />
+</Array>
+</mxGeometry>
+</mxCell>
+<mxCell id="E35" value="alarme → manobra ou proposta" style="edgeStyle=orthogonalEdgeStyle;rounded=1;endArrow=block;endFill=1;strokeWidth=2;dashed=1;strokeColor=#d6336c;html=1;fontSize=11;fontColor=#d6336c;labelBackgroundColor=#ffffff;exitX=0.7;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="F7" target="F5">
+<mxGeometry relative="1" as="geometry">
+<Array as="points">
+<mxPoint x="1263.0" y="1125" />
+<mxPoint x="525.0" y="1125" />
+</Array>
+</mxGeometry>
+</mxCell>
+<mxCell id="PROX" value="PRÓXIMOS PASSOS" style="swimlane;rounded=1;arcSize=4;startSize=34;fontStyle=1;fontSize=13;fillColor=#f5f5f5;strokeColor=#999999;dashed=1;swimlaneFillColor=#ffffff;html=1;" vertex="1" parent="1">
+<mxGeometry x="720" y="1730" width="630" height="600" as="geometry" />
+</mxCell>
+<mxCell id="P0" value="&lt;b&gt;Dados reais&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;cadastro e shapefile reais, medições de campo reais&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;dashed=1;fillColor=#fafafa;strokeColor=#999999;" vertex="1" parent="PROX">
+<mxGeometry x="20" y="50" width="285" height="92" as="geometry" />
+</mxCell>
+<mxCell id="P1" value="&lt;b&gt;SCADA conectado&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;gateway OPC-UA / MQTT / Node-RED → /api/telemetria&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;dashed=1;fillColor=#fafafa;strokeColor=#999999;" vertex="1" parent="PROX">
+<mxGeometry x="325" y="50" width="285" height="92" as="geometry" />
+</mxCell>
+<mxCell id="P2" value="&lt;b&gt;Avisos de alarme&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;e-mail, WhatsApp, SMS para a equipe de plantão&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;dashed=1;fillColor=#fafafa;strokeColor=#999999;" vertex="1" parent="PROX">
+<mxGeometry x="20" y="158" width="285" height="92" as="geometry" />
+</mxCell>
+<mxCell id="P3" value="&lt;b&gt;Instalador do GWATER.exe&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;pacote com QGIS e Python embutidos, sem instalar nada&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;dashed=1;fillColor=#fafafa;strokeColor=#999999;" vertex="1" parent="PROX">
+<mxGeometry x="325" y="158" width="285" height="92" as="geometry" />
+</mxCell>
+<mxCell id="P4" value="&lt;b&gt;Localizar vazamento por trecho&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;mais sensores de pressão + análise de sensibilidade&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;dashed=1;fillColor=#fafafa;strokeColor=#999999;" vertex="1" parent="PROX">
+<mxGeometry x="20" y="266" width="285" height="92" as="geometry" />
+</mxCell>
+<mxCell id="P5" value="&lt;b&gt;Infraestrutura&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;PostGIS multiusuário, TimescaleDB, servidor e login&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;dashed=1;fillColor=#fafafa;strokeColor=#999999;" vertex="1" parent="PROX">
+<mxGeometry x="325" y="266" width="285" height="92" as="geometry" />
+</mxCell>
+<mxCell id="P6" value="&lt;b&gt;Energia real&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;curvas de rendimento das bombas, tarifa por horário&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;dashed=1;fillColor=#fafafa;strokeColor=#999999;" vertex="1" parent="PROX">
+<mxGeometry x="20" y="374" width="285" height="92" as="geometry" />
+</mxCell>
+<mxCell id="P7" value="&lt;b&gt;Offline / EPANET no navegador&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;epanet-js, mapas e fontes locais&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;dashed=1;fillColor=#fafafa;strokeColor=#999999;" vertex="1" parent="PROX">
+<mxGeometry x="325" y="374" width="285" height="92" as="geometry" />
+</mxCell>
+<mxCell id="F8" value="FASE 8 · Plugin: menu único e desenho&lt;br&gt;&lt;font style='font-size:10px' color='#1f7a4a'&gt;✓ CONCLUÍDA&lt;/font&gt;" style="swimlane;rounded=1;arcSize=5;startSize=48;fontStyle=1;fontSize=13;fillColor=#dae8fc;strokeColor=#6c8ebf;swimlaneFillColor=#ffffff;html=1;whiteSpace=wrap;" vertex="1" parent="1">
+<mxGeometry x="40" y="1190" width="290" height="420" as="geometry" />
+</mxCell>
+<mxCell id="F8T0" value="&lt;b&gt;Menu GWATER + Central GWATER&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;acoes.py · dock.py · estilo.py (cara do painel)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="F8">
+<mxGeometry x="15" y="62" width="260" height="68" as="geometry" />
+</mxCell>
+<mxCell id="F8T1" value="&lt;b&gt;Desenho como no WaterGEMS&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;desenho.py: nós automáticos, divisão, nó → elemento&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="F8">
+<mxGeometry x="15" y="150" width="260" height="68" as="geometry" />
+</mxCell>
+<mxCell id="E36" value="" style="endArrow=block;html=1;strokeColor=#888888;" edge="1" parent="F8" source="F8T0" target="F8T1">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="F8T2" value="&lt;b&gt;Novo cadastro, demanda distribuída&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;ferramentas.py&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="F8">
+<mxGeometry x="15" y="238" width="260" height="68" as="geometry" />
+</mxCell>
+<mxCell id="E37" value="" style="endArrow=block;html=1;strokeColor=#888888;" edge="1" parent="F8" source="F8T1" target="F8T2">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="F8T3" value="&lt;b&gt;Instala no QGIS 3.44 e no 4.2&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;qgis_plugin/instalar_plugin.py&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="F8">
+<mxGeometry x="15" y="326" width="260" height="68" as="geometry" />
+</mxCell>
+<mxCell id="E38" value="" style="endArrow=block;html=1;strokeColor=#888888;" edge="1" parent="F8" source="F8T2" target="F8T3">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="F9" value="FASE 9 · Curvas, ModelBuilder e Split&lt;br&gt;&lt;font style='font-size:10px' color='#1f7a4a'&gt;✓ CONCLUÍDA&lt;/font&gt;" style="swimlane;rounded=1;arcSize=5;startSize=48;fontStyle=1;fontSize=13;fillColor=#d5e8d4;strokeColor=#82b366;swimlaneFillColor=#ffffff;html=1;whiteSpace=wrap;" vertex="1" parent="1">
+<mxGeometry x="380" y="1190" width="290" height="420" as="geometry" />
+</mxCell>
+<mxCell id="F9T0" value="&lt;b&gt;Curvas de bomba (Pump Definitions)&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;curvas.py · lista no formulário da bomba&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="F9">
+<mxGeometry x="15" y="62" width="260" height="68" as="geometry" />
+</mxCell>
+<mxCell id="F9T1" value="&lt;b&gt;ModelBuilder: de → para em 4 passos&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;modelbuilder.py · colunas, valores, opções&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="F9">
+<mxGeometry x="15" y="150" width="260" height="68" as="geometry" />
+</mxCell>
+<mxCell id="E39" value="" style="endArrow=block;html=1;strokeColor=#888888;" edge="1" parent="F9" source="F9T0" target="F9T1">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="F9T2" value="&lt;b&gt;Nós nas pontas com tolerância&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;une pontas próximas e liga no que já existe&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="F9">
+<mxGeometry x="15" y="238" width="260" height="68" as="geometry" />
+</mxCell>
+<mxCell id="E40" value="" style="endArrow=block;html=1;strokeColor=#888888;" edge="1" parent="F9" source="F9T1" target="F9T2">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="F9T3" value="&lt;b&gt;Dividir tubulações (Split)&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;desenho.py · rede toda ou selecionadas&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="F9">
+<mxGeometry x="15" y="326" width="260" height="68" as="geometry" />
+</mxCell>
+<mxCell id="E41" value="" style="endArrow=block;html=1;strokeColor=#888888;" edge="1" parent="F9" source="F9T2" target="F9T3">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="F10" value="FASE 10 · Sinótico e telas em tela cheia&lt;br&gt;&lt;font style='font-size:10px' color='#1f7a4a'&gt;✓ CONCLUÍDA&lt;/font&gt;" style="swimlane;rounded=1;arcSize=5;startSize=48;fontStyle=1;fontSize=13;fillColor=#fff2cc;strokeColor=#d6b656;swimlaneFillColor=#ffffff;html=1;whiteSpace=wrap;" vertex="1" parent="1">
+<mxGeometry x="720" y="1190" width="290" height="420" as="geometry" />
+</mxCell>
+<mxCell id="F10T0" value="&lt;b&gt;Sinótico montado do cadastro aberto&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;motor/sinotico.py · painel/sinotico.html&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="F10">
+<mxGeometry x="15" y="62" width="260" height="68" as="geometry" />
+</mxCell>
+<mxCell id="F10T1" value="&lt;b&gt;Tudo cabe na tela, sem rolar a página&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;gráficos na lateral · ultrawide&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="F10">
+<mxGeometry x="15" y="150" width="260" height="68" as="geometry" />
+</mxCell>
+<mxCell id="E42" value="" style="endArrow=block;html=1;strokeColor=#888888;" edge="1" parent="F10" source="F10T0" target="F10T1">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="F10T2" value="&lt;b&gt;Mapa: só ícones, caixa no clique&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;painel/mapa.html · ícone fixo em qualquer zoom&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="F10">
+<mxGeometry x="15" y="238" width="260" height="68" as="geometry" />
+</mxCell>
+<mxCell id="E43" value="" style="endArrow=block;html=1;strokeColor=#888888;" edge="1" parent="F10" source="F10T1" target="F10T2">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="F10T3" value="&lt;b&gt;Limpar seleção&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;botão ✕, Esc ou clique no vazio&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="F10">
+<mxGeometry x="15" y="326" width="260" height="68" as="geometry" />
+</mxCell>
+<mxCell id="E44" value="" style="endArrow=block;html=1;strokeColor=#888888;" edge="1" parent="F10" source="F10T2" target="F10T3">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="F11" value="FASE 11 · Cotas, cores e erros do EPANET&lt;br&gt;&lt;font style='font-size:10px' color='#1f7a4a'&gt;✓ CONCLUÍDA&lt;/font&gt;" style="swimlane;rounded=1;arcSize=5;startSize=48;fontStyle=1;fontSize=13;fillColor=#f8cecc;strokeColor=#b85450;swimlaneFillColor=#ffffff;html=1;whiteSpace=wrap;" vertex="1" parent="1">
+<mxGeometry x="1060" y="1190" width="290" height="420" as="geometry" />
+</mxCell>
+<mxCell id="F11T0" value="&lt;b&gt;TRex: raster, curvas de nível, pontos&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;cotas.py · campo cota em todo elemento&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="F11">
+<mxGeometry x="15" y="62" width="260" height="68" as="geometry" />
+</mxCell>
+<mxCell id="F11T1" value="&lt;b&gt;Curvas do estado, sem raio de busca&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;só a região da rede é lida · aplicar em tudo&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="F11">
+<mxGeometry x="15" y="150" width="260" height="68" as="geometry" />
+</mxCell>
+<mxCell id="E45" value="" style="endArrow=block;html=1;strokeColor=#888888;" edge="1" parent="F11" source="F11T0" target="F11T1">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="F11T2" value="&lt;b&gt;Perda de carga (m/km) e faixas de cores&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;resultados.py · faixas.py&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="F11">
+<mxGeometry x="15" y="238" width="260" height="68" as="geometry" />
+</mxCell>
+<mxCell id="E46" value="" style="endArrow=block;html=1;strokeColor=#888888;" edge="1" parent="F11" source="F11T1" target="F11T2">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="F11T3" value="&lt;b&gt;Motivo do EPANET parar, traduzido&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;simular.py · aba Problemas → elemento&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="F11">
+<mxGeometry x="15" y="326" width="260" height="68" as="geometry" />
+</mxCell>
+<mxCell id="E47" value="" style="endArrow=block;html=1;strokeColor=#888888;" edge="1" parent="F11" source="F11T2" target="F11T3">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="F12" value="FASE 12 · Dados recebidos&lt;br&gt;&lt;font style='font-size:10px' color='#1f7a4a'&gt;✓ CONCLUÍDA&lt;/font&gt;" style="swimlane;rounded=1;arcSize=5;startSize=48;fontStyle=1;fontSize=13;fillColor=#e1d5e7;strokeColor=#9673a6;swimlaneFillColor=#ffffff;html=1;whiteSpace=wrap;" vertex="1" parent="1">
+<mxGeometry x="40" y="1730" width="290" height="420" as="geometry" />
+</mxCell>
+<mxCell id="F12T0" value="&lt;b&gt;Sistema padrão ligado&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;captação → reservatório → elevatória → ZA / ZB&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="F12">
+<mxGeometry x="15" y="62" width="260" height="68" as="geometry" />
+</mxCell>
+<mxCell id="F12T1" value="&lt;b&gt;Digitar 24 h e comparar dias&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;painel/dados.html · perfil de 24 h&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="F12">
+<mxGeometry x="15" y="150" width="260" height="68" as="geometry" />
+</mxCell>
+<mxCell id="E48" value="" style="endArrow=block;html=1;strokeColor=#888888;" edge="1" parent="F12" source="F12T0" target="F12T1">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="F12T2" value="&lt;b&gt;Lacunas, picos, sensor travado&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;motor/dados_recebidos.py&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="F12">
+<mxGeometry x="15" y="238" width="260" height="68" as="geometry" />
+</mxCell>
+<mxCell id="E49" value="" style="endArrow=block;html=1;strokeColor=#888888;" edge="1" parent="F12" source="F12T1" target="F12T2">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="F12T3" value="&lt;b&gt;Balanço hídrico do sistema&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;entrada − consumo − Δ volume&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="F12">
+<mxGeometry x="15" y="326" width="260" height="68" as="geometry" />
+</mxCell>
+<mxCell id="E50" value="" style="endArrow=block;html=1;strokeColor=#888888;" edge="1" parent="F12" source="F12T2" target="F12T3">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="E51" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;endArrow=block;endFill=1;strokeWidth=2.5;strokeColor=#1f5fa8;html=1;fontSize=11;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="F7" target="F8">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="E52" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;endArrow=block;endFill=1;strokeWidth=2.5;strokeColor=#1f5fa8;html=1;fontSize=11;exitX=1;exitY=0.06;exitDx=0;exitDy=0;entryX=0;entryY=0.06;entryDx=0;entryDy=0;" edge="1" parent="1" source="F8" target="F9">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="E53" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;endArrow=block;endFill=1;strokeWidth=2.5;strokeColor=#1f5fa8;html=1;fontSize=11;exitX=1;exitY=0.06;exitDx=0;exitDy=0;entryX=0;entryY=0.06;entryDx=0;entryDy=0;" edge="1" parent="1" source="F9" target="F10">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="E54" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;endArrow=block;endFill=1;strokeWidth=2.5;strokeColor=#1f5fa8;html=1;fontSize=11;exitX=1;exitY=0.06;exitDx=0;exitDy=0;entryX=0;entryY=0.06;entryDx=0;entryDy=0;" edge="1" parent="1" source="F10" target="F11">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="E55" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;endArrow=block;endFill=1;strokeWidth=2.5;strokeColor=#1f5fa8;html=1;fontSize=11;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="F11" target="F12">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="P8" value="&lt;b&gt;Dados recebidos → Calibração&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;ligar cada série a um elemento do cadastro, direto&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;dashed=1;fillColor=#fafafa;strokeColor=#999999;" vertex="1" parent="PROX">
+<mxGeometry x="20" y="482" width="285" height="92" as="geometry" />
+</mxCell>
+<mxCell id="F13" value="FASE 13 · GWATER.exe (programa à parte)&lt;br&gt;&lt;font style='font-size:10px' color='#1f7a4a'&gt;✓ CONCLUÍDA&lt;/font&gt;" style="swimlane;rounded=1;arcSize=5;startSize=48;fontStyle=1;fontSize=13;fillColor=#d0f0f0;strokeColor=#3a9a9a;swimlaneFillColor=#ffffff;html=1;whiteSpace=wrap;" vertex="1" parent="1">
+<mxGeometry x="380" y="1730" width="290" height="420" as="geometry" />
+</mxCell>
+<mxCell id="F13T0" value="&lt;b&gt;Faixa de menus como o WaterGEMS&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;REV 0.2.0 · 9 abas, 118 botões&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#d0f0f0;strokeColor=#3a9a9a;" vertex="1" parent="F13">
+<mxGeometry x="15" y="62" width="260" height="68" as="geometry" />
+</mxCell>
+<mxCell id="F13T1" value="&lt;b&gt;Propriedades, Tabelas, Consultas&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;dados e resultados do elemento&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#d0f0f0;strokeColor=#3a9a9a;" vertex="1" parent="F13">
+<mxGeometry x="15" y="150" width="260" height="68" as="geometry" />
+</mxCell>
+<mxCell id="E13_1" value="" style="endArrow=block;html=1;strokeColor=#888888;" edge="1" parent="F13" source="F13T0" target="F13T1">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="F13T2" value="&lt;b&gt;Análises: incêndio, criticidade…&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;motor/analises.py · energia, renovação&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#d0f0f0;strokeColor=#3a9a9a;" vertex="1" parent="F13">
+<mxGeometry x="15" y="238" width="260" height="68" as="geometry" />
+</mxCell>
+<mxCell id="E13_2" value="" style="endArrow=block;html=1;strokeColor=#888888;" edge="1" parent="F13" source="F13T1" target="F13T2">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="F13T3" value="&lt;b&gt;GWATER.exe + Centro de Operações&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;abre sem o QGIS na tela; plugin mantido&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#d0f0f0;strokeColor=#3a9a9a;" vertex="1" parent="F13">
+<mxGeometry x="15" y="326" width="260" height="68" as="geometry" />
+</mxCell>
+<mxCell id="E13_3" value="" style="endArrow=block;html=1;strokeColor=#888888;" edge="1" parent="F13" source="F13T2" target="F13T3">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="E13_seq" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;endArrow=block;endFill=1;strokeWidth=2.5;strokeColor=#1f5fa8;html=1;fontSize=11;exitX=1;exitY=0.06;exitDx=0;exitDy=0;entryX=0;entryY=0.06;entryDx=0;entryDy=0;" edge="1" parent="1" source="F12" target="F13">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+</root>
+</mxGraphModel>
+</diagram>
+<diagram id="arquitetura" name="Arquitetura">
+<mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" math="0" shadow="0">
+<root>
+<mxCell id="0" />
+<mxCell id="1" parent="0" />
+<mxCell id="TIT" value="&lt;b&gt;GWATER · Arquitetura · REV 0.1.0 e 0.2.0&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:12px'&gt;Tudo roda na máquina local: QGIS (ou o GWATER.exe, que usa as bibliotecas dele), Python do projeto (.venv) e navegador. O GeoPackage é a fonte única do cadastro; os dados recebidos ficam ao lado dele (&amp;lt;cadastro&amp;gt;_dados_recebidos.json); o servidor liga o motor às telas.&lt;/font&gt;" style="text;html=1;fontSize=22;align=left;verticalAlign=top;" vertex="1" parent="1">
+<mxGeometry x="40" y="20" width="1300" height="60" as="geometry" />
+</mxCell>
+<mxCell id="FXCAM" value="CAMPO" style="rounded=1;arcSize=6;html=1;fontSize=12;fontStyle=1;fontColor=#55657a;align=left;spacingLeft=14;fillColor=#f2f2f2;strokeColor=none;" vertex="1" parent="1">
+<mxGeometry x="40" y="100" width="1300" height="90" as="geometry" />
+</mxCell>
+<mxCell id="FXQGI" value="QGIS /&lt;br&gt;GWATER.exe" style="rounded=1;arcSize=6;html=1;fontSize=12;fontStyle=1;fontColor=#55657a;align=left;spacingLeft=14;fillColor=#eaf6e7;strokeColor=none;" vertex="1" parent="1">
+<mxGeometry x="40" y="225" width="1300" height="90" as="geometry" />
+</mxCell>
+<mxCell id="FXDAD" value="DADOS" style="rounded=1;arcSize=6;html=1;fontSize=12;fontStyle=1;fontColor=#55657a;align=left;spacingLeft=14;fillColor=#f3fbf1;strokeColor=none;" vertex="1" parent="1">
+<mxGeometry x="40" y="345" width="1300" height="90" as="geometry" />
+</mxCell>
+<mxCell id="FXMOT" value="MOTOR&lt;br&gt;PYTHON" style="rounded=1;arcSize=6;html=1;fontSize=12;fontStyle=1;fontColor=#55657a;align=left;spacingLeft=14;fillColor=#fff8e1;strokeColor=none;" vertex="1" parent="1">
+<mxGeometry x="40" y="470" width="1300" height="100" as="geometry" />
+</mxCell>
+<mxCell id="FXAPI" value="API" style="rounded=1;arcSize=6;html=1;fontSize=12;fontStyle=1;fontColor=#55657a;align=left;spacingLeft=14;fillColor=#fff2cc;strokeColor=none;" vertex="1" parent="1">
+<mxGeometry x="40" y="605" width="1300" height="80" as="geometry" />
+</mxCell>
+<mxCell id="FXPAI" value="PAINEL&lt;br&gt;WEB" style="rounded=1;arcSize=6;html=1;fontSize=12;fontStyle=1;fontColor=#55657a;align=left;spacingLeft=14;fillColor=#f1ebf5;strokeColor=none;" vertex="1" parent="1">
+<mxGeometry x="40" y="720" width="1300" height="100" as="geometry" />
+</mxCell>
+<mxCell id="SHP" value="&lt;b&gt;Cadastro legado&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;shapefile de rede (2D ou 3D) + cotas&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#ffffff;strokeColor=#666666;" vertex="1" parent="1">
+<mxGeometry x="200" y="110" width="190" height="70" as="geometry" />
+</mxCell>
+<mxCell id="LOG" value="&lt;b&gt;Loggers de campo&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;CSV elemento;grandeza;hora;valor&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#ffffff;strokeColor=#666666;" vertex="1" parent="1">
+<mxGeometry x="620" y="110" width="225" height="70" as="geometry" />
+</mxCell>
+<mxCell id="SCADA" value="&lt;b&gt;SCADA / IoT&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;gateway OPC-UA · MQTT · Node-RED&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#ffffff;strokeColor=#666666;" vertex="1" parent="1">
+<mxGeometry x="1100" y="110" width="240" height="70" as="geometry" />
+</mxCell>
+<mxCell id="PLUG" value="&lt;b&gt;Plugin GWATER · menu GWATER + Central GWATER&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;desenho WaterGEMS · ModelBuilder · TRex · curvas de bomba · Split · Validar · Simular · faixas e cores · abre o painel&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+<mxGeometry x="200" y="235" width="440" height="70" as="geometry" />
+</mxCell>
+<mxCell id="QGZ" value="&lt;b&gt;GWATER_&amp;lt;cadastro&amp;gt;.qgz&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;estilos · formulários · snapping · listas&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+<mxGeometry x="760" y="235" width="190" height="70" as="geometry" />
+</mxCell>
+<mxCell id="GPKG" value="&lt;b&gt;&amp;lt;cadastro&amp;gt;.gpkg · fonte única&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;captação · reservatório · bomba · válvula · nó · trecho (campo cota em todo elemento pontual) · padrões · curvas · controles · opções · cenario · medicao&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#ffffff;strokeColor=#82b366;" vertex="1" parent="1">
+<mxGeometry x="200" y="355" width="1140" height="70" as="geometry" />
+</mxCell>
+<mxCell id="CONV" value="&lt;b&gt;cadastro_para_inp.py&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;valida · .inp · PDA · relatório traduzido&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#fffbe6;strokeColor=#d6b656;" vertex="1" parent="1">
+<mxGeometry x="200" y="480" width="150" height="80" as="geometry" />
+</mxCell>
+<mxCell id="CLI" value="&lt;b&gt;gwater_cli.py + analises.py&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;ponte JSON · incêndio, criticidade, energia, zonas&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#ffffff;strokeColor=#666666;" vertex="1" parent="1">
+<mxGeometry x="365" y="480" width="150" height="80" as="geometry" />
+</mxCell>
+<mxCell id="CEN" value="&lt;b&gt;cenarios.py&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;propostas e manobras&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#ffffff;strokeColor=#666666;" vertex="1" parent="1">
+<mxGeometry x="695" y="480" width="150" height="80" as="geometry" />
+</mxCell>
+<mxCell id="CAL" value="&lt;b&gt;calibracao.py&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;métricas · ajuste · aplicar&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#ffffff;strokeColor=#666666;" vertex="1" parent="1">
+<mxGeometry x="1025" y="480" width="150" height="80" as="geometry" />
+</mxCell>
+<mxCell id="GEM" value="&lt;b&gt;aovivo.py · gêmeo digital&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;15 min · alarmes · simulador&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#e8e8f5;strokeColor=#6b6bb5;" vertex="1" parent="1">
+<mxGeometry x="1190" y="480" width="150" height="80" as="geometry" />
+</mxCell>
+<mxCell id="SRV" value="&lt;b&gt;servidor.py · API HTTP · localhost:8765 (8775 no GWATER.exe)&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;/api/rede · simular-rede · cenarios · medicoes · calibracao · telemetria · aovivo · sinotico · dados (ler · importar · digitar · excluir) · versao · encerrar&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+<mxGeometry x="200" y="615" width="1140" height="60" as="geometry" />
+</mxCell>
+<mxCell id="W1" value="&lt;b&gt;Sinótico&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;montado do cadastro aberto&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#ffffff;strokeColor=#9673a6;" vertex="1" parent="1">
+<mxGeometry x="200" y="735" width="175" height="70" as="geometry" />
+</mxCell>
+<mxCell id="W2" value="&lt;b&gt;Mapa da rede&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;ícones · cores · fluxo · KPIs&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#ffffff;strokeColor=#9673a6;" vertex="1" parent="1">
+<mxGeometry x="586" y="735" width="175" height="70" as="geometry" />
+</mxCell>
+<mxCell id="W3" value="&lt;b&gt;Propostas&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;Atual × Proposta · Diferença&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#ffffff;strokeColor=#9673a6;" vertex="1" parent="1">
+<mxGeometry x="779" y="735" width="175" height="70" as="geometry" />
+</mxCell>
+<mxCell id="W4" value="&lt;b&gt;Calibração&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;campo × modelo&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#ffffff;strokeColor=#9673a6;" vertex="1" parent="1">
+<mxGeometry x="972" y="735" width="175" height="70" as="geometry" />
+</mxCell>
+<mxCell id="W5" value="&lt;b&gt;Ao vivo&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;telemetria × gêmeo · alarmes&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#ffffff;strokeColor=#9673a6;" vertex="1" parent="1">
+<mxGeometry x="1165" y="735" width="175" height="70" as="geometry" />
+</mxCell>
+<mxCell id="E1" value="importar_shp.py · ModelBuilder" style="edgeStyle=none;endArrow=block;endFill=1;strokeWidth=1.8;strokeColor=#4a6a8f;html=1;fontSize=10;fontColor=#33475b;labelBackgroundColor=#ffffff;exitX=0.5000;exitY=1;exitDx=0;exitDy=0;entryX=0.2159;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="SHP" target="PLUG">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="E2" value="edita" style="edgeStyle=none;endArrow=block;endFill=1;strokeWidth=1.8;strokeColor=#4a6a8f;html=1;fontSize=10;fontColor=#33475b;labelBackgroundColor=#ffffff;exitX=0.5000;exitY=1;exitDx=0;exitDy=0;entryX=0.5746;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="QGZ" target="GPKG">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="E3" value="CSV → tabela medicao" style="edgeStyle=none;endArrow=block;endFill=1;strokeWidth=1.8;strokeColor=#4a6a8f;html=1;fontSize=10;fontColor=#33475b;labelBackgroundColor=#ffffff;exitX=0.5000;exitY=1;exitDx=0;exitDy=0;entryX=0.4671;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="LOG" target="GPKG">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="E4" value="" style="edgeStyle=none;endArrow=block;endFill=1;strokeWidth=1.8;strokeColor=#b85450;html=1;fontSize=10;fontColor=#33475b;labelBackgroundColor=#ffffff;exitX=0.5000;exitY=1;exitDx=0;exitDy=0;entryX=0.3667;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="PLUG" target="CLI">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="E5" value="POST /api/telemetria" style="edgeStyle=none;endArrow=block;endFill=1;strokeWidth=1.8;strokeColor=#6b6bb5;html=1;fontSize=10;fontColor=#33475b;labelBackgroundColor=#ffffff;exitX=0.5000;exitY=1;exitDx=0;exitDy=0;entryX=0.2000;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="SCADA" target="GEM">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="E6" value="lê" style="edgeStyle=none;endArrow=block;endFill=1;strokeWidth=1.8;strokeColor=#4a6a8f;html=1;fontSize=10;fontColor=#33475b;labelBackgroundColor=#ffffff;exitX=0.1228;exitY=1;exitDx=0;exitDy=0;entryX=0.9333;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="GPKG" target="CONV">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="E7" value="grava propostas" style="edgeStyle=none;endArrow=block;endFill=1;strokeWidth=1.8;strokeColor=#4a6a8f;html=1;fontSize=10;fontColor=#33475b;labelBackgroundColor=#ffffff;exitX=0.5000;exitY=0;exitDx=0;exitDy=0;entryX=0.5000;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="CEN" target="GPKG">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="E8" value="aplica calibração" style="edgeStyle=none;endArrow=block;endFill=1;strokeWidth=1.8;strokeColor=#4a6a8f;html=1;fontSize=10;fontColor=#33475b;labelBackgroundColor=#ffffff;exitX=0.5000;exitY=0;exitDx=0;exitDy=0;entryX=0.7895;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="CAL" target="GPKG">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="E9" value="" style="edgeStyle=none;endArrow=block;endFill=1;strokeWidth=1.8;strokeColor=#4a6a8f;html=1;fontSize=10;labelBackgroundColor=#ffffff;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="CLI" target="CONV">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="E10" value="" style="edgeStyle=none;endArrow=block;endFill=1;strokeWidth=1.8;strokeColor=#4a6a8f;html=1;fontSize=10;fontColor=#33475b;labelBackgroundColor=#ffffff;exitX=0.5000;exitY=1;exitDx=0;exitDy=0;entryX=0.0658;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="CONV" target="SRV">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="E11" value="" style="edgeStyle=none;endArrow=block;endFill=1;strokeWidth=1.8;strokeColor=#4a6a8f;html=1;fontSize=10;fontColor=#33475b;labelBackgroundColor=#ffffff;exitX=0.5000;exitY=1;exitDx=0;exitDy=0;entryX=0.5000;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="CEN" target="SRV">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="E12" value="" style="edgeStyle=none;endArrow=block;endFill=1;strokeWidth=1.8;strokeColor=#4a6a8f;html=1;fontSize=10;fontColor=#33475b;labelBackgroundColor=#ffffff;exitX=0.5000;exitY=1;exitDx=0;exitDy=0;entryX=0.7895;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="CAL" target="SRV">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="E13" value="" style="edgeStyle=none;endArrow=block;endFill=1;strokeWidth=1.8;strokeColor=#4a6a8f;html=1;fontSize=10;fontColor=#33475b;labelBackgroundColor=#ffffff;exitX=0.5000;exitY=1;exitDx=0;exitDy=0;entryX=0.9342;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="GEM" target="SRV">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="E14" value="" style="edgeStyle=none;endArrow=block;endFill=1;strokeWidth=1.8;strokeColor=#9673a6;html=1;fontSize=10;fontColor=#33475b;labelBackgroundColor=#ffffff;exitX=0.1447;exitY=1;exitDx=0;exitDy=0;entryX=0.9429;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="SRV" target="W1">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="E15" value="" style="edgeStyle=none;endArrow=block;endFill=1;strokeWidth=1.8;strokeColor=#9673a6;html=1;fontSize=10;fontColor=#33475b;labelBackgroundColor=#ffffff;exitX=0.4833;exitY=1;exitDx=0;exitDy=0;entryX=0.9429;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="SRV" target="W2">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="E16" value="" style="edgeStyle=none;endArrow=block;endFill=1;strokeWidth=1.8;strokeColor=#9673a6;html=1;fontSize=10;fontColor=#33475b;labelBackgroundColor=#ffffff;exitX=0.5167;exitY=1;exitDx=0;exitDy=0;entryX=0.0571;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="SRV" target="W3">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="E17" value="" style="edgeStyle=none;endArrow=block;endFill=1;strokeWidth=1.8;strokeColor=#9673a6;html=1;fontSize=10;fontColor=#33475b;labelBackgroundColor=#ffffff;exitX=0.6860;exitY=1;exitDx=0;exitDy=0;entryX=0.0571;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="SRV" target="W4">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="E18" value="" style="edgeStyle=none;endArrow=block;endFill=1;strokeWidth=1.8;strokeColor=#9673a6;html=1;fontSize=10;fontColor=#33475b;labelBackgroundColor=#ffffff;exitX=0.8553;exitY=1;exitDx=0;exitDy=0;entryX=0.0571;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="SRV" target="W5">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="CURV" value="&lt;b&gt;Curvas de nível / MDT&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;shp · gpkg · GeoTIFF (o estado inteiro)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#ffffff;strokeColor=#666666;" vertex="1" parent="1">
+<mxGeometry x="405" y="110" width="200" height="70" as="geometry" />
+</mxCell>
+<mxCell id="PLAN" value="&lt;b&gt;Dados recebidos&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;SABESP: reservatório, elevatória, zonas · 24 h ou planilha&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#ffffff;strokeColor=#666666;" vertex="1" parent="1">
+<mxGeometry x="860" y="110" width="225" height="70" as="geometry" />
+</mxCell>
+<mxCell id="SIN" value="&lt;b&gt;sinotico.py&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;sinótico do cadastro aberto&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#ffffff;strokeColor=#666666;" vertex="1" parent="1">
+<mxGeometry x="530" y="480" width="150" height="80" as="geometry" />
+</mxCell>
+<mxCell id="DREC" value="&lt;b&gt;dados_recebidos.py&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;24 h · planilhas · balanço hídrico&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#ffffff;strokeColor=#666666;" vertex="1" parent="1">
+<mxGeometry x="860" y="480" width="150" height="80" as="geometry" />
+</mxCell>
+<mxCell id="W6" value="&lt;b&gt;Dados recebidos&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;24 h · comparar dias · balanço&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#ffffff;strokeColor=#9673a6;" vertex="1" parent="1">
+<mxGeometry x="393" y="735" width="175" height="70" as="geometry" />
+</mxCell>
+<mxCell id="E19" value="TRex (cotas.py)" style="edgeStyle=none;endArrow=block;endFill=1;strokeWidth=1.8;strokeColor=#82b366;html=1;fontSize=10;fontColor=#33475b;labelBackgroundColor=#ffffff;exitX=0.5000;exitY=1;exitDx=0;exitDy=0;entryX=0.6932;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="CURV" target="PLUG">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="E20" value="" style="edgeStyle=none;endArrow=block;endFill=1;strokeWidth=1.8;strokeColor=#4a6a8f;html=1;fontSize=10;fontColor=#33475b;labelBackgroundColor=#ffffff;exitX=0.5000;exitY=1;exitDx=0;exitDy=0;entryX=0.3553;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="SIN" target="SRV">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="E21" value="" style="edgeStyle=none;endArrow=block;endFill=1;strokeWidth=1.8;strokeColor=#4a6a8f;html=1;fontSize=10;fontColor=#33475b;labelBackgroundColor=#ffffff;exitX=0.5000;exitY=1;exitDx=0;exitDy=0;entryX=0.6447;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="DREC" target="SRV">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="E22" value="" style="edgeStyle=none;endArrow=block;endFill=1;strokeWidth=1.8;strokeColor=#4a6a8f;html=1;fontSize=10;fontColor=#33475b;labelBackgroundColor=#ffffff;exitX=0.3140;exitY=1;exitDx=0;exitDy=0;entryX=0.9429;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="SRV" target="W6">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="E23" value="tela Dados recebidos" style="edgeStyle=none;endArrow=block;endFill=1;strokeWidth=1.8;strokeColor=#9673a6;html=1;fontSize=10;fontColor=#33475b;labelBackgroundColor=#ffffff;exitX=0.5000;exitY=1;exitDx=0;exitDy=0;entryX=0.7500;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="PLAN" target="DREC">
+<mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="EXE" value="&lt;b&gt;GWATER.exe · REV 0.2.0&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px' color='#55657a'&gt;faixa de menus · análises · consultas · mesmo núcleo do plugin&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#d0f0f0;strokeColor=#3a9a9a;" vertex="1" parent="1">
+<mxGeometry x="985" y="235" width="215" height="70" as="geometry" />
+</mxCell>
+</root>
+</mxGraphModel>
+</diagram>
+</mxfile>

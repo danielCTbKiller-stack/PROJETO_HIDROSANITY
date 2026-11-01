@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="pt-br"><head><meta charset="utf-8"><title>GWATER Splash</title>
+<style>
+:root{--azul:#1c7ed6;--ciano:#22b8cf;--escuro:#0b1f3a}
+body{margin:0;background:#e9eef5;font-family:Segoe UI,Arial,sans-serif;color:var(--escuro)}
+h1{text-align:center;font-weight:600;margin:24px 0 4px}
+p.sub{text-align:center;margin:0 0 20px;color:#5a6b80}
+.grade{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:20px;padding:0 20px 30px;max-width:1200px;margin:auto}
+.card{background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 10px #0002}
+.tela{height:240px;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.rot{padding:10px 14px;display:flex;justify-content:space-between;align-items:center}
+.rot b{font-size:15px}.rot button{border:0;background:var(--azul);color:#fff;border-radius:6px;padding:5px 10px;cursor:pointer}
+.marca{font-size:44px;font-weight:800;letter-spacing:4px}
+.marca span{color:var(--ciano)}
+.slogan{font-size:12px;letter-spacing:3px;opacity:.7;margin-top:4px}
+
+/* 1 gota caindo + ondas */
+.a1{background:linear-gradient(#0b1f3a,#12365f);color:#fff;flex-direction:column}
+.a1 .gota{width:34px;height:34px;background:var(--ciano);border-radius:0 50% 50% 50%;transform:rotate(45deg);position:absolute;top:-40px;animation:cai 1s ease-in forwards}
+.a1 .onda{position:absolute;top:118px;width:20px;height:6px;border:2px solid var(--ciano);border-radius:50%;opacity:0;animation:onda 1.2s ease-out .95s 2}
+.a1 .onda.b{animation-delay:1.25s}
+.a1 .txt{opacity:0;animation:surge .8s ease 1.6s forwards;text-align:center;margin-top:60px}
+@keyframes cai{to{top:100px}80%{opacity:1}100%{opacity:0;top:110px}}
+@keyframes onda{0%{opacity:1;width:20px;height:6px}100%{opacity:0;width:260px;height:50px;margin-top:-22px}}
+@keyframes surge{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+
+/* 2 texto enchendo de água */
+.a2{background:#fff;flex-direction:column}
+.a2 .marca{font-size:64px;color:transparent;-webkit-text-stroke:2px var(--azul);
+ background:linear-gradient(var(--azul),var(--azul)) no-repeat;background-clip:text;-webkit-background-clip:text;
+ background-size:100% 0%;background-position:bottom;animation:enche 2.4s ease-in-out forwards}
+.a2 .marca::after{content:""}
+@keyframes enche{to{background-size:100% 100%}}
+.a2 .slogan{opacity:0;animation:surge .6s ease 2.3s forwards;color:var(--escuro)}
+
+/* 3 rede de tubos se desenhando */
+.a3{background:#0b1f3a;color:#fff;flex-direction:column}
+.a3 svg path{fill:none;stroke:var(--ciano);stroke-width:3;stroke-dasharray:400;stroke-dashoffset:400;animation:desenha 1.8s ease forwards}
+.a3 svg circle{fill:#fff;transform-origin:center;transform-box:fill-box;transform:scale(0);animation:no .3s ease forwards}
+.a3 .txt{opacity:0;animation:surge .7s ease 1.8s forwards;text-align:center}
+@keyframes desenha{to{stroke-dashoffset:0}}
+@keyframes no{to{transform:scale(1)}}
+
+/* 4 gota pulsando + nome digitado */
+.a4{background:radial-gradient(#1c7ed6,#0b1f3a);color:#fff;gap:16px}
+.a4 .gota{width:60px;height:60px;background:#fff;border-radius:0 50% 50% 50%;transform:rotate(45deg) scale(0);animation:pop .6s cubic-bezier(.3,1.6,.6,1) forwards,pulsa 1.4s ease-in-out .7s infinite}
+.a4 .marca{overflow:hidden;white-space:nowrap;width:0;border-right:3px solid #fff;animation:digita 1.2s steps(6) .6s forwards,cursor .6s step-end infinite}
+@keyframes pop{to{transform:rotate(45deg) scale(1)}}
+@keyframes pulsa{50%{box-shadow:0 0 0 14px #ffffff22}}
+@keyframes digita{to{width:6.2ch}}
+@keyframes cursor{50%{border-color:transparent}}
+
+/* 5 ondas animadas subindo */
+.a5{background:#fff;color:#fff;flex-direction:column}
+.a5 .agua{position:absolute;left:-50%;width:200%;height:300px;bottom:-300px;animation:sobe 2s ease-out forwards}
+.a5 .agua svg{position:absolute;top:-30px;width:100%;height:40px;animation:mar 2.5s linear infinite}
+.a5 .agua .corpo{position:absolute;inset:8px 0 0 0;background:var(--azul)}
+.a5 .txt{position:relative;opacity:0;animation:surge .7s ease 1.7s forwards;text-align:center}
+@keyframes sobe{to{bottom:-60px}}
+@keyframes mar{to{transform:translateX(-25%)}}
+</style></head><body>
+<h1>Logo de abertura do GWATER</h1>
+<p class="sub">Escolha uma das 5 animações. Clique em "Repetir" para ver de novo.</p>
+<div class="grade">
+
+<div class="card"><div class="tela a1"><div class="gota"></div><div class="onda"></div><div class="onda b"></div>
+<div class="txt"><div class="marca">G<span>WATER</span></div><div class="slogan">MODELAGEM DE REDES DE ÁGUA</div></div></div>
+<div class="rot"><b>1 · Gota e ondas</b><button>Repetir</button></div></div>
+
+<div class="card"><div class="tela a2"><div class="marca">GWATER</div><div class="slogan">MODELAGEM DE REDES DE ÁGUA</div></div>
+<div class="rot"><b>2 · Nome enchendo de água</b><button>Repetir</button></div></div>
+
+<div class="card"><div class="tela a3">
+<svg width="220" height="90" viewBox="0 0 220 90"><path d="M10 70 H70 V25 H150 V70 H210"/><path d="M70 25 V5" style="animation-delay:.6s"/><path d="M150 70 V88" style="animation-delay:.9s"/>
+<circle cx="10" cy="70" r="5" style="animation-delay:.1s"/><circle cx="70" cy="70" r="5" style="animation-delay:.4s"/><circle cx="70" cy="25" r="5" style="animation-delay:.7s"/><circle cx="150" cy="25" r="5" style="animation-delay:1s"/><circle cx="150" cy="70" r="5" style="animation-delay:1.3s"/><circle cx="210" cy="70" r="5" style="animation-delay:1.6s"/></svg>
+<div class="txt"><div class="marca">G<span>WATER</span></div><div class="slogan">MODELAGEM DE REDES DE ÁGUA</div></div></div>
+<div class="rot"><b>3 · Rede de tubos se desenhando</b><button>Repetir</button></div></div>
+
+<div class="card"><div class="tela a4"><div class="gota"></div><div class="marca">GWATER</div></div>
+<div class="rot"><b>4 · Gota pulsando e nome digitado</b><button>Repetir</button></div></div>
+
+<div class="card"><div class="tela a5"><div class="agua">
+<svg viewBox="0 0 800 40" preserveAspectRatio="none"><path fill="#1c7ed6" d="M0 20 Q50 0 100 20 T200 20 T300 20 T400 20 T500 20 T600 20 T700 20 T800 20 V40 H0Z"/></svg><div class="corpo"></div></div>
+<div class="txt"><div class="marca">G<span style="color:#bfefff">WATER</span></div><div class="slogan">MODELAGEM DE REDES DE ÁGUA</div></div></div>
+<div class="rot"><b>5 · Nível de água subindo</b><button>Repetir</button></div></div>
+
+</div>
+<script>
+document.querySelectorAll('.card button').forEach(b=>b.onclick=()=>{const t=b.closest('.card').querySelector('.tela');const c=t.cloneNode(true);t.replaceWith(c)});
+</script></body></html>

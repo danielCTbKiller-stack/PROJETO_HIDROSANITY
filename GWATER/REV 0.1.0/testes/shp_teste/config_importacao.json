@@ -1,0 +1,20 @@
+{
+  "trechos": "C:\\0 - PROJETO PILOTO GWATER\\REV 0.1.0\\testes\\shp_teste\\rede_agua.shp",
+  "pontos_cota": "C:\\0 - PROJETO PILOTO GWATER\\REV 0.1.0\\testes\\shp_teste\\cotas.shp",
+  "destino": "teste_importado",
+  "campos": {
+    "id": "COD",
+    "diametro": "DN",
+    "material": "MAT",
+    "ano": "ANO",
+    "cota": "COTA"
+  },
+  "materiais": {
+    "PVC": "PVC PBA",
+    "FOFO": "Ferro fundido dúctil",
+    "PEAD": "PEAD"
+  },
+  "tolerancia_m": 0.5,
+  "vazao_total_lps": 15.0,
+  "padrao": "PAD_CONS"
+}
