@@ -9,9 +9,7 @@ from gui.main_window import MainWindow
 def main(argv=None):
     app = QApplication(argv or sys.argv)
     app.setStyle("Fusion")
-    app.setPalette(theme.paleta())
-    app.setFont(theme.fonte("corpo", 9))
-    app.setStyleSheet(theme.qss())
+    theme.aplicar_tema(None, app)  # o tema escolhido em Configurações (padrão: Verde Saneamento)
     window = MainWindow()
     window.showMaximized()
     if len(app.arguments()) > 1:

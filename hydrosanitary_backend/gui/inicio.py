@@ -246,9 +246,7 @@ class MenuInicial(QWidget):
 def main(argv=None):
     app = QApplication(argv or sys.argv)
     app.setStyle("Fusion")
-    app.setPalette(theme.paleta())
-    app.setFont(theme.fonte("corpo", 9))
-    app.setStyleSheet(theme.qss())
+    theme.aplicar_tema(None, app)  # o tema escolhido em Configurações (padrão: Verde Saneamento)
     menu = MenuInicial()
     args = app.arguments()[1:]
     if args:  # arquivo de projeto predial (.hsp/.dxf/.ifc): vai direto ao GPREDIAL

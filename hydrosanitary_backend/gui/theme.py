@@ -1,20 +1,76 @@
-"""Identidade visual: a mesma do GWATER (Centro de Operações): fundo azul-noite, painéis em degradê,
-destaque ciano, fontes Bahnschrift (títulos), Segoe UI (corpo) e Consolas (números)."""
+"""Identidade visual: os temas do HIDROSANITY, os mesmos do GWATER (temas.json, na raiz do repositório).
+
+Cada tema tem cores (nomes do Centro de Operações: cyan = destaque, sobre = texto em cima do destaque), fontes e o
+arredondamento dos cantos. O escolhido em Configurações fica gravado (QSettings) e vale ao abrir de novo.
+"""
+import json
+import re
+from pathlib import Path
+
+from PySide6.QtCore import QSettings
 from PySide6.QtGui import QColor, QFont, QPalette
 
 COR = {
     "bg": "#050f24", "panel": "#0a1d3e", "panel2": "#0d2650", "line": "#16427a", "grid": "#17345f",
     "text": "#e8f2ff", "muted": "#86a3c9", "cyan": "#35d0ff", "water": "#1d8fd6", "flow": "#9cecff",
     "ok": "#3ddc97", "warn": "#ffb547", "crit": "#ff6b7a", "violet": "#a78bfa",
-    "btn": "#0b2a58", "btn_on": "#0e4a8c", "chip": "#081833",
+    "btn": "#0b2a58", "btn_on": "#0e4a8c", "chip": "#081833", "sobre": "#ffffff",
 }
 DISPLAY = "Bahnschrift"
 CORPO = "Segoe UI"
 MONO = "Consolas"
+_ORIGINAL = dict(COR)
+_ESTILO_ORIGINAL = {"corpo": CORPO, "display": DISPLAY, "mono": MONO, "abas": MONO, "raio": 8}
+ESTILO = dict(_ESTILO_ORIGINAL)
+
+
+def _ler_temas():
+    try:
+        d = json.loads((Path(__file__).resolve().parents[2] / "temas.json").read_text(encoding="utf-8"))
+        return d["temas"], d.get("padrao")
+    except (OSError, ValueError, KeyError):
+        return {}, None
+
+
+TEMAS, PADRAO = _ler_temas()
+PADRAO = PADRAO if PADRAO in TEMAS else None
+
+
+def configuracoes():
+    return QSettings("HIDROSANITY", "GPREDIAL")
+
+
+def tema_atual():
+    nome = configuracoes().value("tema", PADRAO)
+    return nome if nome in TEMAS else PADRAO
+
+
+def aplicar_tema(nome=None, app=None):
+    """Cores, fontes e cantos do tema (o escolhido fica gravado); com `app`, reaplica paleta e folha de estilo."""
+    nome = nome if nome in TEMAS else tema_atual()
+    COR.clear()
+    COR.update(_ORIGINAL)
+    ESTILO.clear()
+    ESTILO.update(_ESTILO_ORIGINAL)
+    if nome:
+        t = TEMAS[nome]
+        COR.update(t["cores"])
+        ESTILO.update(t.get("fontes", {}))
+        ESTILO["raio"] = t.get("raio", 8)
+        configuracoes().setValue("tema", nome)
+    if app is not None:
+        app.setPalette(paleta())
+        app.setFont(fonte("corpo", 9))
+        app.setStyleSheet(qss())
+    return nome
+
+
+def escuro():
+    return QColor(COR["bg"]).lightness() < 128
 
 
 def fonte(tipo="corpo", tamanho=9.0, negrito=False):
-    f = QFont({"display": DISPLAY, "mono": MONO}.get(tipo, CORPO))
+    f = QFont(ESTILO.get(tipo, ESTILO["corpo"]))
     f.setPointSizeF(tamanho)
     f.setBold(negrito)
     return f
@@ -36,7 +92,8 @@ def paleta():
 
 def qss():
     c = COR
-    return f"""
+    CORPO, DISPLAY, MONO, ABAS = ESTILO["corpo"], ESTILO["display"], ESTILO["mono"], ESTILO["abas"]  # noqa: N806
+    return _cantos(f"""
     QMainWindow, QWidget {{ background:{c['bg']}; color:{c['text']}; font-family:'{CORPO}'; font-size:9pt; }}
     QToolTip {{ background:{c['panel2']}; color:{c['text']}; border:1px solid {c['cyan']}; padding:5px; }}
     QLabel {{ background:transparent; }}
@@ -68,7 +125,7 @@ def qss():
     QToolButton#nav:checked {{ color:{c['cyan']}; border-color:{c['cyan']}; }}
     QToolButton#nav:hover {{ color:{c['text']}; }}
     QToolButton#aba {{ background:transparent; color:{c['muted']}; border:none; border-bottom:2px solid transparent;
-                       padding:7px 16px 6px 16px; margin:0 2px; font-size:9.5pt; font-weight:600; }}
+                       padding:7px 16px 6px 16px; margin:0 2px; font-family:'{ABAS}'; font-size:9.5pt; font-weight:600; }}
     QToolButton#aba:checked {{ color:{c['cyan']}; border-bottom-color:{c['cyan']}; background:{c['panel2']};
                        border-top-left-radius:6px; border-top-right-radius:6px; }}
     QToolButton#aba:hover {{ color:{c['text']}; }}
@@ -77,9 +134,9 @@ def qss():
     QToolButton#acao:hover {{ background:{c['btn']}; border-color:{c['line']}; }}
     QToolButton#acao:checked {{ background:{c['btn_on']}; border-color:{c['cyan']}; }}
     QToolButton#acao:pressed {{ background:{c['btn_on']}; }}
-    QToolButton#arquivo {{ background:{c['water']}; color:white; border:none; border-radius:5px; padding:5px 16px;
+    QToolButton#arquivo {{ background:{c['cyan']}; color:{c['sobre']}; border:none; border-radius:5px; padding:5px 16px;
                            font-weight:700; font-size:9.5pt; }}
-    QToolButton#arquivo:hover {{ background:#2aa2ec; }}
+    QToolButton#arquivo:hover {{ background:{c['water']}; }}
     QToolButton#arquivo::menu-indicator {{ subcontrol-position:right bottom; }}
     QToolButton#rapido {{ background:transparent; border:1px solid transparent; border-radius:5px; padding:3px; }}
     QToolButton#rapido:hover {{ background:{c['btn']}; border-color:{c['line']}; }}
@@ -87,7 +144,7 @@ def qss():
 
     QPushButton {{ background:{c['btn']}; color:{c['text']}; border:1px solid {c['line']}; border-radius:7px;
                    padding:6px 14px; font-weight:600; }}
-    QPushButton:disabled {{ color:#55708f; border-color:{c['grid']}; }}
+    QPushButton:disabled {{ color:{c['muted']}; border-color:{c['grid']}; }}
     QPushButton:hover {{ border-color:{c['cyan']}; }}
     QPushButton:pressed, QPushButton#pri {{ background:{c['btn_on']}; border-color:{c['cyan']}; }}
     QComboBox, QLineEdit, QDoubleSpinBox, QSpinBox {{ background:{c['btn']}; color:{c['text']};
@@ -128,7 +185,7 @@ def qss():
     QScrollBar::add-page, QScrollBar::sub-page {{ background:none; }}
     QSlider::groove:horizontal {{ height:4px; background:{c['line']}; border-radius:2px; }}
     QSlider::sub-page:horizontal {{ background:{c['cyan']}; border-radius:2px; }}
-    QSlider::handle:horizontal {{ background:{c['cyan']}; width:12px; height:12px; margin:-4px 0; border-radius:6px; }}
+    QSlider::handle:horizontal {{ background:{c['cyan']}; width:12px; height:12px; margin:-4px 0; border-radius: 6px; }}
     QStatusBar {{ background:{c['panel']}; color:{c['muted']}; border-top:1px solid {c['line']}; }}
     QStatusBar::item {{ border:none; }}
     QStatusBar QLabel {{ color:{c['muted']}; padding:0 8px; }}
@@ -136,8 +193,15 @@ def qss():
     QMenu {{ background:{c['panel']}; color:{c['text']}; border:1px solid {c['line']}; padding:4px; }}
     QMenu::item {{ padding:6px 24px 6px 10px; border-radius:5px; }}
     QMenu::item:selected {{ background:{c['btn_on']}; }}
-    QMenu::item:disabled {{ color:#55708f; }}
+    QMenu::item:disabled {{ color:{c['muted']}; }}
     QMenu::separator {{ height:1px; background:{c['line']}; margin:4px 6px; }}
     QMenu::icon {{ padding-left:6px; }}
     QScrollArea {{ border:none; }}
-    """
+    """)
+
+
+def _cantos(texto):
+    """Cantos (border-radius:Npx) na proporção do raio do tema; 8 px é o original. Com espaço depois dos
+    dois-pontos ficam como estão (bolinhas do controle deslizante)."""
+    k = ESTILO["raio"] / 8
+    return re.sub(r"border-radius:(\d+)px", lambda m: f"border-radius:{round(int(m.group(1)) * k)}px", texto)

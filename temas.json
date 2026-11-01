@@ -1,0 +1,51 @@
+{
+  "_leia": "Temas do HIDROSANITY: o GWATER (app/programa/tema.py) e o GPREDIAL (gui/theme.py) leem este arquivo. Cores com os nomes do Centro de Operações (cyan = cor de destaque, sobre = texto em cima do destaque); fontes que o Windows já tem; raio = arredondamento dos cantos em px; maiusculas = abas e títulos de grupo em caixa alta.",
+  "padrao": "Verde Saneamento",
+  "temas": {
+    "Claro Profissional": {
+      "descricao": "Branco e cinza com azul de destaque, como o WaterGEMS e o Office.",
+      "cores": {"bg": "#f4f6f9", "panel": "#ffffff", "panel2": "#f7f9fc", "line": "#d8dee8", "grid": "#e6eaf0",
+                "text": "#1f2937", "muted": "#667085", "cyan": "#1565c0", "sobre": "#ffffff", "water": "#1e88e5",
+                "ok": "#1b8a4b", "warn": "#b26a00", "crit": "#c62828", "violet": "#6a4fd8",
+                "btn": "#eef2f7", "btn_on": "#e3eefc", "chip": "#f1f4f8", "flow": "#1e88e5"},
+      "fontes": {"corpo": "Segoe UI", "display": "Segoe UI Semibold", "mono": "Consolas", "abas": "Segoe UI"},
+      "raio": 6, "maiusculas": false
+    },
+    "Grafite Industrial": {
+      "descricao": "Sala de controle: grafite, âmbar de destaque, cantos retos e letras técnicas.",
+      "cores": {"bg": "#16181b", "panel": "#1b1e22", "panel2": "#22262b", "line": "#33383f", "grid": "#2a2e34",
+                "text": "#e6e1d7", "muted": "#9a9384", "cyan": "#f2a20c", "sobre": "#16181b", "water": "#3a9bdc",
+                "ok": "#8bc34a", "warn": "#ffcb4d", "crit": "#ff5a4e", "violet": "#b49cff",
+                "btn": "#26292e", "btn_on": "#3a2f17", "chip": "#141618", "flow": "#f2a20c"},
+      "fontes": {"corpo": "Segoe UI", "display": "Bahnschrift", "mono": "Consolas", "abas": "Consolas"},
+      "raio": 2, "maiusculas": true
+    },
+    "Planta Azul": {
+      "descricao": "Prancha de projeto: fundo azul quadriculado, traços brancos, nada arredondado.",
+      "cores": {"bg": "#0b3a66", "panel": "#0d4274", "panel2": "#0e477d", "line": "#4f86bd", "grid": "#1d5a92",
+                "text": "#eaf4ff", "muted": "#a9c8e8", "cyan": "#ffffff", "sobre": "#0b3a66", "water": "#9fd3ff",
+                "ok": "#b9f3c9", "warn": "#ffe08a", "crit": "#ffb3a7", "violet": "#d7c8ff",
+                "btn": "#0a3360", "btn_on": "#1a5c9a", "chip": "#0a3360", "flow": "#ffffff"},
+      "fontes": {"corpo": "Bahnschrift", "display": "Bahnschrift", "mono": "Consolas", "abas": "Consolas"},
+      "raio": 0, "maiusculas": true
+    },
+    "Papel Técnico": {
+      "descricao": "Papel vegetal creme, tinta marrom e títulos com serifa, como um memorial impresso.",
+      "cores": {"bg": "#f3eee3", "panel": "#fbf8f0", "panel2": "#f6f0e2", "line": "#d9cdb3", "grid": "#e8dfcc",
+                "text": "#2b2a26", "muted": "#7a715f", "cyan": "#8a3b12", "sobre": "#fffaf0", "water": "#2d5f8b",
+                "ok": "#3f6b2a", "warn": "#9a6a00", "crit": "#a52a1a", "violet": "#6b4c8a",
+                "btn": "#f1e9d8", "btn_on": "#efe0c8", "chip": "#f6f0e2", "flow": "#2d5f8b"},
+      "fontes": {"corpo": "Segoe UI", "display": "Georgia", "mono": "Consolas", "abas": "Segoe UI"},
+      "raio": 4, "maiusculas": false
+    },
+    "Verde Saneamento": {
+      "descricao": "Branco com verde e azul-água, cantos arredondados e letra amigável.",
+      "cores": {"bg": "#eef5f0", "panel": "#ffffff", "panel2": "#f5faf6", "line": "#cfe1d5", "grid": "#e0ece4",
+                "text": "#1d3326", "muted": "#5f7a68", "cyan": "#0f8a5f", "sobre": "#ffffff", "water": "#14a3b8",
+                "ok": "#0f8a5f", "warn": "#c77700", "crit": "#d9480f", "violet": "#6a5acd",
+                "btn": "#eef6f0", "btn_on": "#d9f0e3", "chip": "#f5faf6", "flow": "#14a3b8"},
+      "fontes": {"corpo": "Segoe UI", "display": "Segoe UI Semibold", "mono": "Consolas", "abas": "Segoe UI"},
+      "raio": 12, "maiusculas": false
+    }
+  }
+}

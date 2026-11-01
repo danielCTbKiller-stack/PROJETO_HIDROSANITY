@@ -14,69 +14,92 @@ ICONES = os.path.join(os.path.dirname(__file__), "icones")
 ICONES_NUCLEO = os.path.join(os.path.dirname(os.path.dirname(__file__)), "gwater", "icones")
 
 
-# ---------------------------------------------------------------- temas (Exibir > Tema)
-TEMAS = {
-    "Original": dict(COR),
-    "Abissal Neon": {
-        "bg": "#040a18", "panel": "#0a1530", "panel2": "#101f44", "line": "#1d3566", "grid": "#152a52",
-        "text": "#eef5ff", "muted": "#8aa2c8", "cyan": "#00e5ff", "water": "#2196f3",
-        "ok": "#00e6a0", "warn": "#ffc247", "crit": "#ff5470", "violet": "#b18cff",
-        "btn": "#0f2149", "btn_on": "#0058b8", "chip": "#071029"},
-    "Grafite Ciano": {
-        "bg": "#111316", "panel": "#1a1d22", "panel2": "#22262c", "line": "#30353d", "grid": "#262a31",
-        "text": "#eceff3", "muted": "#9099a6", "cyan": "#14c8d8", "water": "#2d8cf0",
-        "ok": "#3ccf8e", "warn": "#f5b544", "crit": "#f0566a", "violet": "#9d8cff",
-        "btn": "#252a31", "btn_on": "#0f6c78", "chip": "#15181c"},
-    "Meia-noite Violeta": {
-        "bg": "#0d0b1a", "panel": "#161229", "panel2": "#1e1838", "line": "#33295c", "grid": "#251e45",
-        "text": "#f1edff", "muted": "#a39cc8", "cyan": "#8f7bff", "water": "#5b8cff",
-        "ok": "#3ee0a4", "warn": "#ffb84d", "crit": "#ff5c8a", "violet": "#d38bff",
-        "btn": "#211a3d", "btn_on": "#4b36b8", "chip": "#110e22"},
-    "Esmeralda Noturno": {
-        "bg": "#06120e", "panel": "#0c1d17", "panel2": "#112820", "line": "#1d4436", "grid": "#163429",
-        "text": "#e9fbf3", "muted": "#88b3a2", "cyan": "#22e3a3", "water": "#1fa2d6",
-        "ok": "#5ef08a", "warn": "#ffcb4d", "crit": "#ff6470", "violet": "#9f95ff",
-        "btn": "#123026", "btn_on": "#0f7a58", "chip": "#08170f"},
-    "Âmbar Industrial": {
-        "bg": "#0f0f10", "panel": "#18181a", "panel2": "#212124", "line": "#36363b", "grid": "#29292d",
-        "text": "#f4f1ea", "muted": "#a19d94", "cyan": "#ffae1a", "water": "#3a9bdc",
-        "ok": "#4cd68a", "warn": "#ffd04d", "crit": "#ff5a4f", "violet": "#b49cff",
-        "btn": "#26262a", "btn_on": "#8a5a00", "chip": "#141415"},
-    "Claro": {
-        "bg": "#eef1f5", "panel": "#ffffff", "panel2": "#f5f7fa", "line": "#d3d9e1", "grid": "#e4e8ee",
-        "text": "#1a2230", "muted": "#5f6b7a", "cyan": "#0b8fa0", "water": "#1c6fd1",
-        "ok": "#16935c", "warn": "#b9770e", "crit": "#d23048", "violet": "#6a4fd8",
-        "btn": "#e8edf3", "btn_on": "#cdeef2", "chip": "#f1f4f8"},
-}
+# ---------------------------------------------------------------- temas (Configurações)
+# Os temas do HIDROSANITY ficam em temas.json, na raiz do repositório: o GPREDIAL lê o mesmo arquivo. Cada um tem
+# cores, fontes e o arredondamento dos cantos. Sem o arquivo (GWATER sozinho), só o tema original.
+def _ler_temas():
+    import json
+    rev = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    for arq in (os.path.join(os.path.dirname(os.path.dirname(rev)), "temas.json"), os.path.join(rev, "temas.json")):
+        try:
+            with open(arq, encoding="utf-8") as fh:
+                d = json.load(fh)
+            return d["temas"], d.get("padrao")
+        except (OSError, ValueError, KeyError):
+            continue
+    return {}, None
+
+
+_ORIGINAL = dict(COR)
+_LIDOS, PADRAO = _ler_temas()
+TEMAS = {n: {**_ORIGINAL, **t["cores"]} for n, t in _LIDOS.items()} or {"Original": dict(_ORIGINAL)}
+PADRAO = PADRAO if PADRAO in TEMAS else next(iter(TEMAS))
+_ESTILO_ORIGINAL = {"corpo": CORPO, "display": DISPLAY, "mono": MONO, "abas": CORPO, "raio": 6}
+ESTILO = dict(_ESTILO_ORIGINAL)  # fontes e cantos do tema em uso (o qss lê daqui)
 
 
 def tema_atual():
     from .desempenho import configuracoes
-    from qgis.PyQt.QtCore import QSettings
-    nome = configuracoes().value("tema", "Grafite Ciano")
-    return nome if nome in TEMAS else "Original"
+    nome = configuracoes().value("tema", PADRAO)
+    return nome if nome in TEMAS else PADRAO
 
 
 def aplicar_tema(nome=None, app=None):
-    """Troca as cores (COR é compartilhado por todo o programa) e reaplica paleta e folha de estilo."""
-    from qgis.PyQt.QtCore import QSettings
+    """Troca as cores (COR é compartilhado por todo o programa), as fontes e os cantos, e reaplica paleta e folha
+    de estilo. A escolha fica gravada nas configurações: vale ao abrir o GWATER de novo."""
     from .desempenho import configuracoes
-    nome = nome or tema_atual()
-    COR.update(TEMAS.get(nome, TEMAS["Original"]))
-    if nome:
-        configuracoes().setValue("tema", nome)
+    nome = nome if nome in TEMAS else tema_atual()
+    COR.update(TEMAS[nome])
+    t = _LIDOS.get(nome, {})
+    ESTILO.clear()
+    ESTILO.update(_ESTILO_ORIGINAL, **t.get("fontes", {}))
+    ESTILO["raio"] = t.get("raio", 6)
+    configuracoes().setValue("tema", nome)
     if app is not None:
         app.setPalette(paleta())
+        app.setFont(fonte_app())
         app.setStyleSheet(qss())
     return nome
 
 
+# cores com que os ícones de traço foram desenhados (icones/_gerar.py) -> chave do tema que entra no lugar
+_TINTAS = {"#35d0ff": "cyan", "#e8f2ff": "text", "#86a3c9": "muted", "#0b2a58": "btn", "#1d8fd6": "water",
+           "#3ddc97": "ok", "#ffb547": "warn", "#ff6b7a": "crit", "#a78bfa": "violet"}
+
+
 def icone(nome):
+    """Ícone com as cores do tema em uso: o SVG de traço ganha as cores do tema numa cópia (pasta temporária, uma
+    por tema); os ilustrados não têm essas cores e ficam como são."""
     for pasta in (ICONES, ICONES_NUCLEO):
         arq = os.path.join(pasta, nome + ".svg")
         if os.path.exists(arq):
-            return QIcon(arq)
+            return QIcon(_tingido(arq))
     return QIcon(os.path.join(ICONES_NUCLEO, "gwater.svg"))
+
+
+def _tingido(arq):
+    import hashlib
+    import tempfile
+    try:
+        with open(arq, encoding="utf-8") as fh:
+            svg = fh.read()
+    except OSError:
+        return arq
+    if not any(c in svg for c in _TINTAS):
+        return arq
+    chave = hashlib.md5("".join(COR.get(k, "") for k in sorted(set(_TINTAS.values()))).encode()).hexdigest()[:10]
+    pasta = os.path.join(tempfile.gettempdir(), "gwater_icones", chave)
+    destino = os.path.join(pasta, os.path.basename(arq))
+    if not os.path.exists(destino) or os.path.getmtime(destino) < os.path.getmtime(arq):
+        for antiga, k in _TINTAS.items():
+            svg = svg.replace(antiga, COR.get(k, antiga))
+        try:
+            os.makedirs(pasta, exist_ok=True)
+            with open(destino, "w", encoding="utf-8") as fh:
+                fh.write(svg)
+        except OSError:
+            return arq
+    return destino
 
 
 def paleta():
@@ -107,14 +130,15 @@ def paleta():
 
 
 def fonte_app():
-    f = QFont(CORPO)
+    f = QFont(ESTILO["corpo"])
     f.setPointSizeF(9)
     return f
 
 
 def qss():
     c = COR
-    return f"""
+    CORPO, DISPLAY, MONO, ABAS = ESTILO["corpo"], ESTILO["display"], ESTILO["mono"], ESTILO["abas"]  # noqa: N806
+    return _cantos(f"""
     QMainWindow, QDialog {{ background:{c['bg']}; }}
     QWidget {{ color:{c['text']}; }}
     QToolTip {{ background:{c['panel2']}; color:{c['text']}; border:1px solid {c['cyan']}; padding:6px; }}
@@ -124,7 +148,7 @@ def qss():
     QTabWidget#abasFaixa::pane {{ border:none; border-top:1px solid {c['line']}; background:{c['panel']}; top:-1px; }}
     QTabWidget#abasFaixa > QTabBar::tab {{ background:transparent; color:{c['muted']}; border:none;
         border-bottom:2px solid transparent; padding:7px 16px 6px 16px; margin:0 2px;
-        font-family:'{CORPO}'; font-size:9.5pt; font-weight:600; }}
+        font-family:'{ABAS}'; font-size:9.5pt; font-weight:600; }}
     QTabWidget#abasFaixa > QTabBar::tab:selected {{ color:{c['cyan']}; border-bottom:2px solid {c['cyan']};
         background:{c['panel2']}; border-top-left-radius:6px; border-top-right-radius:6px; }}
     QTabWidget#abasFaixa > QTabBar::tab:hover {{ color:{c['text']}; }}
@@ -137,9 +161,9 @@ def qss():
         border-color:{c['cyan']}; }}
     QToolButton#botaoFaixa::menu-indicator {{ subcontrol-position:bottom center; subcontrol-origin:padding;
         width:7px; height:5px; bottom:1px; }}
-    QToolButton#arquivo {{ background:{c['water']}; color:white; border:none; border-radius:5px; padding:5px 16px;
+    QToolButton#arquivo {{ background:{c['cyan']}; color:{c['sobre']}; border:none; border-radius:5px; padding:5px 16px;
         font-weight:700; font-size:9.5pt; }}
-    QToolButton#arquivo:hover {{ background:#2aa2ec; }}
+    QToolButton#arquivo:hover {{ background:{c['water']}; }}
     QToolButton#rapido {{ background:transparent; border:1px solid transparent; border-radius:5px; padding:3px; }}
     QToolButton#rapido:hover {{ background:{c['btn']}; border-color:{c['line']}; }}
     QLabel#titulo {{ color:{c['text']}; font-family:'{DISPLAY}'; font-size:11pt; font-weight:600; }}
@@ -150,7 +174,7 @@ def qss():
     QMenu {{ background:{c['panel']}; color:{c['text']}; border:1px solid {c['line']}; padding:4px; }}
     QMenu::item {{ padding:6px 24px 6px 10px; border-radius:5px; }}
     QMenu::item:selected {{ background:{c['btn_on']}; }}
-    QMenu::item:disabled {{ color:#55708f; }}
+    QMenu::item:disabled {{ color:{c['muted']}; }}
     QMenu::separator {{ height:1px; background:{c['line']}; margin:4px 6px; }}
     QMenu::icon {{ padding-left:6px; }}
 
@@ -181,7 +205,7 @@ def qss():
     QPushButton:hover {{ border-color:{c['cyan']}; }}
     QPushButton:pressed {{ background:{c['btn_on']}; }}
     QPushButton:default {{ background:{c['btn_on']}; border-color:{c['cyan']}; }}
-    QPushButton:disabled {{ color:#55708f; border-color:{c['grid']}; }}
+    QPushButton:disabled {{ color:{c['muted']}; border-color:{c['grid']}; }}
     QToolButton {{ color:{c['text']}; }}
 
     QLineEdit, QComboBox, QSpinBox, QDoubleSpinBox, QDateEdit, QTimeEdit, QDateTimeEdit, QPlainTextEdit, QTextEdit {{
@@ -194,7 +218,7 @@ def qss():
     QCheckBox, QRadioButton {{ spacing:7px; background:transparent; }}
     QCheckBox::indicator, QRadioButton::indicator {{ width:14px; height:14px; border:1px solid {c['line']};
         background:{c['btn']}; border-radius:4px; }}
-    QRadioButton::indicator {{ border-radius:8px; }}
+    QRadioButton::indicator {{ border-radius: 8px; }}
     QCheckBox::indicator:checked, QRadioButton::indicator:checked {{ background:{c['cyan']}; border-color:{c['cyan']}; }}
     QCheckBox::indicator:checked {{ image:url({VISTO}); }}
 
@@ -219,7 +243,7 @@ def qss():
 
     QSlider::groove:horizontal {{ height:4px; background:{c['line']}; border-radius:2px; }}
     QSlider::sub-page:horizontal {{ background:{c['cyan']}; border-radius:2px; }}
-    QSlider::handle:horizontal {{ background:{c['cyan']}; width:14px; height:14px; margin:-5px 0; border-radius:7px; }}
+    QSlider::handle:horizontal {{ background:{c['cyan']}; width:14px; height:14px; margin:-5px 0; border-radius: 7px; }}
     QProgressBar {{ background:{c['chip']}; border:1px solid {c['line']}; border-radius:6px; text-align:center;
         color:{c['text']}; height:14px; }}
     QProgressBar::chunk {{ background:{c['cyan']}; border-radius:5px; }}
@@ -229,20 +253,31 @@ def qss():
     QStatusBar::item {{ border:none; }}
     QTextBrowser {{ background:{c['panel']}; border:1px solid {c['line']}; border-radius:8px; padding:6px; }}
     QSplitter::handle {{ background:{c['line']}; }}
-    """
+    """)
+
+
+def _cantos(texto):
+    """Os cantos (border-radius:Npx) na proporção do raio do tema; 6 px é o original. Os que têm espaço depois
+    dos dois-pontos ficam como estão (bolinha do rádio e do controle deslizante)."""
+    import re
+    k = ESTILO["raio"] / 6
+    return re.sub(r"border-radius:(\d+)px", lambda m: f"border-radius:{round(int(m.group(1)) * k)}px", texto)
 
 
 def configurar(janela):
     """Configurações do programa: tema (claro ou escuro) e desempenho (núcleos do processador e memória RAM)."""
+    from qgis.PyQt.QtCore import Qt
     from qgis.PyQt.QtWidgets import QApplication, QCheckBox, QComboBox, QFormLayout, QGroupBox, QLabel, QSpinBox
     from . import desempenho
     from .util import Dialogo
-    d = Dialogo(janela, "Configurações", "Aparência e desempenho do GWATER. O mapa não muda de cor com o tema; alguns "
-                "painéis só mudam ao reabri-los.", largura=520)
+    d = Dialogo(janela, "Configurações", "Aparência e desempenho do GWATER. O tema escolhido fica gravado e vale "
+                "também nas próximas vezes; é o mesmo do GPREDIAL. O mapa não muda de cor com o tema; alguns painéis só "
+                "mudam ao reabri-los.", largura=520)
     f = QFormLayout()
     cmb = QComboBox()
     for n, c in TEMAS.items():
-        cmb.addItem(("Escuro · " if QColor(c["bg"]).lightness() < 128 else "Claro · ") + n, n)
+        cmb.addItem(n + ("  ·  padrão" if n == PADRAO else ""), n)
+        cmb.setItemData(cmb.count() - 1, _LIDOS.get(n, {}).get("descricao", ""), Qt.ItemDataRole.ToolTipRole)
     cmb.setCurrentIndex(max(0, cmb.findData(tema_atual())))
     f.addRow("Tema:", cmb)
     d.lay.addLayout(f)

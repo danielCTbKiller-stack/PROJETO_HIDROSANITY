@@ -264,7 +264,8 @@ class MainWindow(QMainWindow):
                      ("Salvar como…", "salvar", lambda: self.save_file(as_new=True), "Ctrl+Shift+S"), None,
                      ("Exportar memorial…", "memorial", lambda: self.export_report(), "Ctrl+E"),
                      ("Edifício de exemplo", "exemplo", self.load_sample_building, ""), None,
-                     ("Programas integrados…", "gwater", self.open_programs, ""), None,
+                     ("Programas integrados…", "gwater", self.open_programs, ""),
+                     ("Configurações…", "opcoes", self.open_settings, ""), None,
                      ("Sair", "excluir", self.close, "Ctrl+Q")):
             if item is None:
                 menu.addSeparator()
@@ -280,6 +281,7 @@ class MainWindow(QMainWindow):
             ("desfazer", "Desfazer (Ctrl+Z)", self.undo),
             ("refazer", "Refazer (Ctrl+Y)", self.redo),
             ("calcular", "Calcular (F5)", lambda: self.run_analysis()),
+            ("opcoes", "Configurações (tema)", self.open_settings),
         ], "GPREDIAL")
         self.tool_group = QButtonGroup(self)
         self.tool_group.setExclusive(True)
@@ -441,6 +443,12 @@ class MainWindow(QMainWindow):
             self.extended.load_defaults()
         if i == 1:
             self._refresh_synoptic()
+
+    def open_settings(self):
+        from gui.configuracoes import abrir
+        nome = abrir(self)
+        if nome:
+            self.statusBar().showMessage(f"Tema {nome} aplicado.", 6000)
 
     def open_programs(self):
         from gui.integrados import escolher

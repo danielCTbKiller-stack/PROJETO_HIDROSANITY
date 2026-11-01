@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Temas HIDROSANITY</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&family=IBM+Plex+Mono:wght@500;600&family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@500;700&family=Space+Grotesk:wght@500;700&family=Source+Serif+4:wght@600;700&family=Nunito:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--pg:#eceef2;--pgtx:#1d2330;--pgmut:#5d6678}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--pg:#14171c;--pgtx:#e8ebf0;--pgmut:#9aa3b2}}
+:root[data-theme="dark"]{--pg:#14171c;--pgtx:#e8ebf0;--pgmut:#9aa3b2}
+*{box-sizing:border-box}
+body{margin:0;background:var(--pg);color:var(--pgtx);font:15px/1.5 Inter,system-ui,sans-serif;padding:24px 16px 60px}
+.cab{max-width:1180px;margin:0 auto 22px}
+.cab h1{margin:0 0 4px;font-size:24px}
+.cab p{margin:0;color:var(--pgmut)}
+nav{max-width:1180px;margin:0 auto 18px;display:flex;gap:8px;flex-wrap:wrap}
+nav a{color:var(--pgtx);text-decoration:none;border:1px solid color-mix(in srgb,var(--pgtx) 25%,transparent);padding:5px 12px;border-radius:999px;font-size:13px}
+section{max-width:1180px;margin:0 auto 40px}
+.tit{display:flex;align-items:baseline;gap:12px;margin:0 0 4px}
+.tit h2{margin:0;font-size:20px}
+.tit span{font-size:13px;color:var(--pgmut)}
+.desc{margin:0 0 12px;color:var(--pgmut);max-width:820px}
+.pal{display:flex;gap:6px;margin:0 0 12px;flex-wrap:wrap}
+.pal i{width:28px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.15)}
+
+/* ------------- a janela de exemplo: tudo vem das variáveis do tema ------------- */
+.app{background:var(--bg);color:var(--tx);font-family:var(--corpo);border-radius:var(--r-jan);overflow:hidden;
+  border:1px solid var(--linha);box-shadow:0 18px 40px -18px rgba(0,0,0,.45)}
+.topo{display:flex;align-items:center;gap:6px;padding:6px 10px;background:var(--topo);border-bottom:1px solid var(--linha)}
+.gota{width:30px;height:30px;border-radius:var(--r);display:grid;place-items:center;color:var(--acento)}
+.arq{background:var(--acento);color:var(--sobre-acento);font-weight:700;border-radius:var(--r);padding:5px 14px;font-size:13px}
+.rap{width:26px;height:26px;display:grid;place-items:center;color:var(--tx2);border-radius:var(--r)}
+.marca{margin-left:auto;font-family:var(--titulo);font-weight:700;color:var(--acento);letter-spacing:var(--esp-tit);font-size:15px}
+.abas{display:flex;gap:2px;padding:0 10px;background:var(--topo);overflow-x:auto}
+.aba{padding:7px 14px 6px;font-size:13px;color:var(--tx2);border-bottom:2px solid transparent;white-space:nowrap;font-weight:600;
+  text-transform:var(--caixa-aba);letter-spacing:var(--esp-aba);font-family:var(--fonte-aba)}
+.aba.on{color:var(--acento);border-bottom-color:var(--acento);background:var(--painel2);border-radius:var(--r) var(--r) 0 0}
+.faixa{display:flex;padding:8px 6px 4px;background:var(--painel2);border-bottom:1px solid var(--linha);overflow-x:auto}
+.grp{display:flex;flex-direction:column;align-items:center;padding:0 10px;border-right:1px solid var(--linha)}
+.grp .bts{display:flex;gap:2px}
+.bt{display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 8px;border-radius:var(--r);font-size:11.5px;color:var(--tx);min-width:56px}
+.bt.on{background:var(--sel);outline:1px solid var(--acento)}
+.bt svg{width:26px;height:26px}
+.grp small{font-size:10.5px;color:var(--tx2);margin-top:3px;text-transform:var(--caixa-grp);letter-spacing:var(--esp-aba);font-family:var(--fonte-aba)}
+.corpo{display:grid;grid-template-columns:200px 1fr 210px;min-height:360px}
+.lado{background:var(--painel);border-right:1px solid var(--linha);padding:10px}
+.lado.dir{border-right:0;border-left:1px solid var(--linha)}
+.lado h4{margin:0 0 8px;font-size:12px;color:var(--titulo-painel);font-family:var(--fonte-aba);text-transform:var(--caixa-grp);letter-spacing:var(--esp-aba)}
+.item{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:var(--r);font-size:12.5px}
+.item.on{background:var(--sel);outline:1px solid var(--acento)}
+.item b{width:10px;height:10px;border-radius:50%;flex:none}
+.prop{display:flex;justify-content:space-between;font-size:12.5px;padding:5px 0;border-bottom:1px dashed var(--linha)}
+.prop span{color:var(--tx2)}
+.prop em{font-style:normal;font-family:var(--mono)}
+.campo{margin-top:10px;padding:6px 8px;border:1px solid var(--linha);border-radius:var(--r);background:var(--entrada);font-size:12.5px;display:flex;justify-content:space-between}
+.btn{margin-top:10px;display:block;text-align:center;padding:7px;border-radius:var(--r);background:var(--acento);color:var(--sobre-acento);font-weight:700;font-size:12.5px}
+.centro{position:relative;background:var(--mapa);overflow:hidden}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:10px}
+.kpi{background:var(--cartao);border:1px solid var(--linha);border-radius:var(--r-card);padding:8px 10px}
+.kpi small{display:block;font-size:10.5px;color:var(--tx2);font-family:var(--fonte-aba);text-transform:uppercase;letter-spacing:.06em}
+.kpi strong{font-family:var(--titulo);font-size:22px}
+.kpi.ok strong{color:var(--ok)}.kpi.ruim strong{color:var(--ruim)}
+.sin{padding:4px 10px 10px}
+.sin svg{width:100%;height:auto;display:block}
+.status{display:flex;gap:18px;padding:5px 10px;font-size:11.5px;color:var(--tx2);background:var(--topo);border-top:1px solid var(--linha);font-family:var(--mono)}
+@media (max-width:820px){.corpo{grid-template-columns:1fr}.lado{border:0;border-bottom:1px solid var(--linha)}.kpis{grid-template-columns:1fr 1fr}}
+
+/* ------------- os 5 temas ------------- */
+.t1{--bg:#f4f6f9;--topo:#ffffff;--painel:#ffffff;--painel2:#f7f9fc;--cartao:#ffffff;--mapa:#eef2f7;--entrada:#ffffff;
+  --linha:#d8dee8;--tx:#1f2937;--tx2:#667085;--acento:#1565c0;--sobre-acento:#fff;--sel:#e3eefc;--titulo-painel:#1565c0;
+  --ok:#1b8a4b;--ruim:#c62828;--tubo:#9db4d0;--agua:#1e88e5;--bloco:#ffffff;--bloco-borda:#90a4bf;
+  --corpo:'Inter',sans-serif;--titulo:'Inter',sans-serif;--mono:'JetBrains Mono',monospace;--fonte-aba:'Inter',sans-serif;
+  --caixa-aba:none;--caixa-grp:none;--esp-aba:0;--esp-tit:0;--r:6px;--r-card:8px;--r-jan:10px}
+.t2{--bg:#16181b;--topo:#1d2024;--painel:#1b1e22;--painel2:#22262b;--cartao:#24282e;--mapa:#121417;--entrada:#121417;
+  --linha:#33383f;--tx:#e6e1d7;--tx2:#9a9384;--acento:#f2a20c;--sobre-acento:#16181b;--sel:#3a2f17;--titulo-painel:#f2a20c;
+  --ok:#8bc34a;--ruim:#ff5a4e;--tubo:#3a3f46;--agua:#f2a20c;--bloco:#1f2328;--bloco-borda:#585f68;
+  --corpo:'IBM Plex Sans',sans-serif;--titulo:'IBM Plex Sans',sans-serif;--mono:'IBM Plex Mono',monospace;--fonte-aba:'IBM Plex Mono',monospace;
+  --caixa-aba:uppercase;--caixa-grp:uppercase;--esp-aba:.08em;--esp-tit:.04em;--r:2px;--r-card:2px;--r-jan:4px}
+.t3{--bg:#0b3a66;--topo:#0a3360;--painel:#0d4274;--painel2:#0e477d;--cartao:#0f4c85;--mapa:#0b3a66;--entrada:#0a3360;
+  --linha:#4f86bd;--tx:#eaf4ff;--tx2:#a9c8e8;--acento:#ffffff;--sobre-acento:#0b3a66;--sel:#1a5c9a;--titulo-painel:#ffffff;
+  --ok:#b9f3c9;--ruim:#ffb3a7;--tubo:#6f9fcf;--agua:#ffffff;--bloco:#0b3a66;--bloco-borda:#d6e8fb;
+  --corpo:'Space Grotesk',sans-serif;--titulo:'Space Grotesk',sans-serif;--mono:'JetBrains Mono',monospace;--fonte-aba:'JetBrains Mono',monospace;
+  --caixa-aba:uppercase;--caixa-grp:uppercase;--esp-aba:.1em;--esp-tit:.12em;--r:0;--r-card:0;--r-jan:0}
+.t3 .centro{background-image:linear-gradient(rgba(255,255,255,.07) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.07) 1px,transparent 1px);background-size:22px 22px}
+.t4{--bg:#f3eee3;--topo:#faf6ec;--painel:#fbf8f0;--painel2:#f6f0e2;--cartao:#fffdf7;--mapa:#efe8d8;--entrada:#fffdf7;
+  --linha:#d9cdb3;--tx:#2b2a26;--tx2:#7a715f;--acento:#8a3b12;--sobre-acento:#fffaf0;--sel:#efe0c8;--titulo-painel:#8a3b12;
+  --ok:#3f6b2a;--ruim:#a52a1a;--tubo:#c9b88f;--agua:#2d5f8b;--bloco:#fffdf7;--bloco-borda:#8f8165;
+  --corpo:'IBM Plex Sans',sans-serif;--titulo:'Source Serif 4',serif;--mono:'IBM Plex Mono',monospace;--fonte-aba:'IBM Plex Sans',sans-serif;
+  --caixa-aba:none;--caixa-grp:none;--esp-aba:0;--esp-tit:0;--r:4px;--r-card:4px;--r-jan:6px}
+.t5{--bg:#eef5f0;--topo:#ffffff;--painel:#ffffff;--painel2:#f5faf6;--cartao:#ffffff;--mapa:#e6f0e9;--entrada:#f5faf6;
+  --linha:#cfe1d5;--tx:#1d3326;--tx2:#5f7a68;--acento:#0f8a5f;--sobre-acento:#ffffff;--sel:#d9f0e3;--titulo-painel:#0f8a5f;
+  --ok:#0f8a5f;--ruim:#d9480f;--tubo:#a9cdb7;--agua:#14a3b8;--bloco:#ffffff;--bloco-borda:#8fc0a2;
+  --corpo:'Nunito',sans-serif;--titulo:'Nunito',sans-serif;--mono:'JetBrains Mono',monospace;--fonte-aba:'Nunito',sans-serif;
+  --caixa-aba:none;--caixa-grp:none;--esp-aba:0;--esp-tit:0;--r:12px;--r-card:16px;--r-jan:18px}
+.t5 .titulo-marca{font-weight:800}
+</style>
+</head>
+<body>
+<div class="cab">
+  <h1>Temas para o GWATER e o GPREDIAL</h1>
+  <p>Cinco caras bem diferentes, aplicadas à mesma tela: a linha de cima com a gota e o Arquivo, a faixa de menus, os painéis, os indicadores e um pedaço do sinótico. O escolhido vale para os dois programas.</p>
+</div>
+<nav id="nav"></nav>
+<div id="temas"></div>
+
+<template id="tela">
+  <div class="app">
+    <div class="topo">
+      <div class="gota"><svg width="20" height="20" viewBox="0 0 24 24"><path d="M12 3c3.5 4.6 5.5 7.6 5.5 10.2a5.5 5.5 0 0 1-11 0C6.5 10.6 8.5 7.6 12 3z" fill="currentColor"/></svg></div>
+      <div class="arq">Arquivo ▾</div>
+      <div class="rap"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3h9l4 4v14H6z"/></svg></div>
+      <div class="rap"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h6l2 2h8v10H4z"/></svg></div>
+      <div class="rap"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 4h11l3 3v13H5zM8 4v5h7V4"/></svg></div>
+      <div class="rap"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 14 4 9l5-5M4 9h10a6 6 0 0 1 0 12h-3"/></svg></div>
+      <div class="rap"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></div>
+      <div class="marca titulo-marca">GWATER</div>
+    </div>
+    <div class="abas"><div class="aba on">Início</div><div class="aba">Desenho</div><div class="aba">Análise</div><div class="aba">Componentes</div><div class="aba">Exibir</div></div>
+    <div class="faixa">
+      <div class="grp"><div class="bts">
+        <div class="bt on"><svg viewBox="0 0 24 24" fill="none" stroke="var(--acento)" stroke-width="1.8"><path d="M3 18 L10 11 L14 15 L21 7"/><circle cx="3" cy="18" r="1.8" fill="var(--acento)"/><circle cx="21" cy="7" r="1.8" fill="var(--acento)"/></svg>Tubulação</div>
+        <div class="bt"><svg viewBox="0 0 24 24" fill="none" stroke="var(--tx)" stroke-width="1.8"><circle cx="12" cy="12" r="5"/></svg>Nó</div>
+        <div class="bt"><svg viewBox="0 0 24 24" fill="none" stroke="var(--tx)" stroke-width="1.8"><path d="M4 11 12 4l8 7v9H4z"/><path d="M10 20v-6h4v6"/></svg>Consumidor</div>
+      </div><small>Desenhar</small></div>
+      <div class="grp"><div class="bts">
+        <div class="bt"><svg viewBox="0 0 24 24" fill="none" stroke="var(--tx)" stroke-width="1.8"><path d="M4 6l8 6-8 6zM20 6l-8 6 8 6z"/></svg>PRV</div>
+        <div class="bt"><svg viewBox="0 0 24 24" fill="none" stroke="var(--tx)" stroke-width="1.8"><path d="M4 6l8 6-8 6zM20 6l-8 6 8 6z"/><path d="M12 12V4M9 4h6"/></svg>VSE</div>
+      </div><small>Válvula</small></div>
+      <div class="grp"><div class="bts">
+        <div class="bt"><svg viewBox="0 0 24 24" fill="var(--ok)"><circle cx="12" cy="12" r="9" opacity=".2"/><path d="M10 7.5 16.5 12 10 16.5z"/></svg>Calcular</div>
+        <div class="bt"><svg viewBox="0 0 24 24" fill="none" stroke="var(--tx)" stroke-width="1.8"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Gráficos</div>
+      </div><small>Análise</small></div>
+    </div>
+    <div class="corpo">
+      <div class="lado">
+        <h4>Elementos</h4>
+        <div class="item on"><b style="background:var(--agua)"></b>Tubulações · 15</div>
+        <div class="item"><b style="background:var(--tx2)"></b>Nós · 9</div>
+        <div class="item"><b style="background:var(--ok)"></b>Válvulas · 5</div>
+        <div class="item"><b style="background:var(--acento)"></b>Consumidores · 11</div>
+        <div class="item"><b style="background:var(--ruim)"></b>Reservatórios · 1</div>
+      </div>
+      <div class="centro">
+        <div class="kpis">
+          <div class="kpi"><small>Produção</small><strong>51,6</strong> L/s</div>
+          <div class="kpi ruim"><small>Pressão mínima</small><strong>5,2</strong> mca</div>
+          <div class="kpi ok"><small>Reservação</small><strong>41</strong> %</div>
+        </div>
+        <div class="sin"><svg viewBox="0 0 520 170">
+          <path d="M96 40 H170 M262 40 H330 M330 40 V120 H372" fill="none" stroke="var(--tubo)" stroke-width="8" stroke-linecap="round"/>
+          <path d="M96 40 H170 M262 40 H330 M330 40 V120 H372" fill="none" stroke="var(--agua)" stroke-width="2.4" stroke-dasharray="8 8"/>
+          <path d="M330 40 H372" fill="none" stroke="var(--tubo)" stroke-width="8"/><path d="M330 40 H372" fill="none" stroke="var(--agua)" stroke-width="2.4" stroke-dasharray="8 8"/>
+          <g font-family="var(--mono)" font-size="10" fill="var(--tx)">
+            <rect x="10" y="12" width="86" height="56" rx="6" fill="var(--bloco)" stroke="var(--bloco-borda)"/><text x="53" y="36" text-anchor="middle" font-weight="700">C-0001</text><text x="53" y="54" text-anchor="middle" fill="var(--tx2)">51,6 L/s</text>
+            <rect x="170" y="12" width="92" height="56" rx="6" fill="var(--bloco)" stroke="var(--bloco-borda)"/><rect x="180" y="22" width="14" height="38" fill="none" stroke="var(--bloco-borda)"/><rect x="180" y="44" width="14" height="16" fill="var(--agua)"/><text x="230" y="36" text-anchor="middle" font-weight="700">TORRE</text><text x="230" y="54" text-anchor="middle" fill="var(--tx2)">41 %</text>
+            <rect x="372" y="12" width="96" height="56" rx="6" fill="var(--bloco)" stroke="var(--acento)" stroke-width="1.6"/><path d="M386 28l10 7-10 7zM406 28l-10 7 10 7z" fill="var(--ok)"/><text x="440" y="36" text-anchor="middle" font-weight="700">V-0001</text><text x="420" y="58" text-anchor="middle" fill="var(--ruim)">1,7 mca</text>
+            <rect x="372" y="92" width="96" height="56" rx="6" fill="var(--bloco)" stroke="var(--bloco-borda)"/><path d="M384 136v-14h7v14zM394 136v-22h8v22zM405 136v-10h7v10z" fill="var(--agua)"/><text x="440" y="114" text-anchor="middle" font-weight="700">Setor 2</text><text x="440" y="132" text-anchor="middle" fill="var(--ok)">13,3 mca</text>
+          </g>
+          <text x="133" y="32" text-anchor="middle" font-family="var(--mono)" font-size="9.5" fill="var(--tx)">51,6 L/s</text>
+          <text x="296" y="32" text-anchor="middle" font-family="var(--mono)" font-size="9.5" fill="var(--tx)">72,5 L/s</text>
+        </svg></div>
+      </div>
+      <div class="lado dir">
+        <h4>Propriedades · V-0001</h4>
+        <div class="prop"><span>Tipo</span><em>PRV</em></div>
+        <div class="prop"><span>Ajuste</span><em>15,0 mca</em></div>
+        <div class="prop"><span>Diâmetro</span><em>200 mm</em></div>
+        <div class="prop"><span>Setor</span><em>1</em></div>
+        <div class="campo"><span>Status</span><span>ATIVA ▾</span></div>
+        <div class="btn">Aplicar</div>
+      </div>
+    </div>
+    <div class="status"><span>Pronto.</span><span>EPSG:31983</span><span>1:2.500</span></div>
+  </div>
+</template>
+
+<script>
+const TEMAS = [
+  ["t1","Claro Profissional","Branco e cinza com azul de destaque, como o WaterGEMS e o Office. Limpo e familiar para quem passa o dia em planilhas e AutoCAD; o mapa claro fica fácil de ler."],
+  ["t2","Grafite Industrial","Sala de controle: grafite quase preto, âmbar de destaque, cantos retos e letras técnicas em maiúsculas. Cansa pouco a vista em turnos longos e o âmbar chama atenção para o que importa."],
+  ["t3","Planta Azul (blueprint)","A prancha de projeto antiga: fundo azul com quadriculado, traços brancos, nada arredondado. Tem cara de engenharia e é a mais marcante das cinco."],
+  ["t4","Papel Técnico","Creme de papel vegetal, tinta marrom-escura e títulos com serifa, como um memorial impresso. Sóbria e elegante, boa para apresentar a cliente."],
+  ["t5","Verde Saneamento","Branco com verde e azul-água, cantos bem arredondados e letra amigável. Leve e moderna, lembra saneamento e meio ambiente."],
+];
+const tpl=document.getElementById('tela'), alvo=document.getElementById('temas'), nav=document.getElementById('nav');
+TEMAS.forEach(([cls,nome,desc],i)=>{
+  const s=document.createElement('section'); s.id=cls;
+  s.innerHTML=`<div class="tit"><h2>${i+1} · ${nome}</h2></div><p class="desc">${desc}</p><div class="pal"></div>`;
+  const tela=tpl.content.cloneNode(true); const app=tela.querySelector('.app'); app.classList.add(cls);
+  s.appendChild(tela); alvo.appendChild(s);
+  const cs=getComputedStyle(app), pal=s.querySelector('.pal');
+  ['--bg','--painel','--linha','--tx','--acento','--agua','--ok','--ruim'].forEach(v=>{const e=document.createElement('i'); e.style.background=cs.getPropertyValue(v); e.title=v; pal.appendChild(e);});
+  const a=document.createElement('a'); a.href='#'+cls; a.textContent=`${i+1} · ${nome}`; nav.appendChild(a);
+});
+</script>
+</body>
+</html>

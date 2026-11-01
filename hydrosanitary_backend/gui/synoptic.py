@@ -145,7 +145,7 @@ class SynopticView(QWidget):
         bld = QRectF(left, top_h, right - left, band * n)
 
         # terreno
-        p.fillRect(QRectF(0, ground, W, H - ground), QColor("#071631"))
+        p.fillRect(QRectF(0, ground, W, H - ground), QColor(COR["panel2"]))
         p.setPen(QPen(QColor(COR["line"]), 2))
         p.drawLine(QPointF(0, ground), QPointF(W, ground))
 

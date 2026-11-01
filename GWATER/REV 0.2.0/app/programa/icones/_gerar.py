@@ -1,4 +1,7 @@
-"""Gera os ícones SVG da faixa de menus do GWATER.exe (24×24, cores do Centro de Operações).
+"""Gera os ícones SVG da faixa de menus do GWATER.exe (24×24).
+
+Os de traço usam as cores do Centro de Operações (C, W, M, D, B…): ao carregar, tema.icone troca essas cores pelas
+do tema em uso. Os ilustrados (_ilustrados.py) têm cores próprias e valem em qualquer tema.
 
 Uso:  python _gerar.py      (grava os .svg nesta pasta; a marca e o logo vêm de ../../gwater/icones)
 """
@@ -193,6 +196,9 @@ ELEMENTOS = {
     "elem_ponto_cotado": s("M12 4 L20.5 19.5 H3.5 Z", K, 1.3, fill="#c49a5a"),
 }
 ICONES.update(ELEMENTOS)
+# os ilustrados (equipamentos e ações principais, com cores próprias) substituem os de traço
+from _ilustrados import ILUSTRADOS  # noqa: E402
+ICONES.update(ILUSTRADOS)
 
 
 def gravar():

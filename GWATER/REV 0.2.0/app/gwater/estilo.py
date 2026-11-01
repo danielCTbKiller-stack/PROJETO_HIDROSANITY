@@ -13,7 +13,7 @@ COR = {
     "bg": "#050f24", "panel": "#0a1d3e", "panel2": "#0d2650", "line": "#16427a", "grid": "#17345f",
     "text": "#e8f2ff", "muted": "#86a3c9", "cyan": "#35d0ff", "water": "#1d8fd6",
     "ok": "#3ddc97", "warn": "#ffb547", "crit": "#ff6b7a", "violet": "#a78bfa",
-    "btn": "#0b2a58", "btn_on": "#0e4a8c", "chip": "#081833",
+    "btn": "#0b2a58", "btn_on": "#0e4a8c", "chip": "#081833", "sobre": "#ffffff",
 }
 DISPLAY = "Bahnschrift"     # no painel: Rajdhani
 CORPO = "Segoe UI"          # no painel: IBM Plex Sans

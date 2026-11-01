@@ -280,12 +280,20 @@ def _iso_wall_icon(p, s, name):
 
 
 def icon(name: str, size: int = 32) -> QIcon:
+    """Ilustrado (gui/icones_ilustrados.py), quando existe; senão o desenho de traço nas cores do tema."""
+    from gui.icones_ilustrados import svg
     pm = QPixmap(size * 2, size * 2)
     pm.setDevicePixelRatio(2.0)
     pm.fill(Qt.transparent)
     p = QPainter(pm)
     p.setRenderHint(QPainter.Antialiasing)
-    p.translate(size / 2, size / 2)
-    _icon_glyph(p, name, size * 0.92)
+    texto = svg(name)
+    if texto:
+        from PySide6.QtCore import QByteArray, QRectF
+        from PySide6.QtSvg import QSvgRenderer
+        QSvgRenderer(QByteArray(texto.encode())).render(p, QRectF(size * .04, size * .04, size * .92, size * .92))
+    else:
+        p.translate(size / 2, size / 2)
+        _icon_glyph(p, name, size * 0.92)
     p.end()
     return QIcon(pm)
