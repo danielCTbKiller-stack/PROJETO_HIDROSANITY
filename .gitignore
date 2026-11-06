@@ -11,3 +11,8 @@ Modulos/GPREDIAL/dist/
 # logs e atalhos locais
 *.log
 *.lnk
+
+# GFLOOD: ambiente conda (fica em C:\GeoLogicWater, ligado por junção) e saídas dos testes
+Modulos/GFLOOD/runtime
+Modulos/GFLOOD/motores/lisflood/bin/
+Modulos/GFLOOD/motores/lisflood/fonte/
