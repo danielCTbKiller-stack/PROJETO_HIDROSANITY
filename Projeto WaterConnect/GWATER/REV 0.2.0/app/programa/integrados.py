@@ -13,17 +13,16 @@ REV = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))
 
 
 def _raiz():
-    """A pasta com o hub (GeoLogic Water) e a pasta Modulos: procura subindo a partir do GWATER."""
+    """A pasta do hub (Projeto WaterConnect): a primeira acima do GWATER com o programas.json."""
     d = REV
     for _ in range(6):
         d = os.path.dirname(d)
-        if os.path.isfile(os.path.join(d, "GeoLogic Water", "programas.json")):
+        if os.path.isfile(os.path.join(d, "programas.json")):
             return d
     return os.path.dirname(os.path.dirname(REV))
 
 
-RAIZ = _raiz()  # os comandos do programas.json são relativos a ela
-HUB = os.path.join(RAIZ, "GeoLogic Water")
+RAIZ = HUB = _raiz()  # os comandos do programas.json são relativos à pasta do hub
 
 
 def programas():

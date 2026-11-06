@@ -5,14 +5,16 @@ __pycache__/
 .pytest_cache/
 
 # saídas do PyInstaller
-Modulos/GPREDIAL/build/
-Modulos/GPREDIAL/dist/
+Projeto WaterConnect/GPREDIAL/build/
+Projeto WaterConnect/GPREDIAL/dist/
 
 # logs e atalhos locais
 *.log
 *.lnk
 
 # GFLOOD: ambiente conda (fica em C:\GeoLogicWater, ligado por junção) e saídas dos testes
-Modulos/GFLOOD/runtime
-Modulos/GFLOOD/motores/lisflood/bin/
-Modulos/GFLOOD/motores/lisflood/fonte/
+Projeto WaterConnect/GFLOOD/runtime
+Projeto WaterConnect/GFLOOD/motores/lisflood/bin/
+Projeto WaterConnect/GFLOOD/motores/lisflood/fonte/
+Projeto WaterConnect/GFLOOD/motores/lisflood/*.zip
+Projeto WaterConnect/GWATER/REV 0.2.0/cadastro/*_antes_*.gpkg

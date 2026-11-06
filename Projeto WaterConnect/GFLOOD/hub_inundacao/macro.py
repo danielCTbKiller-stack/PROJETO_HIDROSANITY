@@ -1,8 +1,9 @@
 """Adaptador do LISFLOOD-FP (motor macro): gera os arquivos dele, roda o executável e lê os resultados.
 
 O LISFLOOD-FP roda como executável externo (motores/lisflood/bin/lisflood.exe), sem código dele no GFLOOD (licença).
-Solver inercial (ACC, palavra `acceleration`); com `cenario.gpu`, a palavra `cuda` faz ele rodar na placa de vídeo
-(precisa do executável compilado com CUDA).
+Sem GPU, o solver inercial (ACC, palavra `acceleration`). Com `cenario.gpu`, o solver FV1 (equações completas de
+águas rasas, palavra `fv1`) na placa de vídeo (palavra `cuda`): na versão 8 só o FV1 e o DG2 rodam na GPU, e o
+executável precisa ter sido compilado com o CUDA Toolkit.
 
 Arquivos na pasta de trabalho do macro:
   dem.asc, n.asc        terreno e Manning (grade ASCII ESRI, na resolução do macro)
@@ -75,9 +76,8 @@ def gerar(cenario, pasta=None):
         (pasta / "chuva.rain").write_text("\n".join(["GFLOOD - chuva (mm/h)", f"{len(f.chuva)} seconds"] +
                                                   [f"{v:.6g} {t_:.6g}" for t_, v in f.chuva]) + "\n", encoding="utf-8")
         par["rainfall"] = "chuva.rain"
-    linhas = [f"{k:<15} {v}" for k, v in par.items()] + ["acceleration"]  # solver inercial (ACC)
-    if cenario.gpu:
-        linhas.append("cuda")  # o mesmo solver, na placa de vídeo
+    linhas = [f"{k:<15} {v}" for k, v in par.items()]
+    linhas += ["fv1", "cuda"] if cenario.gpu else ["acceleration"]  # GPU: FV1 na placa; CPU: inercial (ACC)
     arq = pasta / "simulacao.par"
     arq.write_text("# GFLOOD - " + cenario.nome + "\n" + "\n".join(linhas) + "\n", encoding="utf-8")
     return arq

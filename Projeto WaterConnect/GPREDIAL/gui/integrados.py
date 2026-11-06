@@ -1,4 +1,4 @@
-"""Programas integrados do GeoLogic Water (lista em GeoLogic Water/programas.json, a pasta do hub).
+"""Programas integrados do GeoLogic Water (lista no programas.json da pasta do hub, Projeto WaterConnect).
 
 A gota no canto da faixa abre `escolher()`: o seletor (gui/seletor.py), com um cartão por programa; clicar abre o
 programa. O GWATER tem o mesmo seletor (GWATER/REV 0.2.0/app/programa/seletor.py), lendo o mesmo arquivo.
@@ -10,10 +10,9 @@ from pathlib import Path
 from gui import theme
 from gui.theme import COR
 
-# a pasta com o hub (GeoLogic Water) e a pasta Modulos: procura subindo a partir do GPREDIAL
-RAIZ = next((d for d in Path(__file__).resolve().parents if (d / "GeoLogic Water" / "programas.json").is_file()),
-            Path(__file__).resolve().parents[2])
-HUB = RAIZ / "GeoLogic Water"
+# a pasta do hub (Projeto WaterConnect): a primeira acima do GPREDIAL com o programas.json
+RAIZ = HUB = next((d for d in Path(__file__).resolve().parents if (d / "programas.json").is_file()),
+                  Path(__file__).resolve().parents[2])
 
 
 def programas():

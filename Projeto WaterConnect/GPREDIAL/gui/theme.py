@@ -1,4 +1,4 @@
-"""Identidade visual: os temas do GeoLogic Water, os mesmos do hub e do GWATER (GeoLogic Water/temas.json).
+"""Identidade visual: os temas do GeoLogic Water, os mesmos do hub e do GWATER (temas.json da pasta do hub).
 
 Cada tema tem cores (nomes do Centro de Operações: cyan = destaque, sobre = texto em cima do destaque), fontes e o
 arredondamento dos cantos. O escolhido em Configurações fica gravado (QSettings, o mesmo do hub) e vale ao abrir
@@ -27,8 +27,7 @@ ESTILO = dict(_ESTILO_ORIGINAL)
 
 def _ler_temas():
     try:
-        arq = next(d / "GeoLogic Water" / "temas.json" for d in Path(__file__).resolve().parents
-                   if (d / "GeoLogic Water" / "temas.json").is_file())
+        arq = next(d / "temas.json" for d in Path(__file__).resolve().parents if (d / "temas.json").is_file())
         d = json.loads(arq.read_text(encoding="utf-8"))
         return d["temas"], d.get("padrao")
     except (OSError, ValueError, KeyError, StopIteration):

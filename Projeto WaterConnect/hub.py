@@ -1,10 +1,10 @@
 """GeoLogic Water: o hub dos programas (GWATER, GPREDIAL e os que vierem).
 
-O hub não tem programa próprio: lê a lista em programas.json (nesta pasta) e abre o escolhido, cada um na sua pasta
-dentro de Modulos/ (GWATER, GPREDIAL, GFLOOD…), ao lado desta. Para integrar outro programa basta acrescentar um item na lista. O tema vem de
+O hub não tem programa próprio: lê a lista em programas.json (nesta pasta, Projeto WaterConnect) e abre o
+escolhido, cada um na sua pasta daqui (GWATER, GPREDIAL, GFLOOD…). Para integrar outro programa basta acrescentar um item na lista. O tema vem de
 temas.json, com a escolha gravada pelo GPREDIAL (Configurações); sem escolha, o padrão (Verde Saneamento).
 
-Uso:  pythonw hub.py        (o "GeoLogic Water.exe" desta pasta faz isso, com o Python do GPREDIAL)
+Uso:  pythonw hub.py        (o "GeoLogic Water.exe" da pasta de cima faz isso, com o Python do GPREDIAL)
 Precisa só do PySide6.
 """
 import json
@@ -18,7 +18,7 @@ from PySide6.QtGui import QColor, QFont, QIcon, QPainter, QPainterPath, QPalette
 from PySide6.QtWidgets import QApplication
 
 AQUI = Path(__file__).resolve().parent
-RAIZ = AQUI.parent  # a pasta com o hub e os programas lado a lado
+RAIZ = AQUI  # os programas ficam em pastas daqui; os comandos do programas.json são relativos a ela
 sys.path.insert(0, str(AQUI))
 import seletor  # noqa: E402  (o mesmo do GWATER e do GPREDIAL)
 

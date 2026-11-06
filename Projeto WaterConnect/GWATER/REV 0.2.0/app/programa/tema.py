@@ -15,7 +15,7 @@ ICONES_NUCLEO = os.path.join(os.path.dirname(os.path.dirname(__file__)), "gwater
 
 
 # ---------------------------------------------------------------- temas (Configurações)
-# Os temas do GeoLogic Water ficam em temas.json, na pasta do hub (GeoLogic Water): o GPREDIAL lê o mesmo. Cada um tem
+# Os temas do GeoLogic Water ficam em temas.json, na pasta do hub (Projeto WaterConnect): o GPREDIAL lê o mesmo. Cada um tem
 # cores, fontes e o arredondamento dos cantos. Sem o arquivo (GWATER sozinho), só o tema original.
 def _ler_temas():
     import json
@@ -23,7 +23,7 @@ def _ler_temas():
     acima = [rev]
     for _ in range(6):
         acima.append(os.path.dirname(acima[-1]))
-    for arq in [os.path.join(d, "GeoLogic Water", "temas.json") for d in acima[1:]] + [os.path.join(rev, "temas.json")]:
+    for arq in [os.path.join(d, "temas.json") for d in acima]:
         try:
             with open(arq, encoding="utf-8") as fh:
                 d = json.load(fh)

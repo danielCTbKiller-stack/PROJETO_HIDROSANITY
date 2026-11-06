@@ -1,11 +1,12 @@
-// GeoLogic Water.exe - abre o hub (hub.py, nesta pasta) sem janela de console.
+// GeoLogic Water.exe (executável mestre, na pasta acima de Projeto WaterConnect) - abre o hub
+// (Projeto WaterConnect\hub.py) sem janela de console.
 //
-// O hub só precisa do PySide6: usa o Python desta pasta (.venv), se houver, ou o do GPREDIAL
-// (..\Modulos\GPREDIAL\.venv).
+// O hub só precisa do PySide6: usa o Python da pasta do hub (.venv), se houver, ou o do GPREDIAL
+// (Projeto WaterConnect\GPREDIAL\.venv).
 // Como roda direto o hub.py, não precisa recompilar quando o hub muda. Erros vão para geologic_water_erros.log.
 //
 // Compilar (o compilador vem com o Windows) - ou rode compilar_lancador.bat:
-//   C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe /target:winexe /out:"..\GeoLogic Water.exe"
+//   C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe /target:winexe /out:"..\..\GeoLogic Water.exe"
 //       /win32icon:geologic.ico /reference:System.Windows.Forms.dll GeoLogicWater.cs
 using System;
 using System.Diagnostics;
@@ -17,17 +18,16 @@ class GeoLogicWater
     [STAThread]
     static void Main(string[] args)
     {
-        string hub = AppDomain.CurrentDomain.BaseDirectory;
-        string raiz = Path.GetFullPath(Path.Combine(hub, ".."));
+        string hub = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Projeto WaterConnect");
         string log = Path.Combine(hub, "geologic_water_erros.log");
         string pythonw = null;
         foreach (string c in new[] { Path.Combine(hub, ".venv", "Scripts", "pythonw.exe"),
-                                     Path.Combine(raiz, "Modulos", "GPREDIAL", ".venv", "Scripts", "pythonw.exe") })
+                                     Path.Combine(hub, "GPREDIAL", ".venv", "Scripts", "pythonw.exe") })
             if (File.Exists(c)) { pythonw = c; break; }
         if (pythonw == null)
         {
             MessageBox.Show("Não encontrei um Python com PySide6 para o hub.\n\n" +
-                            "Instale o GPREDIAL (Modulos\\GPREDIAL\\instalar.bat) ou crie um .venv nesta pasta com o PySide6.",
+                            "Instale o GPREDIAL (Projeto WaterConnect\\GPREDIAL\\instalar.bat) ou crie um .venv nesta pasta com o PySide6.",
                             "GeoLogic Water", MessageBoxButtons.OK, MessageBoxIcon.Error);
             return;
         }

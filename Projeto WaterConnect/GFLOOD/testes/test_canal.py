@@ -69,8 +69,12 @@ def test_chuva_de_projeto():
 def test_arquivos_lisflood(cenario):
     par = macro.gerar(cenario)
     texto = par.read_text(encoding="utf-8")
-    for chave in ("DEMfile", "manningfile", "bcifile", "bdyfile", "sim_time", "saveint", "acceleration", "cuda"):
+    for chave in ("DEMfile", "manningfile", "bcifile", "bdyfile", "sim_time", "saveint", "fv1", "cuda"):
         assert chave in texto, chave
+    assert "acceleration" not in texto                       # na GPU o solver é o FV1
+    cenario.gpu = False
+    assert "acceleration" in macro.gerar(cenario).read_text(encoding="utf-8")   # sem GPU, o inercial (ACC)
+    cenario.gpu = True
     bci = (par.parent / "entrada.bci").read_text(encoding="utf-8").splitlines()
     assert bci[0].startswith("P ") and "QVAR entrada" in bci[0]
     assert bci[1].startswith("E ") and bci[1].endswith("HFIX 96.5")
