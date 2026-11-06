@@ -1,6 +1,7 @@
 // GeoLogic Water.exe - abre o hub (hub.py, nesta pasta) sem janela de console.
 //
-// O hub só precisa do PySide6: usa o Python desta pasta (.venv), se houver, ou o do GPREDIAL (..\GPREDIAL\.venv).
+// O hub só precisa do PySide6: usa o Python desta pasta (.venv), se houver, ou o do GPREDIAL
+// (..\Modulos\GPREDIAL\.venv).
 // Como roda direto o hub.py, não precisa recompilar quando o hub muda. Erros vão para geologic_water_erros.log.
 //
 // Compilar (o compilador vem com o Windows) - ou rode compilar_lancador.bat:
@@ -21,12 +22,12 @@ class GeoLogicWater
         string log = Path.Combine(hub, "geologic_water_erros.log");
         string pythonw = null;
         foreach (string c in new[] { Path.Combine(hub, ".venv", "Scripts", "pythonw.exe"),
-                                     Path.Combine(raiz, "GPREDIAL", ".venv", "Scripts", "pythonw.exe") })
+                                     Path.Combine(raiz, "Modulos", "GPREDIAL", ".venv", "Scripts", "pythonw.exe") })
             if (File.Exists(c)) { pythonw = c; break; }
         if (pythonw == null)
         {
             MessageBox.Show("Não encontrei um Python com PySide6 para o hub.\n\n" +
-                            "Instale o GPREDIAL (GPREDIAL\\instalar.bat) ou crie um .venv nesta pasta com o PySide6.",
+                            "Instale o GPREDIAL (Modulos\\GPREDIAL\\instalar.bat) ou crie um .venv nesta pasta com o PySide6.",
                             "GeoLogic Water", MessageBoxButtons.OK, MessageBoxIcon.Error);
             return;
         }

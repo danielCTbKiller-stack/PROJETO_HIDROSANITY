@@ -1,5 +1,5 @@
 {
-  "_leia": "Programas do GeoLogic Water. O hub (esta pasta) e a gota no canto de cada programa abrem esta lista. Para integrar outro, acrescente um item: comando relativo à raiz do repositório (a pasta acima desta; o primeiro que existir é usado), pasta de trabalho e ícone (rede ou predio).",
+  "_leia": "Programas do GeoLogic Water. O hub (esta pasta) e a gota no canto de cada programa abrem esta lista. Os programas ficam em Modulos/, cada um na sua pasta, com o seu executável. Para integrar outro, acrescente um item: comando relativo à pasta de cima (a raiz; o primeiro que existir é usado), pasta de trabalho e ícone (rede, predio ou inundacao).",
   "programas": [
     {
       "id": "gwater",
@@ -8,10 +8,10 @@
       "icone": "rede",
       "comandos": [
         [
-          "GWATER/REV 0.2.0/GWATER.exe"
+          "Modulos/GWATER/REV 0.2.0/GWATER.exe"
         ]
       ],
-      "pasta": "GWATER/REV 0.2.0"
+      "pasta": "Modulos/GWATER/REV 0.2.0"
     },
     {
       "id": "gpredial",
@@ -20,15 +20,15 @@
       "icone": "predio",
       "comandos": [
         [
-          "GPREDIAL/.venv/Scripts/pythonw.exe",
+          "Modulos/GPREDIAL/.venv/Scripts/pythonw.exe",
           "-m",
           "gui.app"
         ],
         [
-          "GPREDIAL/GPREDIAL.exe"
+          "Modulos/GPREDIAL/GPREDIAL.exe"
         ]
       ],
-      "pasta": "GPREDIAL"
+      "pasta": "Modulos/GPREDIAL"
     }
   ]
 }

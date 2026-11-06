@@ -10,7 +10,9 @@ from pathlib import Path
 from gui import theme
 from gui.theme import COR
 
-RAIZ = Path(__file__).resolve().parents[2]  # raiz do repositório: GeoLogic Water, GWATER e GPREDIAL lado a lado
+# a pasta com o hub (GeoLogic Water) e a pasta Modulos: procura subindo a partir do GPREDIAL
+RAIZ = next((d for d in Path(__file__).resolve().parents if (d / "GeoLogic Water" / "programas.json").is_file()),
+            Path(__file__).resolve().parents[2])
 HUB = RAIZ / "GeoLogic Water"
 
 

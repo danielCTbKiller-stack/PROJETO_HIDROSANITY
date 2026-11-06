@@ -5,8 +5,8 @@ __pycache__/
 .pytest_cache/
 
 # saídas do PyInstaller
-GPREDIAL/build/
-GPREDIAL/dist/
+Modulos/GPREDIAL/build/
+Modulos/GPREDIAL/dist/
 
 # logs e atalhos locais
 *.log

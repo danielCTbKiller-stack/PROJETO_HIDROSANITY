@@ -20,7 +20,10 @@ ICONES_NUCLEO = os.path.join(os.path.dirname(os.path.dirname(__file__)), "gwater
 def _ler_temas():
     import json
     rev = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    for arq in (os.path.join(os.path.dirname(os.path.dirname(rev)), "GeoLogic Water", "temas.json"), os.path.join(rev, "temas.json")):
+    acima = [rev]
+    for _ in range(6):
+        acima.append(os.path.dirname(acima[-1]))
+    for arq in [os.path.join(d, "GeoLogic Water", "temas.json") for d in acima[1:]] + [os.path.join(rev, "temas.json")]:
         try:
             with open(arq, encoding="utf-8") as fh:
                 d = json.load(fh)

@@ -1,7 +1,7 @@
 """GeoLogic Water: o hub dos programas (GWATER, GPREDIAL e os que vierem).
 
 O hub não tem programa próprio: lê a lista em programas.json (nesta pasta) e abre o escolhido, cada um na sua pasta
-(GWATER/, GPREDIAL/…, ao lado desta). Para integrar outro programa basta acrescentar um item na lista. O tema vem de
+dentro de Modulos/ (GWATER, GPREDIAL, GFLOOD…), ao lado desta. Para integrar outro programa basta acrescentar um item na lista. O tema vem de
 temas.json, com a escolha gravada pelo GPREDIAL (Configurações); sem escolha, o padrão (Verde Saneamento).
 
 Uso:  pythonw hub.py        (o "GeoLogic Water.exe" desta pasta faz isso, com o Python do GPREDIAL)

@@ -10,7 +10,19 @@ import subprocess
 from .tema import COR
 
 REV = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # .../GWATER/REV 0.2.0
-RAIZ = os.path.dirname(os.path.dirname(REV))  # raiz do repositório: GeoLogic Water, GWATER e GPREDIAL
+
+
+def _raiz():
+    """A pasta com o hub (GeoLogic Water) e a pasta Modulos: procura subindo a partir do GWATER."""
+    d = REV
+    for _ in range(6):
+        d = os.path.dirname(d)
+        if os.path.isfile(os.path.join(d, "GeoLogic Water", "programas.json")):
+            return d
+    return os.path.dirname(os.path.dirname(REV))
+
+
+RAIZ = _raiz()  # os comandos do programas.json são relativos a ela
 HUB = os.path.join(RAIZ, "GeoLogic Water")
 
 

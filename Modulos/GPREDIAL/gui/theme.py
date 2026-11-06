@@ -27,9 +27,11 @@ ESTILO = dict(_ESTILO_ORIGINAL)
 
 def _ler_temas():
     try:
-        d = json.loads((Path(__file__).resolve().parents[2] / "GeoLogic Water" / "temas.json").read_text(encoding="utf-8"))
+        arq = next(d / "GeoLogic Water" / "temas.json" for d in Path(__file__).resolve().parents
+                   if (d / "GeoLogic Water" / "temas.json").is_file())
+        d = json.loads(arq.read_text(encoding="utf-8"))
         return d["temas"], d.get("padrao")
-    except (OSError, ValueError, KeyError):
+    except (OSError, ValueError, KeyError, StopIteration):
         return {}, None
 
 
