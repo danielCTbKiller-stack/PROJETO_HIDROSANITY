@@ -19,7 +19,16 @@ no `.zip` e, para uso comercial, a autorização dos autores.
 
 ## Compilar com GPU (Windows)
 
-Precisa de Visual Studio (ou Build Tools) com "Desenvolvimento para desktop com C++" (traz o CMake) e do CUDA
-Toolkit da NVIDIA (para os solvers na placa de vídeo). Pelo site dos autores: abrir a pasta `LISFLOOD-FP-trunk` no
-Visual Studio, escolher `msvc-x64-Release` e compilar; sai `out\build\msvc-x64-Release\lisflood.exe`, que vai para
-`bin\`. A palavra `cuda` no `.par` (o GFLOOD põe quando o cenário pede GPU) roda o solver escolhido na placa.
+Precisa de Visual Studio Build Tools 2022 (C++ e CMake) e do CUDA Toolkit da NVIDIA. Extraia o `.zip` em `fonte\`
+e rode `compilar.bat`: ele chama o `corrigir_cuda13.py`, compila e põe o `lisflood.exe` e as DLLs em `bin\`.
+
+O código é de 2020 e o CUDA 13 mudou coisas; o GFLOOD ajusta sem mexer no modelo:
+- `gflood.config.cmake` (no lugar do `config.default.cmake`): compila para a placa desta máquina (`sm_89`, RTX
+  40xx; troque para outra placa), C++17 e o pré-processador moderno do MSVC no CUDA, e `_HAS_STD_BYTE=0`;
+- `corrigir_cuda13.py`: no `helper_cuda.h` da NVIDIA (escolha da placa) troca dois campos que o CUDA 13 tirou;
+  tira do caminho a cópia antiga da biblioteca CUB (`cuda\cub`); e tira de `lisflood.h` as macros de `cbrt`
+  (remendo para Visual Studio antigo, que o CUDA 13 recusa).
+
+Na versão 8, só os solvers **FV1** e **DG2** rodam na GPU (palavra `cuda` no `.par`); o inercial (ACC) roda na CPU.
+O GFLOOD usa FV1 + `cuda` quando o cenário pede GPU, e ACC sem GPU. Conferido no canal sintético
+(`testes\test_canal.py`): o log mostra "Using CUDA device: 0" e os dois solvers dão a mesma mancha.
